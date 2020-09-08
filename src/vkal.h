@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -29,8 +30,8 @@ free(arr)
 #define array_length(arr) \
 sizeof(arr) / sizeof(arr[0])
 
-#define min(a, b) (a < b ? a : b)
-#define max(a, b) (a > b ? a : b)
+//#define min(a, b) (a < b ? a : b)
+//#define max(a, b) (a > b ? a : b)
 
 typedef struct vec2
 {
@@ -393,7 +394,7 @@ typedef struct SwapChainSupportDetails {
 VkalInfo * init_vulkan(GLFWwindow * window, char ** extensions, uint32_t extension_count, char ** instance_extensions, uint32_t instance_extension_count);
 void create_instance(char ** instance_extensions, uint32_t instance_extension_count);
 void pick_physical_device(char ** extensions, uint32_t extension_count);
-int check_validation_layer_support(char const * requested_layer, char ** available_layers, int available_layer_count);
+int check_validation_layer_support(char const * requested_layer, char ** available_layers, uint32_t available_layer_count);
 void create_logical_device(char ** extensions, uint32_t extension_count);
 QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
 void create_swapchain();
@@ -526,7 +527,7 @@ void vkal_record_models_indexed(
 void vkal_bind_descriptor_set(uint32_t image_id, uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count, VkPipelineLayout pipeline_layout);
 void vkal_begin_command_buffer(VkCommandBuffer command_buffer);
 void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass);
-void vkal_render_to_image(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass, RenderImage render_image);
+void vkal_render_to_image(VkCommandBuffer command_buffer, VkRenderPass render_pass, RenderImage render_image);
 void vkal_begin_render_pass(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass);
 void vkal_end(VkCommandBuffer command_buffer);
 void vkal_end_command_buffer(VkCommandBuffer command_buffer);
@@ -579,3 +580,4 @@ void set_image_layout(
 	VkPipelineStageFlags    dst_mask); // = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int free);
 #endif
+

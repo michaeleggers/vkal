@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <assert.h>
 
 #include <vulkan/vulkan.h>
@@ -95,93 +97,93 @@ VkalInfo * init_vulkan(GLFWwindow * window, char ** extensions, uint32_t extensi
 
 void create_instance(char ** instance_extensions, uint32_t instance_extension_count)
 {
-	VkApplicationInfo app_info = {};
-	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	app_info.pApplicationName = "Vkal Application";
-	app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	app_info.pEngineName = "VULKAN.HM.EDU";
-	app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	app_info.apiVersion = VK_API_VERSION_1_2;
+    VkApplicationInfo app_info = {};
+    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    app_info.pApplicationName = "Vkal Application";
+    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.pEngineName = "VULKAN.HM.EDU";
+    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.apiVersion = VK_API_VERSION_1_2;
     
-	VkInstanceCreateInfo create_info = {};
-	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	create_info.pApplicationInfo = &app_info;
+    VkInstanceCreateInfo create_info = {};
+    create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    create_info.pApplicationInfo = &app_info;
     
-	// Query available extensions. Just print them here. Actual extension loading
-	// is being done by glfw below.
-	uint32_t extension_count = 0;
-	vkEnumerateInstanceExtensionProperties(0, &extension_count, 0);
-	VkExtensionProperties * extensions = 0;
-	make_array(extensions, VkExtensionProperties, extension_count)
-		vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions);
-	printf("available instance extensions (%d):\n", extension_count);
-	for (int i = 0; i < extension_count; ++i) {
-		printf("%s\n", (extensions + i)->extensionName);
-	}
-	kill_array(extensions);
+    // Query available extensions. Just print them here. Actual extension loading
+    // is being done by glfw below.
+    uint32_t extension_count = 0;
+    vkEnumerateInstanceExtensionProperties(0, &extension_count, 0);
+    VkExtensionProperties * extensions = 0;
+    make_array(extensions, VkExtensionProperties, extension_count)
+	vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions);
+    printf("available instance extensions (%d):\n", extension_count);
+    for (uint32_t i = 0; i < extension_count; ++i) {
+	printf("%s\n", (extensions + i)->extensionName);
+    }
+    kill_array(extensions);
     
-	// If debug build check if validation layers defined in struct are available and load them
-	uint32_t layer_count = 0;
-	vkEnumerateInstanceLayerProperties(&layer_count, 0);
-	//MemoryArena * arena = create_arena();
-	/*MemoryArena stuff_arena;
-	initialize_arena(&stuff_arena, vkal_memory, 200 * 1024 * 1024);*/
-	VkLayerProperties * layers = (VkLayerProperties*)malloc(layer_count * sizeof(VkLayerProperties));
-	char ** available_layer_names = (char**)malloc(layer_count * sizeof(char*));
+    // If debug build check if validation layers defined in struct are available and load them
+    uint32_t layer_count = 0;
+    vkEnumerateInstanceLayerProperties(&layer_count, 0);
+    //MemoryArena * arena = create_arena();
+    /*MemoryArena stuff_arena;
+      initialize_arena(&stuff_arena, vkal_memory, 200 * 1024 * 1024);*/
+    VkLayerProperties * layers = (VkLayerProperties*)malloc(layer_count * sizeof(VkLayerProperties));
+    char ** available_layer_names = (char**)malloc(layer_count * sizeof(char*));
     
-	vkEnumerateInstanceLayerProperties(&layer_count, layers);
-	printf("\navailable instance layers (%d):\n", layer_count);
-	for (int i = 0; i < layer_count; ++i) {
-		available_layer_names[i] = (layers + i)->layerName;
-		printf("%s\n", (layers + i)->layerName);
-	}
+    vkEnumerateInstanceLayerProperties(&layer_count, layers);
+    printf("\navailable instance layers (%d):\n", layer_count);
+    for (uint32_t i = 0; i < layer_count; ++i) {
+	available_layer_names[i] = (layers + i)->layerName;
+	printf("%s\n", (layers + i)->layerName);
+    }
     
 #ifdef _DEBUG
-	vkal_info.enable_validation_layers = 1;
+    vkal_info.enable_validation_layers = 1;
 #else
-	vkal_info.enable_validation_layers = 0;
+    vkal_info.enable_validation_layers = 0;
 #endif
-	int layer_ok = 0;
-	if (vkal_info.enable_validation_layers) {
-		for (int i = 0; i < array_length(validation_layers); ++i) {
-			layer_ok = check_validation_layer_support(validation_layers[i], available_layer_names, layer_count);
-			if (!layer_ok) {
-				printf("validation layer not available: %s\n", validation_layers[i]);
-				DBG_VULKAN_ASSERT(VK_ERROR_LAYER_NOT_PRESENT, "requested validation layer not present");
-			}
-		}
+    int layer_ok = 0;
+    if (vkal_info.enable_validation_layers) {
+	for (uint32_t i = 0; i < array_length(validation_layers); ++i) {
+	    layer_ok = check_validation_layer_support(validation_layers[i], available_layer_names, layer_count);
+	    if (!layer_ok) {
+		printf("validation layer not available: %s\n", validation_layers[i]);
+		DBG_VULKAN_ASSERT(VK_ERROR_LAYER_NOT_PRESENT, "requested validation layer not present");
+	    }
 	}
-	if (layer_ok) {
-		create_info.enabledLayerCount = array_length(validation_layers);
-		create_info.ppEnabledLayerNames = validation_layers;
-	}
+    }
+    if (layer_ok) {
+	create_info.enabledLayerCount = array_length(validation_layers);
+	create_info.ppEnabledLayerNames = validation_layers;
+    }
     
-	uint32_t glfw_extension_count = 0;
-	char const ** glfw_extensions;
-	glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+    uint32_t glfw_extension_count = 0;
+    char const ** glfw_extensions;
+    glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
 	
-	uint32_t inst_ext_count = glfw_extension_count + instance_extension_count;
-	char ** all_instance_extensions;
-	all_instance_extensions = (char**)malloc(inst_ext_count * sizeof(char*));
-	for (int i = 0; i < inst_ext_count; ++i) {
-		all_instance_extensions[i] = (char*)malloc(256 * sizeof(char));
-	}
-	int i = 0;
-	for (; i < glfw_extension_count; ++i) {
-		strcpy(all_instance_extensions[i], glfw_extensions[i]);
-	}
-	for (int j = 0; i < inst_ext_count; ++i) {
-		strcpy(all_instance_extensions[i], instance_extensions[j++]);
-	}
-	create_info.enabledExtensionCount = inst_ext_count;
-	create_info.ppEnabledExtensionNames = all_instance_extensions;
+    uint32_t inst_ext_count = glfw_extension_count + instance_extension_count;
+    char ** all_instance_extensions;
+    all_instance_extensions = (char**)malloc(inst_ext_count * sizeof(char*));
+    for (uint32_t i = 0; i < inst_ext_count; ++i) {
+	all_instance_extensions[i] = (char*)malloc(256 * sizeof(char));
+    }
+    uint32_t i = 0;
+    for (; i < glfw_extension_count; ++i) {
+	strcpy(all_instance_extensions[i], glfw_extensions[i]);
+    }
+    for (uint32_t j = 0; i < inst_ext_count; ++i) {
+	strcpy(all_instance_extensions[i], instance_extensions[j++]);
+    }
+    create_info.enabledExtensionCount = inst_ext_count;
+    create_info.ppEnabledExtensionNames = (const char * const *)all_instance_extensions;
     
-	DBG_VULKAN_ASSERT(vkCreateInstance(&create_info, 0, &vkal_info.instance), "failed to create VkInstance");
-	for (int i = 0; i < inst_ext_count; ++i) {
-		free(all_instance_extensions[i]);
-	}
+    DBG_VULKAN_ASSERT(vkCreateInstance(&create_info, 0, &vkal_info.instance), "failed to create VkInstance");
+    for (uint32_t i = 0; i < inst_ext_count; ++i) {
+	free(all_instance_extensions[i]);
+    }
 
-	//p.mdalloc(&stuff_arena);
+    //p.mdalloc(&stuff_arena);
 }
 
 
@@ -189,21 +191,22 @@ void create_instance(char ** instance_extensions, uint32_t instance_extension_co
 	
 void init_raytracing()
 {
-	vkal_info.nv_rt_ctx.properties =
-	    (VkPhysicalDeviceRayTracingPropertiesNV){ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV };
-	VkPhysicalDeviceProperties2 properties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
-	properties.pNext = &(vkal_info.nv_rt_ctx.properties);
-	vkGetPhysicalDeviceProperties2(vkal_info.physical_device, &properties);
+    vkal_info.nv_rt_ctx = (NvRaytracingCtx){0};
+    vkal_info.nv_rt_ctx.properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+    VkPhysicalDeviceProperties2 properties = (VkPhysicalDeviceProperties2){0};
+    properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+    properties.pNext = &(vkal_info.nv_rt_ctx.properties);
+    vkGetPhysicalDeviceProperties2(vkal_info.physical_device, &properties);
 
-	/* Init function pointers */
-	vkCreateAccelerationStructureNV_DEF                = (PFN_vkCreateAccelerationStructureNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateAccelerationStructureNV");
-	vkGetAccelerationStructureMemoryRequirementsNV_DEF = (PFN_vkGetAccelerationStructureMemoryRequirementsNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureMemoryRequirementsNV");
-	vkBindAccelerationStructureMemoryNV_DEF            = (PFN_vkBindAccelerationStructureMemoryNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkBindAccelerationStructureMemoryNV");
-	vkGetAccelerationStructureHandleNV_DEF             = (PFN_vkGetAccelerationStructureHandleNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureHandleNV");
-	vkCmdBuildAccelerationStructureNV_DEF              = (PFN_vkCmdBuildAccelerationStructureNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkCmdBuildAccelerationStructureNV");
-	vkCreateRayTracingPipelinesNV_DEF                  = (PFN_vkCreateRayTracingPipelinesNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateRayTracingPipelinesNV");
-	vkCmdTraceRaysNV_DEF                               = (PFN_vkCmdTraceRaysNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkCmdTraceRaysNV");
-	vkGetRayTracingShaderGroupHandlesNV_DEF            = (PFN_vkGetRayTracingShaderGroupHandlesNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetRayTracingShaderGroupHandlesNV");
+    /* Init function pointers */
+    vkCreateAccelerationStructureNV_DEF                = (PFN_vkCreateAccelerationStructureNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateAccelerationStructureNV");
+    vkGetAccelerationStructureMemoryRequirementsNV_DEF = (PFN_vkGetAccelerationStructureMemoryRequirementsNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureMemoryRequirementsNV");
+    vkBindAccelerationStructureMemoryNV_DEF            = (PFN_vkBindAccelerationStructureMemoryNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkBindAccelerationStructureMemoryNV");
+    vkGetAccelerationStructureHandleNV_DEF             = (PFN_vkGetAccelerationStructureHandleNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureHandleNV");
+    vkCmdBuildAccelerationStructureNV_DEF              = (PFN_vkCmdBuildAccelerationStructureNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkCmdBuildAccelerationStructureNV");
+    vkCreateRayTracingPipelinesNV_DEF                  = (PFN_vkCreateRayTracingPipelinesNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateRayTracingPipelinesNV");
+    vkCmdTraceRaysNV_DEF                               = (PFN_vkCmdTraceRaysNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkCmdTraceRaysNV");
+    vkGetRayTracingShaderGroupHandlesNV_DEF            = (PFN_vkGetRayTracingShaderGroupHandlesNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetRayTracingShaderGroupHandlesNV");
 }
 
 // Create an image memory barrier for changing the layout of
@@ -683,53 +686,54 @@ RenderImage create_render_image(uint32_t width, uint32_t height)
 /* BLAS: Contains scene's geometry (vertices, tris, ...) */
 void create_rt_blas(VkGeometryNV * geometries, uint32_t geometryNV_count)
 {
-	vkal_info.nv_rt_ctx.blas_count = geometryNV_count;
-	vkal_info.nv_rt_ctx.blas = (Blas*)malloc(geometryNV_count * sizeof(Blas));
-	for (int i = 0; i < geometryNV_count; ++i) {
-		{
-			VkAccelerationStructureInfoNV acceleration_info = {};
-			acceleration_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-			acceleration_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
-			acceleration_info.instanceCount = 0;
-			acceleration_info.geometryCount = 1;
-			acceleration_info.pGeometries = &geometries[i];
+    vkal_info.nv_rt_ctx.blas_count = geometryNV_count;
+    vkal_info.nv_rt_ctx.blas = (Blas*)malloc(geometryNV_count * sizeof(Blas));
+    for (uint32_t i = 0; i < geometryNV_count; ++i) {
+	{
+	    VkAccelerationStructureInfoNV acceleration_info = {};
+	    acceleration_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+	    acceleration_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
+	    acceleration_info.instanceCount = 0;
+	    acceleration_info.geometryCount = 1;
+	    acceleration_info.pGeometries = &geometries[i];
 
-			VkAccelerationStructureCreateInfoNV acceleration_create_info = {};
-			acceleration_create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
-			acceleration_create_info.info = acceleration_info;
-			DBG_VULKAN_ASSERT(vkCreateAccelerationStructureNV(
-				vkal_info.device,
-				&acceleration_create_info, 0, &vkal_info.nv_rt_ctx.blas[i].accel_structure), "Failed to create blas acceleration structure");
-		}
-
-		{
-			VkAccelerationStructureMemoryRequirementsInfoNV memory_requirements = {};
-			memory_requirements.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
-			memory_requirements.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
-			memory_requirements.accelerationStructure = vkal_info.nv_rt_ctx.blas[i].accel_structure;
-
-			VkMemoryRequirements2 memory_requirements_2 = { VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2 };
-			vkGetAccelerationStructureMemoryRequirementsNV(vkal_info.device, &memory_requirements, &memory_requirements_2);
-
-			uint32_t mem_type_index = check_memory_type_index(
-				memory_requirements_2.memoryRequirements.memoryTypeBits,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-			create_device_memory(
-				memory_requirements_2.memoryRequirements.size,
-				mem_type_index, &vkal_info.nv_rt_ctx.blas[i].device_memory_handle);
-
-			VkBindAccelerationStructureMemoryInfoNV accel_memory_info = {};
-			accel_memory_info.sType = VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
-			accel_memory_info.accelerationStructure = vkal_info.nv_rt_ctx.blas[i].accel_structure;
-			accel_memory_info.memory = get_device_memory(vkal_info.nv_rt_ctx.blas[i].device_memory_handle);
-			DBG_VULKAN_ASSERT(vkBindAccelerationStructureMemoryNV(vkal_info.device, 1, &accel_memory_info),
-				"Failed to bind blas acceleration structure to device memory");
-		}
-
-		DBG_VULKAN_ASSERT(vkGetAccelerationStructureHandleNV(vkal_info.device, vkal_info.nv_rt_ctx.blas[i].accel_structure,
-			sizeof(uint64_t), &vkal_info.nv_rt_ctx.blas[i].handle),
-			"Failed to get handle to blas acceleration structure");
+	    VkAccelerationStructureCreateInfoNV acceleration_create_info = {};
+	    acceleration_create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
+	    acceleration_create_info.info = acceleration_info;
+	    DBG_VULKAN_ASSERT(vkCreateAccelerationStructureNV(
+				  vkal_info.device,
+				  &acceleration_create_info, 0, &vkal_info.nv_rt_ctx.blas[i].accel_structure), "Failed to create blas acceleration structure");
 	}
+
+	{
+	    VkAccelerationStructureMemoryRequirementsInfoNV memory_requirements = {};
+	    memory_requirements.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
+	    memory_requirements.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
+	    memory_requirements.accelerationStructure = vkal_info.nv_rt_ctx.blas[i].accel_structure;
+		    
+	    VkMemoryRequirements2 memory_requirements_2 = (VkMemoryRequirements2){0};
+	    memory_requirements_2.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2;
+	    vkGetAccelerationStructureMemoryRequirementsNV(vkal_info.device, &memory_requirements, &memory_requirements_2);
+		    
+	    uint32_t mem_type_index = check_memory_type_index(
+		memory_requirements_2.memoryRequirements.memoryTypeBits,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	    create_device_memory(
+		memory_requirements_2.memoryRequirements.size,
+		mem_type_index, &vkal_info.nv_rt_ctx.blas[i].device_memory_handle);
+		    
+	    VkBindAccelerationStructureMemoryInfoNV accel_memory_info = {};
+	    accel_memory_info.sType = VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
+	    accel_memory_info.accelerationStructure = vkal_info.nv_rt_ctx.blas[i].accel_structure;
+	    accel_memory_info.memory = get_device_memory(vkal_info.nv_rt_ctx.blas[i].device_memory_handle);
+	    DBG_VULKAN_ASSERT(vkBindAccelerationStructureMemoryNV(vkal_info.device, 1, &accel_memory_info),
+			      "Failed to bind blas acceleration structure to device memory");
+	}
+
+	DBG_VULKAN_ASSERT(vkGetAccelerationStructureHandleNV(vkal_info.device, vkal_info.nv_rt_ctx.blas[i].accel_structure,
+							     sizeof(uint64_t), &vkal_info.nv_rt_ctx.blas[i].handle),
+			  "Failed to get handle to blas acceleration structure");
+    }
 }
 
 /* Create TLAS: Contains scene's object instances. */
@@ -1054,88 +1058,89 @@ void create_rt_command_buffers()
 /* RayTracing Command Buffer generation */
 void build_rt_commandbuffers()
 {
-	VkCommandBufferBeginInfo cmd_buf_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-	VkImageSubresourceRange subresource_rage = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+    VkCommandBufferBeginInfo cmd_buf_info = (VkCommandBufferBeginInfo){0};
+    cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    VkImageSubresourceRange subresource_rage = (VkImageSubresourceRange){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 	
-	for (int i = 0; i < vkal_info.swapchain_image_count; ++i) {
-		vkBeginCommandBuffer(vkal_info.nv_rt_ctx.command_buffers[i], &cmd_buf_info);
+    for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
+	vkBeginCommandBuffer(vkal_info.nv_rt_ctx.command_buffers[i], &cmd_buf_info);
 
-		/* Dispatch RayTracing commands */
-		vkCmdBindPipeline(vkal_info.nv_rt_ctx.command_buffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
-			vkal_info.nv_rt_ctx.pipeline);
-		vkCmdBindDescriptorSets(vkal_info.nv_rt_ctx.command_buffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
-			vkal_info.nv_rt_ctx.pipeline_layout, 0, 2, vkal_info.nv_rt_ctx.descriptor_sets, 0, 0);
+	/* Dispatch RayTracing commands */
+	vkCmdBindPipeline(vkal_info.nv_rt_ctx.command_buffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
+			  vkal_info.nv_rt_ctx.pipeline);
+	vkCmdBindDescriptorSets(vkal_info.nv_rt_ctx.command_buffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
+				vkal_info.nv_rt_ctx.pipeline_layout, 0, 2, vkal_info.nv_rt_ctx.descriptor_sets, 0, 0);
 
-		// Calculate shader binding offsets
-		VkDeviceSize bind_offset_raygen_shader = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize*INDEX_RAYGEN;
-		VkDeviceSize bind_offset_miss_shader = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize*INDEX_MISS;
-		/* NOTE: INDEX_SHADOWMISS is implied here. INDEX_CLOSEST_HIT value is 3, not 2! */
-		VkDeviceSize bind_offset_hit_shader = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize*INDEX_CLOSEST_HIT;
-		VkDeviceSize bind_offset_hit_debug_shader = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize*INDEX_CLOSEST_HIT_DEBUG;
-		VkDeviceSize bind_stride = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize;
-		vkCmdTraceRaysNV(
-			vkal_info.nv_rt_ctx.command_buffers[i],
-			vkal_info.nv_rt_ctx.shader_binding_table.buffer, bind_offset_raygen_shader,
-			vkal_info.nv_rt_ctx.shader_binding_table.buffer, bind_offset_miss_shader, bind_stride,
-			vkal_info.nv_rt_ctx.shader_binding_table.buffer, bind_offset_hit_shader, bind_stride,
-			VK_NULL_HANDLE, 0, 0,
-			VKAL_RT_SIZE_X, VKAL_RT_SIZE_Y, 1);
+	// Calculate shader binding offsets
+	VkDeviceSize bind_offset_raygen_shader = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize*INDEX_RAYGEN;
+	VkDeviceSize bind_offset_miss_shader = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize*INDEX_MISS;
+	/* NOTE: INDEX_SHADOWMISS is implied here. INDEX_CLOSEST_HIT value is 3, not 2! */
+	VkDeviceSize bind_offset_hit_shader = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize*INDEX_CLOSEST_HIT;
+	VkDeviceSize bind_offset_hit_debug_shader = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize*INDEX_CLOSEST_HIT_DEBUG;
+	VkDeviceSize bind_stride = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize;
+	vkCmdTraceRaysNV(
+	    vkal_info.nv_rt_ctx.command_buffers[i],
+	    vkal_info.nv_rt_ctx.shader_binding_table.buffer, bind_offset_raygen_shader,
+	    vkal_info.nv_rt_ctx.shader_binding_table.buffer, bind_offset_miss_shader, bind_stride,
+	    vkal_info.nv_rt_ctx.shader_binding_table.buffer, bind_offset_hit_shader, bind_stride,
+	    VK_NULL_HANDLE, 0, 0,
+	    VKAL_RT_SIZE_X, VKAL_RT_SIZE_Y, 1);
 
-		/* Copy RayTracing output to the target image */
+	/* Copy RayTracing output to the target image */
 
-		// prepare current target image as transfer destination
-		set_image_layout(
-			vkal_info.nv_rt_ctx.command_buffers[i],
-			get_image(vkal_info.nv_rt_ctx.target_image.image),
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			subresource_rage,
-			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+	// prepare current target image as transfer destination
+	set_image_layout(
+	    vkal_info.nv_rt_ctx.command_buffers[i],
+	    get_image(vkal_info.nv_rt_ctx.target_image.image),
+	    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+	    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	    subresource_rage,
+	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-		// prepare raytracing output image as transfer source
-		set_image_layout(
-			vkal_info.nv_rt_ctx.command_buffers[i],
-			get_image(vkal_info.nv_rt_ctx.storage_image.image),
-			VK_IMAGE_LAYOUT_GENERAL,
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			subresource_rage,
-			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+	// prepare raytracing output image as transfer source
+	set_image_layout(
+	    vkal_info.nv_rt_ctx.command_buffers[i],
+	    get_image(vkal_info.nv_rt_ctx.storage_image.image),
+	    VK_IMAGE_LAYOUT_GENERAL,
+	    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+	    subresource_rage,
+	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-		VkImageCopy copy_region = {};
-		copy_region.srcSubresource = (VkImageSubresourceLayers){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-		copy_region.srcOffset = (VkOffset3D){ 0, 0, 0 };
-		copy_region.dstSubresource = (VkImageSubresourceLayers){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-		copy_region.dstOffset = (VkOffset3D){ 0, 0, 0 };
-		copy_region.extent = (VkExtent3D){ VKAL_RT_SIZE_X, VKAL_RT_SIZE_Y, 1 };
-		vkCmdCopyImage(
-			vkal_info.nv_rt_ctx.command_buffers[i],
-			get_image(vkal_info.nv_rt_ctx.storage_image.image), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			get_image(vkal_info.nv_rt_ctx.target_image.image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
+	VkImageCopy copy_region = {};
+	copy_region.srcSubresource = (VkImageSubresourceLayers){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+	copy_region.srcOffset = (VkOffset3D){ 0, 0, 0 };
+	copy_region.dstSubresource = (VkImageSubresourceLayers){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+	copy_region.dstOffset = (VkOffset3D){ 0, 0, 0 };
+	copy_region.extent = (VkExtent3D){ VKAL_RT_SIZE_X, VKAL_RT_SIZE_Y, 1 };
+	vkCmdCopyImage(
+	    vkal_info.nv_rt_ctx.command_buffers[i],
+	    get_image(vkal_info.nv_rt_ctx.storage_image.image), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+	    get_image(vkal_info.nv_rt_ctx.target_image.image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
 
-		// Transition target image back for sampling
-		set_image_layout(
-			vkal_info.nv_rt_ctx.command_buffers[i],
-			get_image(vkal_info.nv_rt_ctx.target_image.image),
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			subresource_rage,
-			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+	// Transition target image back for sampling
+	set_image_layout(
+	    vkal_info.nv_rt_ctx.command_buffers[i],
+	    get_image(vkal_info.nv_rt_ctx.target_image.image),
+	    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+	    subresource_rage,
+	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-		// Transition RayTracing output image back to to general layout
-		set_image_layout(
-			vkal_info.nv_rt_ctx.command_buffers[i],
-			get_image(vkal_info.nv_rt_ctx.storage_image.image),
-			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_IMAGE_LAYOUT_GENERAL,
-			subresource_rage,
-			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+	// Transition RayTracing output image back to to general layout
+	set_image_layout(
+	    vkal_info.nv_rt_ctx.command_buffers[i],
+	    get_image(vkal_info.nv_rt_ctx.storage_image.image),
+	    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+	    VK_IMAGE_LAYOUT_GENERAL,
+	    subresource_rage,
+	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-		vkEndCommandBuffer(vkal_info.nv_rt_ctx.command_buffers[i]);
-	}
+	vkEndCommandBuffer(vkal_info.nv_rt_ctx.command_buffers[i]);
+    }
 }
 
 VkResult map_memory(Buffer * buffer, VkDeviceSize size, VkDeviceSize offset)
@@ -1160,7 +1165,7 @@ void build_rt_acceleration_structure(VkGeometryNV * geometry, uint32_t geometryN
 
 	VkMemoryRequirements2 mem_req_blas;
 	VkDeviceSize biggest_blas_accel = 0;
-	for (int i = 0; i < vkal_info.nv_rt_ctx.blas_count; ++i) {
+	for (uint32_t i = 0; i < vkal_info.nv_rt_ctx.blas_count; ++i) {
 		mem_requirements_info.accelerationStructure = vkal_info.nv_rt_ctx.blas[i].accel_structure;
 		vkGetAccelerationStructureMemoryRequirementsNV(vkal_info.device, &mem_requirements_info, &mem_req_blas);
 		if (mem_req_blas.memoryRequirements.size > biggest_blas_accel) {
@@ -1178,7 +1183,8 @@ void build_rt_acceleration_structure(VkGeometryNV * geometry, uint32_t geometryN
 	Buffer scratch_buffer = vkal_create_buffer(scratch_buffer_size, &scratch_memory, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV);
 
 
-	VkMemoryBarrier memory_barrier = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+	VkMemoryBarrier memory_barrier = (VkMemoryBarrier){0};
+	memory_barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
 	memory_barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
 	memory_barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
 
@@ -1188,7 +1194,7 @@ void build_rt_acceleration_structure(VkGeometryNV * geometry, uint32_t geometryN
 	build_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
 	build_info.geometryCount = 1;
 	VkCommandBuffer command_buffer = create_command_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
-	for (int i = 0; i < geometryNV_count; ++i) {
+	for (uint32_t i = 0; i < geometryNV_count; ++i) {
 		build_info.pGeometries = &geometry[i];
 		vkCmdBuildAccelerationStructureNV(
 			command_buffer,
@@ -1284,11 +1290,11 @@ void create_surface()
 	DBG_VULKAN_ASSERT(result, "failed to create window surface");
 }
 
-int check_validation_layer_support(char const * requested_layer, char ** available_layers, int available_layer_count)
+int check_validation_layer_support(char const * requested_layer, char ** available_layers, uint32_t available_layer_count)
 {
 	char ** current_layer = available_layers;
 	int found = 0;
-	for (int i = 0; i < available_layer_count; ++i) {
+	for (uint32_t i = 0; i < available_layer_count; ++i) {
 		if (!strcmp(*current_layer, requested_layer)) {
 			found = 1;
 			break;
@@ -1319,7 +1325,7 @@ SwapChainSupportDetails query_swapchain_support(VkPhysicalDevice device)
 VkSurfaceFormatKHR choose_swapchain_surface_format(VkSurfaceFormatKHR * available_formats, uint32_t format_count)
 {
 	VkSurfaceFormatKHR * available_format = available_formats;
-	for (int i = 0; i < format_count; ++i) {
+	for (uint32_t i = 0; i < format_count; ++i) {
 		if (available_format->format == VK_FORMAT_R8G8B8A8_UNORM &&
 			available_format->colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
 			return *available_format;
@@ -1333,7 +1339,7 @@ VkPresentModeKHR choose_swapchain_present_mode(VkPresentModeKHR * available_pres
 {
 #if !VKAL_VSYNC_ON
 	VkPresentModeKHR * available_present_mode = available_present_modes;
-	for (int i = 0; i < present_mode_count; ++i) {
+	for (uint32_t i = 0; i < present_mode_count; ++i) {
 		if (*available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
 			return *available_present_mode;
 		}
@@ -1360,7 +1366,7 @@ VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR * capabilities)
 
 void cleanup_swapchain()
 {
-	for (int i = 0; i < vkal_info.framebuffer_count; ++i) {
+	for (uint32_t i = 0; i < vkal_info.framebuffer_count; ++i) {
 		vkDestroyFramebuffer(vkal_info.device, vkal_info.framebuffers[i], 0);
 	}
 	kill_array(vkal_info.framebuffers);
@@ -1368,7 +1374,7 @@ void cleanup_swapchain()
 	vkFreeCommandBuffers(vkal_info.device, vkal_info.command_pools[0], vkal_info.command_buffer_count, vkal_info.command_buffers);
 	kill_array(vkal_info.command_buffers);
     
-	for (int i = 0; i < vkal_info.swapchain_image_count; ++i) {
+	for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
 		vkDestroyImageView(vkal_info.device, vkal_info.swapchain_image_views[i], 0);
 	}
 	kill_array(vkal_info.swapchain_image_views);
@@ -1454,7 +1460,7 @@ void create_image_views()
 {
 	make_array(vkal_info.swapchain_image_views, VkImageView, vkal_info.swapchain_image_count);
     
-	for (int i = 0; i < vkal_info.swapchain_image_count; ++i) {
+	for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
 		VkImageViewCreateInfo create_info = {};
 		create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		create_info.image = vkal_info.swapchain_images[i];
@@ -1859,7 +1865,7 @@ void upload_texture(VkImage const image, uint32_t w, uint32_t h, uint32_t n, uin
 	// Actual upload to GPU
 	VkCommandBufferBeginInfo begin_info = {};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	for (int i = 0; i < vkal_info.command_buffer_count; ++i) {
+	for (uint32_t i = 0; i < vkal_info.command_buffer_count; ++i) {
 		vkBeginCommandBuffer(vkal_info.command_buffers[i], &begin_info);
         
 		VkImageSubresourceRange image_subresource_range = {};
@@ -2000,9 +2006,9 @@ int check_device_extension_support(VkPhysicalDevice device, char ** extensions, 
 	VkExtensionProperties * available_extensions = 0;
 	make_array(available_extensions, VkExtensionProperties, supported_extension_count);
 	vkEnumerateDeviceExtensionProperties(device, 0, &supported_extension_count, available_extensions);
-	int extensions_found = 0;
-	for (int i = 0; i < supported_extension_count; ++i) {
-		for (int k = 0; k < extension_count; ++k) {
+	uint32_t extensions_found = 0;
+	for (uint32_t i = 0; i < supported_extension_count; ++i) {
+		for (uint32_t k = 0; k < extension_count; ++k) {
 			if (!strcmp(available_extensions[i].extensionName, extensions[k])) {
 				printf("requested device extension: %s found!\n", extensions[k]);
 				extensions_found++;
@@ -2012,7 +2018,7 @@ int check_device_extension_support(VkPhysicalDevice device, char ** extensions, 
 		}
         gt_next_extension:;
 	}
-	for (int i = 0; i < extension_count; ++i) {
+	for (uint32_t i = 0; i < extension_count; ++i) {
 		if (extensions_left[i]) {
 			printf("requested extension %s not available!\n", extensions[i]);
 		}
@@ -2030,6 +2036,7 @@ int is_device_suitable(VkPhysicalDevice device, char ** extensions, uint32_t ext
 	vkGetPhysicalDeviceFeatures(device, &device_features);
 	SwapChainSupportDetails swapchain_support = query_swapchain_support(device);
 	int swapchain_adequate = 1;
+	
 	if (!swapchain_support.formats || !swapchain_support.present_modes) {
 		swapchain_adequate = 0;
 	}
@@ -2047,14 +2054,14 @@ QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR su
 	make_array(queue_families, VkQueueFamilyProperties, queue_family_count);
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families);
 	indicies.has_graphics_family = 0;
-	for (int i = 0; i < queue_family_count; ++i) {
+	for (uint32_t i = 0; i < queue_family_count; ++i) {
 		if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 			indicies.graphics_family = i;
 			indicies.has_graphics_family = 1;
 			break;
 		}
 	}
-	for (int i = 0; i < queue_family_count; ++i) {
+	for (uint32_t i = 0; i < queue_family_count; ++i) {
 		VkBool32 present_support = VK_FALSE;
 		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &present_support);
 		if (present_support) {
@@ -2068,37 +2075,37 @@ QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR su
 
 void pick_physical_device(char ** extensions, uint32_t extension_count)
 {
-	uint32_t device_count = 0;
-	vkEnumeratePhysicalDevices(vkal_info.instance, &device_count, 0);
-	if (!device_count) {
-		printf("No GPU with Vulkan support found\n");
-		exit(-1);
-	}
-	VkPhysicalDevice * physical_devices = 0;
-	make_array(physical_devices, VkPhysicalDevice, device_count);
-	vkEnumeratePhysicalDevices(vkal_info.instance, &device_count, physical_devices);
-	int current_best_device = 0;
-	for (int i = 0; i < device_count; ++i) {
-		VkPhysicalDeviceProperties physical_device_property = {};
-		vkGetPhysicalDeviceProperties(physical_devices[i], &physical_device_property);
-		printf("physical device found: %s\n", physical_device_property.deviceName);
-		if (is_device_suitable(physical_devices[i], extensions, extension_count), extensions, extension_count) {
-			int current_device_rating = rate_device(physical_devices[i]);
-			if (current_device_rating > current_best_device) {
-				QueueFamilyIndicies indicies = find_queue_families(physical_devices[i], vkal_info.surface);
-				if (indicies.has_graphics_family && indicies.has_present_family) {
-					vkal_info.physical_device = physical_devices[i];
-					vkal_info.physical_device_properties = physical_device_property;
-					current_best_device = current_device_rating;
-				}
-			}
+    uint32_t device_count = 0;
+    vkEnumeratePhysicalDevices(vkal_info.instance, &device_count, 0);
+    if (!device_count) {
+	printf("No GPU with Vulkan support found\n");
+	exit(-1);
+    }
+    VkPhysicalDevice * physical_devices = 0;
+    make_array(physical_devices, VkPhysicalDevice, device_count);
+    vkEnumeratePhysicalDevices(vkal_info.instance, &device_count, physical_devices);
+    int current_best_device = 0;
+    for (uint32_t i = 0; i < device_count; ++i) {
+	VkPhysicalDeviceProperties physical_device_property = {};
+	vkGetPhysicalDeviceProperties(physical_devices[i], &physical_device_property);
+	printf("physical device found: %s\n", physical_device_property.deviceName);
+	if (is_device_suitable(physical_devices[i], extensions, extension_count), extensions, extension_count) {
+	    int current_device_rating = rate_device(physical_devices[i]);
+	    if (current_device_rating > current_best_device) {
+		QueueFamilyIndicies indicies = find_queue_families(physical_devices[i], vkal_info.surface);
+		if (indicies.has_graphics_family && indicies.has_present_family) {
+		    vkal_info.physical_device = physical_devices[i];
+		    vkal_info.physical_device_properties = physical_device_property;
+		    current_best_device = current_device_rating;
 		}
+	    }
 	}
-	if (vkal_info.physical_device == VK_NULL_HANDLE) {
-		printf("failed to find suitable GPU\n");
-		exit(-1);
-	}
-	printf("device picked: %s\n", vkal_info.physical_device_properties.deviceName);
+    }
+    if (vkal_info.physical_device == VK_NULL_HANDLE) {
+	printf("failed to find suitable GPU\n");
+	exit(-1);
+    }
+    printf("device picked: %s\n", vkal_info.physical_device_properties.deviceName);
 }
 
 void create_logical_device(char ** extensions, uint32_t extension_count)
@@ -2114,7 +2121,7 @@ void create_logical_device(char ** extensions, uint32_t extension_count)
 		info_count = 1;
 	}
 	float queue_prio = 1.f;
-	for (int i = 0; i < info_count; ++i) {
+	for (uint32_t i = 0; i < info_count; ++i) {
 	    queue_create_infos[i] = (VkDeviceQueueCreateInfo){0};
 		queue_create_infos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 		queue_create_infos[i].queueFamilyIndex = unique_queue_families[i];
@@ -2133,7 +2140,7 @@ void create_logical_device(char ** extensions, uint32_t extension_count)
 	create_info.queueCreateInfoCount = info_count;
 	create_info.pEnabledFeatures = &device_features;
 	create_info.enabledExtensionCount = extension_count;
-	create_info.ppEnabledExtensionNames = extensions;
+	create_info.ppEnabledExtensionNames = (const char * const *)extensions;
 	// device specific validation layers are deprecated.
 	// just specify for compatib. reasons:
 	if (vkal_info.enable_validation_layers) {
@@ -2689,7 +2696,7 @@ void create_framebuffer()
     
 	uint32_t framebuffer_count = 0;
 	make_array(vkal_info.framebuffers, VkFramebuffer, vkal_info.swapchain_image_count);
-	for (int i = 0; i < vkal_info.swapchain_image_count; ++i) {
+	for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
 		attachments[0] = vkal_info.swapchain_image_views[i]; 
 		attachments[1] = get_image_view(vkal_info.depth_stencil_image_view);
 		VkFramebufferCreateInfo framebuffer_info = {};
@@ -3178,7 +3185,8 @@ VkCommandBuffer create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uin
 					       &command_buffer), "Failed to allocate command buffer from pool");
 
     if (begin) {
-	VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	VkCommandBufferBeginInfo begin_info = {0};
+	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	DBG_VULKAN_ASSERT(vkBeginCommandBuffer(command_buffer, &begin_info),
 			  "Failed to begin command buffer recording");
     }
@@ -3235,8 +3243,9 @@ void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass 
     pass_begin_info.framebuffer = vkal_info.framebuffers[image_id];
     pass_begin_info.renderArea.offset = (VkOffset2D){ 0, 0 };
     pass_begin_info.renderArea.extent = vkal_info.swapchain_extent;
-    //VkClearValue clear_values[] = { { .2f, .2f, .2f, 1.f },{ 1.f, 0.f } };
-    VkClearValue clear_values[] = { { 1.f, 1.f, 1.f, 1.f },{ 1.f, 0.f } };
+    VkClearValue clear_values[2];
+    clear_values[0].color = (VkClearColorValue){ 1.f, 1.f, 1.f, 1.f };
+    clear_values[1].depthStencil  = (VkClearDepthStencilValue){ 1.0f, 0 };
 
     pass_begin_info.clearValueCount = 2;
     pass_begin_info.pClearValues = clear_values;
@@ -3251,8 +3260,9 @@ void vkal_begin_render_pass(uint32_t image_id, VkCommandBuffer command_buffer, V
     pass_begin_info.framebuffer = vkal_info.framebuffers[image_id];
     pass_begin_info.renderArea.offset = (VkOffset2D){ 0, 0 };
     pass_begin_info.renderArea.extent = vkal_info.swapchain_extent;
-    //VkClearValue clear_values[] = { { .2f, .2f, .2f, 1.f },{ 1.f, 0.f } };
-    VkClearValue clear_values[] = { { 1.f, 1.f, 1.f, 1.f },{ 1.f, 0.f } };
+    VkClearValue clear_values[2];
+    clear_values[0].color = (VkClearColorValue){ 1.f, 1.f, 1.f, 1.f };
+    clear_values[1].depthStencil  = (VkClearDepthStencilValue){ 1.0f, 0 };
 
     pass_begin_info.clearValueCount = 2;
     pass_begin_info.pClearValues = clear_values;
@@ -3266,7 +3276,7 @@ void vkal_begin_command_buffer(VkCommandBuffer command_buffer)
     vkBeginCommandBuffer(command_buffer, &begin_info);
 }
 
-void vkal_render_to_image(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass, RenderImage render_image)
+void vkal_render_to_image(VkCommandBuffer command_buffer, VkRenderPass render_pass, RenderImage render_image)
 {
     VkRenderPassBeginInfo pass_begin_info = {0};
     pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -3275,8 +3285,9 @@ void vkal_render_to_image(uint32_t image_id, VkCommandBuffer command_buffer, VkR
     pass_begin_info.renderArea.offset = (VkOffset2D){ 0, 0 };
     VkExtent2D extent = { render_image.width, render_image.height };
     pass_begin_info.renderArea.extent = extent;
-    //VkClearValue clear_values[] = { { .2f, .2f, .2f, 1.f },{ 1.f, 0.f } };
-    VkClearValue clear_values[] = { { 1.f, 1.f, 1.f, 1.f },{ 1.f, 0.f } };
+    VkClearValue clear_values[2];
+    clear_values[0].color = (VkClearColorValue){ 1.f, 1.f, 1.f, 1.f };
+    clear_values[1].depthStencil  = (VkClearDepthStencilValue){ 1.0f, 0 };
 
     pass_begin_info.clearValueCount = 2;
     pass_begin_info.pClearValues = clear_values;
@@ -3786,7 +3797,7 @@ uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkD
     // copy vertex buffer data from staging memory (host visible) to device local memory for every command buffer
     VkCommandBufferBeginInfo begin_info = {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    for (int i = 0; i < vkal_info.command_buffer_count; ++i) {
+    for (uint32_t i = 0; i < vkal_info.command_buffer_count; ++i) {
 	vkBeginCommandBuffer(vkal_info.command_buffers[i], &begin_info);
 	VkBufferCopy buffer_copy = {};
 	buffer_copy.dstOffset = offset;
@@ -3863,7 +3874,7 @@ uint32_t vkal_index_buffer_add(uint32_t * indices, uint32_t index_count)
     uint32_t offset = vkal_info.index_buffer_offset;
     VkCommandBufferBeginInfo begin_info = {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    for (int i = 0; i < vkal_info.command_buffer_count; ++i) {
+    for (uint32_t i = 0; i < vkal_info.command_buffer_count; ++i) {
 	vkBeginCommandBuffer(vkal_info.command_buffers[i], &begin_info);
 	VkBufferCopy buffer_copy = {};
 	buffer_copy.dstOffset = offset;
@@ -3893,10 +3904,10 @@ void vkal_cleanup() {
     static int memory_destroyed = 0;
     vkQueueWaitIdle(vkal_info.graphics_queue);
 
-    for (int i = 0; i < vkal_info.swapchain_image_count; ++i) {
+    for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
 	vkDestroyImageView(vkal_info.device, vkal_info.swapchain_image_views[i], 0);
     }
-    for (int i = 0; i < vkal_info.framebuffer_count; ++i) {
+    for (uint32_t i = 0; i < vkal_info.framebuffer_count; ++i) {
 	vkDestroyFramebuffer(vkal_info.device, vkal_info.framebuffers[i], 0);
     }
     vkDestroyRenderPass(vkal_info.device, vkal_info.render_pass, 0);
@@ -3908,17 +3919,17 @@ void vkal_cleanup() {
     glfwDestroyWindow(vkal_info.window);
     vkDestroySurfaceKHR(vkal_info.instance, vkal_info.surface, 0);
 	
-    for (int i = 0; i < vkal_info.commandpool_count; ++i) {
+    for (uint32_t i = 0; i < vkal_info.commandpool_count; ++i) {
 	vkFreeCommandBuffers(vkal_info.device, vkal_info.command_pools[0], 1, &vkal_info.command_buffers[i]);
     }
-    for (int i = 0; i < vkal_info.commandpool_count; ++i) {
+    for (uint32_t i = 0; i < vkal_info.commandpool_count; ++i) {
 	vkDestroyCommandPool(vkal_info.device, vkal_info.command_pools[i], 0);
     }
 
     vkDestroySemaphore(vkal_info.device, vkal_info.present_complete_semaphore, 0);
     vkDestroySemaphore(vkal_info.device, vkal_info.render_complete_semaphore, 0);
 	
-    for (int i = 0; i < VKAL_MAX_VKDEVICEMEMORY; ++i) {
+    for (uint32_t i = 0; i < VKAL_MAX_VKDEVICEMEMORY; ++i) {
 	destroy_device_memory(i);
 	memory_destroyed++;
     }
@@ -3934,34 +3945,34 @@ void vkal_cleanup() {
     vkDestroyBuffer(vkal_info.device, vkal_info.index_buffer.buffer, 0);
     vkDestroyBuffer(vkal_info.device, vkal_info.staging_buffer.buffer, 0);
     
-    for (int i = 0; i < VKAL_MAX_VKIMAGEVIEW; ++i) {
+    for (uint32_t i = 0; i < VKAL_MAX_VKIMAGEVIEW; ++i) {
 	destroy_image_view(i);
     }
-    for (int i = 0; i < VKAL_MAX_VKIMAGE; ++i) {
+    for (uint32_t i = 0; i < VKAL_MAX_VKIMAGE; ++i) {
 	destroy_image(i);
     }
 
-    for (int i = 0; i < VKAL_MAX_VKSHADERMODULE; ++i) {
+    for (uint32_t i = 0; i < VKAL_MAX_VKSHADERMODULE; ++i) {
 	destroy_shader_module(i);
     }
 
-    for (int i = 0; i < VKAL_MAX_VKPIPELINELAYOUT; ++i) {
+    for (uint32_t i = 0; i < VKAL_MAX_VKPIPELINELAYOUT; ++i) {
 	destroy_pipeline_layout(i);
     }
 
-    for (int i = 0; i < VKAL_MAX_VKDESCRIPTORSETLAYOUT; ++i) {
+    for (uint32_t i = 0; i < VKAL_MAX_VKDESCRIPTORSETLAYOUT; ++i) {
 	destroy_descriptor_set_layout(i);
     }
 
-    for (int i = 0; i < VKAL_MAX_VKPIPELINE; ++i) {
+    for (uint32_t i = 0; i < VKAL_MAX_VKPIPELINE; ++i) {
 	destroy_graphics_pipeline(i);
     }
 
-    for (int i = 0; i < VKAL_MAX_VKSAMPLER; ++i) {
+    for (uint32_t i = 0; i < VKAL_MAX_VKSAMPLER; ++i) {
 	destroy_sampler(i);
     }
 
-    for (int i = 0; i < VKAL_MAX_VKFRAMEBUFFER; ++i) {
+    for (uint32_t i = 0; i < VKAL_MAX_VKFRAMEBUFFER; ++i) {
 	destroy_framebuffer(i);
     }
 
