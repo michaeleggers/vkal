@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
 
 #define VKAL_SCREEN_WIDTH  1920
 #define VKAL_SCREEN_HEIGHT 1080
@@ -274,7 +275,7 @@ typedef struct OffscreenPass {
 
 typedef struct VkalInfo
 {
-	void * window;
+	GLFWwindow * window;
 	VkInstance instance;
 	int enable_validation_layers;
 
@@ -389,7 +390,7 @@ typedef struct SwapChainSupportDetails {
 	uint32_t present_mode_count;
 } SwapChainSupportDetails;
 
-VkalInfo * init_vulkan(void * window, char ** extensions, uint32_t extension_count, char ** instance_extensions, uint32_t instance_extension_count);
+VkalInfo * init_vulkan(GLFWwindow * window, char ** extensions, uint32_t extension_count, char ** instance_extensions, uint32_t instance_extension_count);
 void create_instance(char ** instance_extensions, uint32_t instance_extension_count);
 void pick_physical_device(char ** extensions, uint32_t extension_count);
 int check_validation_layer_support(char const * requested_layer, char ** available_layers, int available_layer_count);

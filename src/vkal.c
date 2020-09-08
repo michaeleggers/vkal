@@ -1,5 +1,8 @@
 #include <assert.h>
 
+#include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
+
 #include "vkal.h"
 #include "platform.h"
 
@@ -46,7 +49,7 @@ PFN_vkCmdTraceRaysNV                                   vkCmdTraceRaysNV_DEF;
 PFN_vkSetDebugUtilsObjectNameEXT                       vkSetDebugUtilsObjectNameEXT_DEF;
 #define vkSetDebugUtilsObjectNameEXT                   vkSetDebugUtilsObjectNameEXT_DEF
 
-VkalInfo * init_vulkan(void * window, char ** extensions, uint32_t extension_count, char ** instance_extensions, uint32_t instance_extension_count)
+VkalInfo * init_vulkan(GLFWwindow * window, char ** extensions, uint32_t extension_count, char ** instance_extensions, uint32_t instance_extension_count)
 {
 	vkal_info.window = window;
 	vkal_info.mapped_uniform_memory = 0;
