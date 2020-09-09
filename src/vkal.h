@@ -208,7 +208,7 @@ typedef struct GeometryInstance
 #define VKAL_VSYNC_ON					0
 #define VKAL_SHADOW_MAP_DIMENSION		2048
 
-static const char * validation_layers[] = {
+static const char * instance_layers[] = {
     //"VK_LAYER_KHRONOS_validation",
     //"VK_LAYER_RENDERDOC_Capture"
     "VK_LAYER_LUNARG_standard_validation",
@@ -278,7 +278,7 @@ typedef struct VkalInfo
 {
 	GLFWwindow * window;
 	VkInstance instance;
-	int enable_validation_layers;
+	int enable_instance_layers;
 
         VkalDeviceMemoryHandle user_device_memory[VKAL_MAX_VKDEVICEMEMORY];
 	uint32_t               user_device_memory_id;

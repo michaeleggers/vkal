@@ -139,23 +139,23 @@ void create_instance(char ** instance_extensions, uint32_t instance_extension_co
     }
     
 #ifdef _DEBUG
-    vkal_info.enable_validation_layers = 1;
+    vkal_info.enable_instance_layers = 1;
 #else
-    vkal_info.enable_validation_layers = 0;
+    vkal_info.enable_instance_layers = 0;
 #endif
     int layer_ok = 0;
-    if (vkal_info.enable_validation_layers) {
-	for (uint32_t i = 0; i < array_length(validation_layers); ++i) {
-	    layer_ok = check_validation_layer_support(validation_layers[i], available_layer_names, layer_count);
+    if (vkal_info.enable_instance_layers) {
+	for (uint32_t i = 0; i < array_length(instance_layers); ++i) {
+	    layer_ok = check_validation_layer_support(instance_layers[i], available_layer_names, layer_count);
 	    if (!layer_ok) {
-		printf("validation layer not available: %s\n", validation_layers[i]);
+		printf("validation layer not available: %s\n", instance_layers[i]);
 		DBG_VULKAN_ASSERT(VK_ERROR_LAYER_NOT_PRESENT, "requested validation layer not present");
 	    }
 	}
     }
     if (layer_ok) {
-	create_info.enabledLayerCount = array_length(validation_layers);
-	create_info.ppEnabledLayerNames = validation_layers;
+	create_info.enabledLayerCount = array_length(instance_layers);
+	create_info.ppEnabledLayerNames = instance_layers;
     }
     
     uint32_t glfw_extension_count = 0;
@@ -2143,9 +2143,9 @@ void create_logical_device(char ** extensions, uint32_t extension_count)
 	create_info.ppEnabledExtensionNames = (const char * const *)extensions;
 	// device specific validation layers are deprecated.
 	// just specify for compatib. reasons:
-	if (vkal_info.enable_validation_layers) {
-		create_info.enabledLayerCount = array_length(validation_layers);
-		create_info.ppEnabledLayerNames = validation_layers;
+	if (vkal_info.enable_instance_layers) {
+		create_info.enabledLayerCount = array_length(instance_layers);
+		create_info.ppEnabledLayerNames = instance_layers;
 	}
 	else {
 		create_info.enabledLayerCount = 0;
