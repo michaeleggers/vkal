@@ -484,7 +484,7 @@ void destroy_pipeline_layout(uint32_t id);
 VkPipelineLayout get_pipeline_layout(uint32_t id);
 VkDeviceMemory allocate_memory(uint32_t size, uint32_t mem_type_bits);
 void create_device_memory(uint32_t size, uint32_t mem_type_bits, uint32_t * out_memory_id);
-void destroy_device_memory(uint32_t id);
+uint32_t destroy_device_memory(uint32_t id);
 VkDeviceMemory get_device_memory(uint32_t id);
 VkWriteDescriptorSet create_write_descriptor_set_image(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,
 	uint32_t count, VkDescriptorType type, VkDescriptorImageInfo * image_info);

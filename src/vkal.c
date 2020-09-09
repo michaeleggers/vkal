@@ -6,9 +6,7 @@
 #include <GLFW/glfw3.h>
 
 #include "vkal.h"
-#include "platform.h"
 
-static Platform p;
 static void * vkal_memory;
 static VkalInfo vkal_info;
 static Texture g_texture;
@@ -55,9 +53,6 @@ VkalInfo * vkal_init_glfw3(GLFWwindow * window, char ** extensions, uint32_t ext
 {
 	vkal_info.window = window;
 	vkal_info.mapped_uniform_memory = 0;
-    
-	init_platform(&p);
-	//vkal_memory = p.initialize_memory(1000 * 1024 * 1024);
 
 	create_instance(instance_extensions, instance_extension_count);
 #ifdef _DEBUG
@@ -182,8 +177,6 @@ void create_instance(char ** instance_extensions, uint32_t instance_extension_co
     for (uint32_t i = 0; i < inst_ext_count; ++i) {
 	free(all_instance_extensions[i]);
     }
-
-    //p.mdalloc(&stuff_arena);
 }
 
 
@@ -893,7 +886,6 @@ void create_rt_descriptor_sets(VkDescriptorSetLayout * layouts, uint32_t layout_
 		1 + layout_count,
 		&vkal_info.nv_rt_ctx.descriptor_sets
 	);
-	//p.mdalloc(&arena);
 
 	/* TLAS Write Info */
 	VkWriteDescriptorSetAccelerationStructureNV desc_acceleration_info = { 0 };
@@ -964,11 +956,7 @@ void create_rt_pipeline(VkDescriptorSetLayout * layouts, uint32_t layout_count)
 	int chit_code_size = 0;
 	int shadowmiss_code_size = 0;
 	int chit_debug_code_size = 0;
-	p.rfb("shaders/raygen.rgen.spv", &rgen_code, &rgen_code_size);
-	p.rfb("shaders/miss.rmiss.spv", &rmiss_code, &rmiss_code_size);
-	p.rfb("shaders/closesthit.rchit.spv", &chit_code, &chit_code_size);
-	p.rfb("shaders/shadowmiss.rmiss.spv", &shadowmiss_code, &shadowmiss_code_size);
-	p.rfb("shaders/closesthit_debug.rchit.spv", &chit_debug_code, &chit_debug_code_size);
+// TODO: load shaders from spirv bytecode.
 	uint32_t rgen_module;
 	uint32_t rmiss_module;
 	uint32_t chit_module;
@@ -3662,12 +3650,15 @@ VkDeviceMemory get_device_memory(uint32_t id)
     return vkal_info.user_device_memory[id].device_memory;
 }
 
-void destroy_device_memory(uint32_t id)
+uint32_t destroy_device_memory(uint32_t id)
 {
+    uint32_t is_destroyed = 0;
     if (vkal_info.user_device_memory[id].used) {
 	vkFreeMemory(vkal_info.device, get_device_memory(id), 0);
 	vkal_info.user_device_memory[id].used = 0;
+	is_destroyed = 1;
     }
+    return is_destroyed;
 }
 
 
@@ -3930,8 +3921,9 @@ void vkal_cleanup() {
     vkDestroySemaphore(vkal_info.device, vkal_info.render_complete_semaphore, 0);
 	
     for (uint32_t i = 0; i < VKAL_MAX_VKDEVICEMEMORY; ++i) {
-	destroy_device_memory(i);
-	memory_destroyed++;
+	if ( destroy_device_memory(i) ) {
+	    memory_destroyed++;
+	}
     }
     vkFreeMemory(vkal_info.device, vkal_info.device_memory_staging, 0); memory_destroyed++;
     vkFreeMemory(vkal_info.device, vkal_info.device_memory_index, 0); memory_destroyed++;
