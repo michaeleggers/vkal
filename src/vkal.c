@@ -3,7 +3,13 @@
 #include <assert.h>
 
 #include <vulkan/vulkan.h>
-#include <GLFW/glfw3.h>
+
+#if defined (VKAL_GLFW)
+    #include <GLFW/glfw3.h>
+#elif defined (VKAL_SDL)
+//TODO: implement
+
+#endif
 
 #include "vkal.h"
 

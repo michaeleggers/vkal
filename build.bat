@@ -10,12 +10,12 @@ set vulkan_lib_64=  %VK_SDK_PATH%\Lib
 set glfw_include= ..\src\external\glfw
 set glfw_lib_64=  ..\src\external\glfw\lib
 
-set flags_debug=   -std=c99 -m64 -Wall -Wextra -pedantic-errors -fextended-identifiers -Wno-unused-parameter -Wno-unused-variable -Wno-missing-braces -g -D DEBUG -I%vulkan_include% -I%glfw_include%
+set flags_debug=   -std=c99 -m64 -Wall -Wextra -pedantic-errors -fextended-identifiers -Wno-unused-parameter -Wno-unused-variable -Wno-missing-braces -g -D DEBUG -D VKAL_GLFW -I%vulkan_include% -I%glfw_include%
 set flags_release=   -std=c99 -Wall -Wextra -pedantic-errors -fextended-identifiers
 
 
 set clang_flags_debug= /TC /Z7 /DDEBUG /W4 /WX /MDd -Qunused-arguments
-set clang_flags_debug_easy= /TC /Z7 /DDEBUG /W4 /MDd -Qunused-arguments -Wno-unused-variable -ferror-limit=100
+set clang_flags_debug_easy= /TC /Z7 /DDEBUG /W4 /MDd -DVKAL_GLFW -Qunused-arguments -Wno-unused-variable -ferror-limit=100
 set clang_flags_release= /TC /O2 /W4 /MD -Qunused-arguments -Wno-unused-variable
 
 set tcc_flags_debug= -Wall -g

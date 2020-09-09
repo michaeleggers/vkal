@@ -7,7 +7,13 @@
 #include <stdint.h>
 
 #include <vulkan/vulkan.h>
-#include <GLFW/glfw3.h>
+
+#if defined (VKAL_GLFW)
+    #include <GLFW/glfw3.h>
+#elif defined (VKAL_SDL)
+//TODO: implement
+
+#endif
 
 #define VKAL_SCREEN_WIDTH  1920
 #define VKAL_SCREEN_HEIGHT 1080
