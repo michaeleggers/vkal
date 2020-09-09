@@ -27,17 +27,17 @@ if (result != VK_SUCCESS) { \
     exit(-1); \
 }
 
-#define make_array(arr, type, count) \
+#define VKAL_MAKE_ARRAY(arr, type, count) \
 arr = (type *)malloc(count * sizeof(type));
 
-#define kill_array(arr) \
+#define VKAL_KILL_ARRAY(arr) \
 free(arr)
 
-#define array_length(arr) \
+#define VKAL_ARRAY_LENGTH(arr) \
 sizeof(arr) / sizeof(arr[0])
 
-#define vkal_min(a, b) (a < b ? a : b)
-#define vkal_max(a, b) (a > b ? a : b)
+#define VKAL_MIN(a, b) (a < b ? a : b)
+#define VKAL_MAX(a, b) (a > b ? a : b)
 
 typedef struct vec2
 {
