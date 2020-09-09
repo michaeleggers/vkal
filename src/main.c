@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include <GLFW/glfw3.h>
+
 #include "vkal.h"
 
 static GLFWwindow * window;
@@ -32,7 +34,7 @@ int main(int argc, char ** argv)
 #endif
     };
     uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
-    VkalInfo * vkal_info =  init_vulkan(
+    VkalInfo * vkal_info =  vkal_init_glfw3(
 	window, 
 	device_extensions, device_extension_count,
 	instance_extensions, instance_extension_count);

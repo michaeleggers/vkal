@@ -30,8 +30,8 @@ free(arr)
 #define array_length(arr) \
 sizeof(arr) / sizeof(arr[0])
 
-//#define min(a, b) (a < b ? a : b)
-//#define max(a, b) (a > b ? a : b)
+#define vkal_min(a, b) (a < b ? a : b)
+#define vkal_max(a, b) (a > b ? a : b)
 
 typedef struct vec2
 {
@@ -391,7 +391,7 @@ typedef struct SwapChainSupportDetails {
 	uint32_t present_mode_count;
 } SwapChainSupportDetails;
 
-VkalInfo * init_vulkan(GLFWwindow * window, char ** extensions, uint32_t extension_count, char ** instance_extensions, uint32_t instance_extension_count);
+VkalInfo * vkal_init_glfw3(GLFWwindow * window, char ** extensions, uint32_t extension_count, char ** instance_extensions, uint32_t instance_extension_count);
 void create_instance(char ** instance_extensions, uint32_t instance_extension_count);
 void pick_physical_device(char ** extensions, uint32_t extension_count);
 int check_validation_layer_support(char const * requested_layer, char ** available_layers, uint32_t available_layer_count);
@@ -399,7 +399,7 @@ void create_logical_device(char ** extensions, uint32_t extension_count);
 QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
 void create_swapchain();
 void create_image_views();
-static void recreate_swapchain();
+void recreate_swapchain();
 void create_framebuffer();
 void internal_create_framebuffer(VkFramebufferCreateInfo create_info, uint32_t * out_framebuffer);
 VkFramebuffer get_framebuffer(uint32_t id);
