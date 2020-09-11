@@ -20,3 +20,5 @@
 (global-set-key (kbd "C-<next>") 'end-of-buffer) ; page down key
 (global-set-key (kbd "C-f") 'isearch-forward)
 (global-set-key (kbd "C-s") 'save-buffer)
+(global-set-key (kbd "M-<right>") 'next-buffer)
+(global-set-key (kbd "M-<left>") 'previous-buffer)

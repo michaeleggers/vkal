@@ -55,24 +55,18 @@ PFN_vkCmdTraceRaysNV                                   vkCmdTraceRaysNV_DEF;
 PFN_vkSetDebugUtilsObjectNameEXT                       vkSetDebugUtilsObjectNameEXT_DEF;
 #define vkSetDebugUtilsObjectNameEXT                   vkSetDebugUtilsObjectNameEXT_DEF
 
-VkalInfo * vkal_init_glfw3(
-    GLFWwindow * window,
-    char ** extensions, uint32_t extension_count,
-    char ** instance_extensions, uint32_t instance_extension_count,
-    char ** instance_layers, uint32_t instance_layer_count)
+VkalInfo * vkal_init(
+    char ** extensions, uint32_t extension_count)
 {
-    vkal_info.window = window;
+    
+
     vkal_info.mapped_uniform_memory = 0;
 
-    create_instance(
-	instance_extensions, instance_extension_count,
-	instance_layers, instance_layer_count);
 #ifdef _DEBUG
     vkSetDebugUtilsObjectNameEXT_DEF = (PFN_vkSetDebugUtilsObjectNameEXT)glfwGetInstanceProcAddress(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
 #endif 
 
-    create_surface();
-    pick_physical_device(extensions, extension_count);
+//    pick_physical_device(extensions, extension_count);
     create_logical_device(extensions, extension_count);
     create_swapchain();
     create_image_views();
@@ -102,10 +96,18 @@ VkalInfo * vkal_init_glfw3(
     return &vkal_info;
 }
 
-void create_instance(
+void vkal_create_instance(
+    void * window,
     char ** instance_extensions, uint32_t instance_extension_count,
     char ** instance_layers, uint32_t instance_layer_count)
 {
+
+#if defined(VKAL_GLFW)
+    vkal_info.window = (GLFWwindow*)window;
+#elif defined (VKAL_SDL)
+    // TODO: Implement
+#endif
+    
     VkApplicationInfo app_info = {0};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     app_info.pApplicationName = "VKAL Application";
@@ -118,8 +120,7 @@ void create_instance(
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &app_info;
 
-    // Query available extensions. Just print them here. Actual extension loading
-    // is being done by glfw below.
+    // Query available extensions.
     {
 	vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count, 0);
 	VKAL_MAKE_ARRAY(vkal_info.available_instance_extensions, VkExtensionProperties,
@@ -156,45 +157,51 @@ void create_instance(
 	    create_info.ppEnabledLayerNames = (const char * const *)instance_layers;
 	}
     }
-    
-    uint32_t required_extension_count = 0;
-    char const ** required_extensions;    
+
+    // Check if requested instance extensions are available and if so, load them.
+    {
+	uint32_t required_extension_count = 0;
+	char const ** required_extensions;
+	
 #if defined(VKAL_GLFW)
-    required_extensions = glfwGetRequiredInstanceExtensions(&required_extension_count);
+	required_extensions = glfwGetRequiredInstanceExtensions(&required_extension_count);
 #elif defined (VKAL_SDL)
-    // TODO: Implement
+	// TODO: Implement
 #endif
     
-    uint32_t total_instance_ext_count = required_extension_count + instance_extension_count;
-    char ** all_instance_extensions;
-    all_instance_extensions = (char**)malloc(total_instance_ext_count * sizeof(char*));
-    for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
-	all_instance_extensions[i] = (char*)malloc(256 * sizeof(char));
-    }
-    uint32_t i = 0;
-    for (; i < required_extension_count; ++i) {
-	strcpy(all_instance_extensions[i], required_extensions[i]);
-    }
-    for (uint32_t j = 0; i < total_instance_ext_count; ++i) {
-	strcpy(all_instance_extensions[i], instance_extensions[j++]);
-    }
-    int extension_ok = 0;
-    for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
-	extension_ok = check_instance_extension_support(all_instance_extensions[i],
-							vkal_info.available_instance_extensions,
-							vkal_info.available_instance_extension_count);
-	if (!extension_ok) {
-	    printf("instance extension not available: %s\n", all_instance_extensions[i]);
-	    DBG_VULKAN_ASSERT(VK_ERROR_EXTENSION_NOT_PRESENT, "requested instance extension not present!");
+	uint32_t total_instance_ext_count = required_extension_count + instance_extension_count;
+	char ** all_instance_extensions;
+	all_instance_extensions = (char**)malloc(total_instance_ext_count * sizeof(char*));
+	for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
+	    all_instance_extensions[i] = (char*)malloc(256 * sizeof(char));
+	}
+	uint32_t i = 0;
+	for (; i < required_extension_count; ++i) {
+	    strcpy(all_instance_extensions[i], required_extensions[i]);
+	}
+	for (uint32_t j = 0; i < total_instance_ext_count; ++i) {
+	    strcpy(all_instance_extensions[i], instance_extensions[j++]);
+	}
+	int extension_ok = 0;
+	for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
+	    extension_ok = check_instance_extension_support(all_instance_extensions[i],
+							    vkal_info.available_instance_extensions,
+							    vkal_info.available_instance_extension_count);
+	    if (!extension_ok) {
+		printf("instance extension not available: %s\n", all_instance_extensions[i]);
+		DBG_VULKAN_ASSERT(VK_ERROR_EXTENSION_NOT_PRESENT, "requested instance extension not present!");
+	    }
+	}
+	create_info.enabledExtensionCount = total_instance_ext_count;
+	create_info.ppEnabledExtensionNames = (const char * const *)all_instance_extensions;
+    
+	DBG_VULKAN_ASSERT(vkCreateInstance(&create_info, 0, &vkal_info.instance), "failed to create VkInstance");
+	for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
+	    free(all_instance_extensions[i]);
 	}
     }
-    create_info.enabledExtensionCount = total_instance_ext_count;
-    create_info.ppEnabledExtensionNames = (const char * const *)all_instance_extensions;
-    
-    DBG_VULKAN_ASSERT(vkCreateInstance(&create_info, 0, &vkal_info.instance), "failed to create VkInstance");
-    for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
-	free(all_instance_extensions[i]);
-    }
+
+    create_surface();
 }
 
 
@@ -1292,7 +1299,13 @@ void build_rt_acceleration_structure(VkGeometryNV * geometry, uint32_t geometryN
 
 void create_surface()
 {
+
+#if defined (VKAL_GLFW)
     VkResult result = glfwCreateWindowSurface(vkal_info.instance, vkal_info.window, 0, &vkal_info.surface);
+#elif defined (VKAL_SDL)
+    // TODO: Implement
+#endif
+    
     DBG_VULKAN_ASSERT(result, "failed to create window surface");
 }
 
@@ -2088,30 +2101,32 @@ QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR su
     return indicies;
 }
 
-void pick_physical_device(char ** extensions, uint32_t extension_count)
+void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count)
 {
-    uint32_t device_count = 0;
-    vkEnumeratePhysicalDevices(vkal_info.instance, &device_count, 0);
-    if (!device_count) {
+    vkal_info.physical_device_count = 0;
+    vkEnumeratePhysicalDevices(vkal_info.instance, &vkal_info.physical_device_count, 0);
+    if (!vkal_info.physical_device_count) {
 	printf("No GPU with Vulkan support found\n");
 	exit(-1);
     }
-    VKAL_MAKE_ARRAY2(physical_devices, VkPhysicalDevice, device_count);
-    vkEnumeratePhysicalDevices(vkal_info.instance, &device_count, physical_devices);
-    int current_best_device = 0;
-    for (uint32_t i = 0; i < device_count; ++i) {
+    
+    VKAL_MAKE_ARRAY(vkal_info.physical_devices, VkPhysicalDevice, vkal_info.physical_device_count);
+    VKAL_MAKE_ARRAY(vkal_info.suitable_devices, VkalPhysicalDevice, vkal_info.physical_device_count);
+    vkal_info.suitable_device_count = 0;
+    vkEnumeratePhysicalDevices(vkal_info.instance, &vkal_info.physical_device_count, vkal_info.physical_devices);
+    
+    for (uint32_t i = 0; i < vkal_info.physical_device_count; ++i) {
 	VkPhysicalDeviceProperties physical_device_property = { 0 };
-	vkGetPhysicalDeviceProperties(physical_devices[i], &physical_device_property);
+	vkGetPhysicalDeviceProperties(vkal_info.physical_devices[i], &physical_device_property);
 	printf("physical device found: %s\n", physical_device_property.deviceName);
-	if (is_device_suitable(physical_devices[i], extensions, extension_count), extensions, extension_count) {
-	    int current_device_rating = rate_device(physical_devices[i]);
-	    if (current_device_rating > current_best_device) {
-		QueueFamilyIndicies indicies = find_queue_families(physical_devices[i], vkal_info.surface);
-		if (indicies.has_graphics_family && indicies.has_present_family) {
-		    vkal_info.physical_device = physical_devices[i];
-		    vkal_info.physical_device_properties = physical_device_property;
-		    current_best_device = current_device_rating;
-		}
+	if ( is_device_suitable(vkal_info.physical_devices[i], extensions, extension_count) ) {
+	    QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_devices[i], vkal_info.surface);
+	    vkal_info.suitable_devices[i].device = vkal_info.physical_devices[i];
+	    vkal_info.suitable_devices[i].property = physical_device_property;
+	    vkal_info.suitable_device_count++;
+	    if (indicies.has_graphics_family && indicies.has_present_family) {
+//		vkal_info.physical_device = physical_devices[i];
+//		vkal_info.physical_device_properties = physical_device_property;
 	    }
 	}
     }
@@ -2119,7 +2134,6 @@ void pick_physical_device(char ** extensions, uint32_t extension_count)
 	printf("failed to find suitable GPU\n");
 	exit(-1);
     }
-    printf("device picked: %s\n", vkal_info.physical_device_properties.deviceName);
 }
 
 void create_logical_device(char ** extensions, uint32_t extension_count)
@@ -3923,6 +3937,8 @@ void vkal_cleanup() {
 
     VKAL_KILL_ARRAY(vkal_info.available_instance_extensions);
     VKAL_KILL_ARRAY(vkal_info.available_instance_layers);
+    VKAL_KILL_ARRAY(vkal_info.physical_devices);
+    VKAL_KILL_ARRAY(vkal_info.suitable_devices);
     
     static int memory_destroyed = 0;
     vkQueueWaitIdle(vkal_info.graphics_queue);

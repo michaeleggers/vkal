@@ -277,9 +277,21 @@ typedef struct OffscreenPass {
     uint32_t command_buffer_count;
 } OffscreenPass;
 
+typedef struct VkalPhysicalDevice
+{
+    VkPhysicalDeviceProperties property; 
+    VkPhysicalDevice device;
+} VkalPhysicalDevice;
+
 typedef struct VkalInfo
 {
+    
+#if defined (VKAL_GLFW)
     GLFWwindow * window;
+#elif defined (VKAL_SDL)
+    // TODO: Implement
+#endif
+
     VkInstance instance;
 
     VkExtensionProperties * available_instance_extensions;
@@ -289,6 +301,16 @@ typedef struct VkalInfo
     uint32_t available_instance_layer_count;
     int enable_instance_layers;
 
+    VkPhysicalDevice * physical_devices;
+    VkPhysicalDeviceProperties * physical_devices_properties;
+    uint32_t physical_device_count;
+    VkalPhysicalDevice * suitable_devices;
+    uint32_t * suitable_device_count;
+    
+    /* Active Physical Device */
+    VkPhysicalDevice physical_device;
+    VkPhysicalDeviceProperties physical_device_properties;
+    
     VkalDeviceMemoryHandle user_device_memory[VKAL_MAX_VKDEVICEMEMORY];
     uint32_t               user_device_memory_id;
 
@@ -303,9 +325,7 @@ typedef struct VkalInfo
     VkalSamplerHandle user_samplers[VKAL_MAX_VKSAMPLER];
     VkalFramebufferHandle user_framebuffers[VKAL_MAX_VKFRAMEBUFFER];
 
-    VkPhysicalDevice physical_device; // = VK_NULL_HANDLE;
-    VkPhysicalDeviceProperties physical_device_properties;
-    VkDevice device;
+    VkDevice device; 
     VkQueue graphics_queue;
     VkQueue present_queue;
     VkSurfaceKHR surface;
@@ -400,14 +420,12 @@ typedef struct SwapChainSupportDetails {
     uint32_t present_mode_count;
 } SwapChainSupportDetails;
 
-VkalInfo * vkal_init_glfw3(GLFWwindow * window,
-			   char ** extensions, uint32_t extension_count,
-			   char ** instance_extensions, uint32_t instance_extension_count,
-			   char ** instance_layers, uint32_t instance_layer_count);
-void create_instance(
+VkalInfo * vkal_init(char ** extensions, uint32_t extension_count);
+void vkal_create_instance(
+    void * window,
     char ** instance_extensions, uint32_t instance_extension_count,
     char ** instance_layers, uint32_t instance_layer_count);
-void pick_physical_device(char ** extensions, uint32_t extension_count);
+void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count);
 int check_instance_layer_support(char const * requested_layer,
 				   VkLayerProperties * available_layers, uint32_t available_layer_count);
 int check_instance_extension_support(char const * requested_extension,

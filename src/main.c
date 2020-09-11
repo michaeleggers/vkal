@@ -43,21 +43,20 @@ int main(int argc, char ** argv)
 #ifdef _DEBUG
 	"VK_LAYER_LUNARG_standard_validation",
 	"VK_LAYER_LUNARG_monitor"
+#else
+	0
 #endif
     };
     uint32_t instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);
 
-//    vkal_find_suitable_devices(device_extensions, device_extension_count,
-//			       devices, device_count);
-    VkalInfo * vkal_info =  vkal_init_glfw3(
-	window, 
-	device_extensions, device_extension_count,
-	instance_extensions, instance_extension_count,     
-	instance_layers, instance_layer_count);
+    vkal_create_instance(window,
+			 instance_extensions, instance_extension_count,
+			 instance_layers, instance_layer_count);
+    vkal_find_suitable_devices(device_extensions, device_extension_count);
+    VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
 
     
     vkal_cleanup();
     
     return 0;
 }
-
