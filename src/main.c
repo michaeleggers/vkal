@@ -46,7 +46,9 @@ int main(int argc, char ** argv)
 #endif
     };
     uint32_t instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);
-    
+
+//    vkal_find_suitable_devices(device_extensions, device_extension_count,
+//			       devices, device_count);
     VkalInfo * vkal_info =  vkal_init_glfw3(
 	window, 
 	device_extensions, device_extension_count,

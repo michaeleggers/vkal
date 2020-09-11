@@ -142,9 +142,9 @@ void create_instance(
 	int layer_ok = 0;
 	if (vkal_info.enable_instance_layers) {
 	    for (uint32_t i = 0; i < instance_layer_count; ++i) {
-		layer_ok = check_validation_layer_support(instance_layers[i],
-							  vkal_info.available_instance_layers,
-							  vkal_info.available_instance_layer_count);
+		layer_ok = check_instance_layer_support(instance_layers[i],
+							vkal_info.available_instance_layers,
+							vkal_info.available_instance_layer_count);
 		if (!layer_ok) {
 		    printf("validation layer not available: %s\n", instance_layers[i]);
 		    DBG_VULKAN_ASSERT(VK_ERROR_LAYER_NOT_PRESENT, "requested isntance layer not present!");
@@ -157,28 +157,42 @@ void create_instance(
 	}
     }
     
-    uint32_t glfw_extension_count = 0;
-    char const ** glfw_extensions;
-    glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
-	
-    uint32_t inst_ext_count = glfw_extension_count + instance_extension_count;
+    uint32_t required_extension_count = 0;
+    char const ** required_extensions;    
+#if defined(VKAL_GLFW)
+    required_extensions = glfwGetRequiredInstanceExtensions(&required_extension_count);
+#elif defined (VKAL_SDL)
+    // TODO: Implement
+#endif
+    
+    uint32_t total_instance_ext_count = required_extension_count + instance_extension_count;
     char ** all_instance_extensions;
-    all_instance_extensions = (char**)malloc(inst_ext_count * sizeof(char*));
-    for (uint32_t i = 0; i < inst_ext_count; ++i) {
+    all_instance_extensions = (char**)malloc(total_instance_ext_count * sizeof(char*));
+    for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
 	all_instance_extensions[i] = (char*)malloc(256 * sizeof(char));
     }
     uint32_t i = 0;
-    for (; i < glfw_extension_count; ++i) {
-	strcpy(all_instance_extensions[i], glfw_extensions[i]);
+    for (; i < required_extension_count; ++i) {
+	strcpy(all_instance_extensions[i], required_extensions[i]);
     }
-    for (uint32_t j = 0; i < inst_ext_count; ++i) {
+    for (uint32_t j = 0; i < total_instance_ext_count; ++i) {
 	strcpy(all_instance_extensions[i], instance_extensions[j++]);
     }
-    create_info.enabledExtensionCount = inst_ext_count;
+    int extension_ok = 0;
+    for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
+	extension_ok = check_instance_extension_support(all_instance_extensions[i],
+							vkal_info.available_instance_extensions,
+							vkal_info.available_instance_extension_count);
+	if (!extension_ok) {
+	    printf("instance extension not available: %s\n", all_instance_extensions[i]);
+	    DBG_VULKAN_ASSERT(VK_ERROR_EXTENSION_NOT_PRESENT, "requested instance extension not present!");
+	}
+    }
+    create_info.enabledExtensionCount = total_instance_ext_count;
     create_info.ppEnabledExtensionNames = (const char * const *)all_instance_extensions;
     
     DBG_VULKAN_ASSERT(vkCreateInstance(&create_info, 0, &vkal_info.instance), "failed to create VkInstance");
-    for (uint32_t i = 0; i < inst_ext_count; ++i) {
+    for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
 	free(all_instance_extensions[i]);
     }
 }
@@ -1282,12 +1296,25 @@ void create_surface()
     DBG_VULKAN_ASSERT(result, "failed to create window surface");
 }
 
-int check_validation_layer_support(char const * requested_layer,
+int check_instance_layer_support(char const * requested_layer,
 				   VkLayerProperties * available_layers, uint32_t available_layer_count)
 {
     int found = 0;
     for (uint32_t i = 0; i < available_layer_count; ++i) {
 	if (!strcmp(available_layers[i].layerName, requested_layer)) {
+	    found = 1;
+	    break;
+	}
+    }
+    return found;
+}
+
+int check_instance_extension_support(char const * requested_extension,
+				     VkExtensionProperties * available_extensions, uint32_t available_extension_count)
+{
+    int found = 0;
+    for (uint32_t i = 0; i < available_extension_count; ++i) {
+	if (!strcmp(available_extensions[i].extensionName, requested_extension)) {
 	    found = 1;
 	    break;
 	}

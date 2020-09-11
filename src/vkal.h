@@ -408,8 +408,10 @@ void create_instance(
     char ** instance_extensions, uint32_t instance_extension_count,
     char ** instance_layers, uint32_t instance_layer_count);
 void pick_physical_device(char ** extensions, uint32_t extension_count);
-int check_validation_layer_support(char const * requested_layer,
+int check_instance_layer_support(char const * requested_layer,
 				   VkLayerProperties * available_layers, uint32_t available_layer_count);
+int check_instance_extension_support(char const * requested_extension,
+				     VkExtensionProperties * available_extensions, uint32_t available_extension_count);
 void create_logical_device(char ** extensions, uint32_t extension_count);
 QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
 void create_swapchain();
