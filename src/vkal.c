@@ -55,12 +55,18 @@ PFN_vkCmdTraceRaysNV                                   vkCmdTraceRaysNV_DEF;
 PFN_vkSetDebugUtilsObjectNameEXT                       vkSetDebugUtilsObjectNameEXT_DEF;
 #define vkSetDebugUtilsObjectNameEXT                   vkSetDebugUtilsObjectNameEXT_DEF
 
-VkalInfo * vkal_init_glfw3(GLFWwindow * window, char ** extensions, uint32_t extension_count, char ** instance_extensions, uint32_t instance_extension_count)
+VkalInfo * vkal_init_glfw3(
+    GLFWwindow * window,
+    char ** extensions, uint32_t extension_count,
+    char ** instance_extensions, uint32_t instance_extension_count,
+    char ** instance_layers, uint32_t instance_layer_count)
 {
     vkal_info.window = window;
     vkal_info.mapped_uniform_memory = 0;
 
-    create_instance(instance_extensions, instance_extension_count);
+    create_instance(
+	instance_extensions, instance_extension_count,
+	instance_layers, instance_layer_count);
 #ifdef _DEBUG
     vkSetDebugUtilsObjectNameEXT_DEF = (PFN_vkSetDebugUtilsObjectNameEXT)glfwGetInstanceProcAddress(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
 #endif 
@@ -96,67 +102,59 @@ VkalInfo * vkal_init_glfw3(GLFWwindow * window, char ** extensions, uint32_t ext
     return &vkal_info;
 }
 
-void create_instance(char ** instance_extensions, uint32_t instance_extension_count)
+void create_instance(
+    char ** instance_extensions, uint32_t instance_extension_count,
+    char ** instance_layers, uint32_t instance_layer_count)
 {
     VkApplicationInfo app_info = {0};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    app_info.pApplicationName = "Vkal Application";
+    app_info.pApplicationName = "VKAL Application";
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.pEngineName = "VULKAN.HM.EDU";
+    app_info.pEngineName = "VKAL Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.apiVersion = VK_API_VERSION_1_2;
     
     VkInstanceCreateInfo create_info = {0};
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &app_info;
-    
+
     // Query available extensions. Just print them here. Actual extension loading
     // is being done by glfw below.
-    uint32_t extension_count = 0;
-    vkEnumerateInstanceExtensionProperties(0, &extension_count, 0);
-    VkExtensionProperties * extensions = 0;
-    VKAL_MAKE_ARRAY(extensions, VkExtensionProperties, extension_count);
-    vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions);
-    printf("available instance extensions (%d):\n", extension_count);
-    for (uint32_t i = 0; i < extension_count; ++i) {
-	printf("%s\n", (extensions + i)->extensionName);
+    {
+	vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count, 0);
+	VKAL_MAKE_ARRAY(vkal_info.available_instance_extensions, VkExtensionProperties,
+			vkal_info.available_instance_extension_count);
+	vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count,
+					       vkal_info.available_instance_extensions);
     }
-    VKAL_KILL_ARRAY(extensions);
     
     // If debug build check if validation layers defined in struct are available and load them
-    uint32_t layer_count = 0;
-    vkEnumerateInstanceLayerProperties(&layer_count, 0);
-    //MemoryArena * arena = create_arena();
-    /*MemoryArena stuff_arena;
-      initialize_arena(&stuff_arena, vkal_memory, 200 * 1024 * 1024);*/
-    VkLayerProperties * layers = (VkLayerProperties*)malloc(layer_count * sizeof(VkLayerProperties));
-    char ** available_layer_names = (char**)malloc(layer_count * sizeof(char*));
-    
-    vkEnumerateInstanceLayerProperties(&layer_count, layers);
-    printf("\navailable instance layers (%d):\n", layer_count);
-    for (uint32_t i = 0; i < layer_count; ++i) {
-	available_layer_names[i] = (layers + i)->layerName;
-	printf("%s\n", (layers + i)->layerName);
-    }
-    
+    {
+	vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count, 0);
+	VKAL_MAKE_ARRAY(vkal_info.available_instance_layers, VkLayerProperties, vkal_info.available_instance_layer_count);
+	vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count,
+					   vkal_info.available_instance_layers);
 #ifdef _DEBUG
-    vkal_info.enable_instance_layers = 1;
+	vkal_info.enable_instance_layers = 1;
 #else
-    vkal_info.enable_instance_layers = 0;
+	vkal_info.enable_instance_layers = 0;
 #endif
-    int layer_ok = 0;
-    if (vkal_info.enable_instance_layers) {
-	for (uint32_t i = 0; i < VKAL_ARRAY_LENGTH(instance_layers); ++i) {
-	    layer_ok = check_validation_layer_support(instance_layers[i], available_layer_names, layer_count);
-	    if (!layer_ok) {
-		printf("validation layer not available: %s\n", instance_layers[i]);
-		DBG_VULKAN_ASSERT(VK_ERROR_LAYER_NOT_PRESENT, "requested validation layer not present");
+	int layer_ok = 0;
+	if (vkal_info.enable_instance_layers) {
+	    for (uint32_t i = 0; i < instance_layer_count; ++i) {
+		layer_ok = check_validation_layer_support(instance_layers[i],
+							  vkal_info.available_instance_layers,
+							  vkal_info.available_instance_layer_count);
+		if (!layer_ok) {
+		    printf("validation layer not available: %s\n", instance_layers[i]);
+		    DBG_VULKAN_ASSERT(VK_ERROR_LAYER_NOT_PRESENT, "requested isntance layer not present!");
+		}
 	    }
 	}
-    }
-    if (layer_ok) {
-	create_info.enabledLayerCount = VKAL_ARRAY_LENGTH(instance_layers);
-	create_info.ppEnabledLayerNames = instance_layers;
+	if (layer_ok) {
+	    create_info.enabledLayerCount = instance_layer_count;
+	    create_info.ppEnabledLayerNames = (const char * const *)instance_layers;
+	}
     }
     
     uint32_t glfw_extension_count = 0;
@@ -1284,16 +1282,15 @@ void create_surface()
     DBG_VULKAN_ASSERT(result, "failed to create window surface");
 }
 
-int check_validation_layer_support(char const * requested_layer, char ** available_layers, uint32_t available_layer_count)
+int check_validation_layer_support(char const * requested_layer,
+				   VkLayerProperties * available_layers, uint32_t available_layer_count)
 {
-    char ** current_layer = available_layers;
     int found = 0;
     for (uint32_t i = 0; i < available_layer_count; ++i) {
-	if (!strcmp(*current_layer, requested_layer)) {
+	if (!strcmp(available_layers[i].layerName, requested_layer)) {
 	    found = 1;
 	    break;
 	}
-	current_layer++;
     }
     return found;
 }
@@ -1991,14 +1988,12 @@ int rate_device(VkPhysicalDevice device)
 
 int check_device_extension_support(VkPhysicalDevice device, char ** extensions, uint32_t extension_count)
 {
-    int * extensions_left;
-    VKAL_MAKE_ARRAY(extensions_left, int, extension_count);
+    VKAL_MAKE_ARRAY2(extensions_left, int, extension_count);
     memset(extensions_left, 1, extension_count * sizeof(int));
     printf("\nquery device extensions:\n");
     uint32_t supported_extension_count = 0;
     vkEnumerateDeviceExtensionProperties(device, 0, &supported_extension_count, 0);
-    VkExtensionProperties * available_extensions = 0;
-    VKAL_MAKE_ARRAY(available_extensions, VkExtensionProperties, supported_extension_count);
+    VKAL_MAKE_ARRAY2(available_extensions, VkExtensionProperties, supported_extension_count);
     vkEnumerateDeviceExtensionProperties(device, 0, &supported_extension_count, available_extensions);
     uint32_t extensions_found = 0;
     for (uint32_t i = 0; i < supported_extension_count; ++i) {
@@ -2044,8 +2039,7 @@ QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR su
     QueueFamilyIndicies indicies;
     uint32_t queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, 0);
-    VkQueueFamilyProperties * queue_families;
-    VKAL_MAKE_ARRAY(queue_families, VkQueueFamilyProperties, queue_family_count);
+    VKAL_MAKE_ARRAY2(queue_families, VkQueueFamilyProperties, queue_family_count);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families);
     indicies.has_graphics_family = 0;
     for (uint32_t i = 0; i < queue_family_count; ++i) {
@@ -2075,8 +2069,7 @@ void pick_physical_device(char ** extensions, uint32_t extension_count)
 	printf("No GPU with Vulkan support found\n");
 	exit(-1);
     }
-    VkPhysicalDevice * physical_devices = 0;
-    VKAL_MAKE_ARRAY(physical_devices, VkPhysicalDevice, device_count);
+    VKAL_MAKE_ARRAY2(physical_devices, VkPhysicalDevice, device_count);
     vkEnumeratePhysicalDevices(vkal_info.instance, &device_count, physical_devices);
     int current_best_device = 0;
     for (uint32_t i = 0; i < device_count; ++i) {
@@ -2137,6 +2130,7 @@ void create_logical_device(char ** extensions, uint32_t extension_count)
     create_info.ppEnabledExtensionNames = (const char * const *)extensions;
     // device specific validation layers are deprecated.
     // just specify for compatib. reasons:
+    /*
     if (vkal_info.enable_instance_layers) {
 	create_info.enabledLayerCount = VKAL_ARRAY_LENGTH(instance_layers);
 	create_info.ppEnabledLayerNames = instance_layers;
@@ -2144,7 +2138,7 @@ void create_logical_device(char ** extensions, uint32_t extension_count)
     else {
 	create_info.enabledLayerCount = 0;
     }
-    
+    */
     VkResult result = vkCreateDevice(vkal_info.physical_device, &create_info, 0, &vkal_info.device);
     DBG_VULKAN_ASSERT(result, "failed to create logical device");
     
@@ -3899,6 +3893,10 @@ uint32_t vkal_index_buffer_add(uint32_t * indices, uint32_t index_count)
 }
 
 void vkal_cleanup() {
+
+    VKAL_KILL_ARRAY(vkal_info.available_instance_extensions);
+    VKAL_KILL_ARRAY(vkal_info.available_instance_layers);
+    
     static int memory_destroyed = 0;
     vkQueueWaitIdle(vkal_info.graphics_queue);
 

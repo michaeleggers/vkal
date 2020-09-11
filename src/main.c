@@ -4,8 +4,10 @@
 #include <GLFW/glfw3.h>
 
 #include "vkal.h"
+#include "platform.h"
 
 static GLFWwindow * window;
+static Platform p;
 
 void init_window() {
     glfwInit();
@@ -20,6 +22,8 @@ void init_window() {
 int main(int argc, char ** argv)
 {
     init_window();
+    init_platform(&p);
+    
     char * device_extensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	VK_KHR_MAINTENANCE3_EXTENSION_NAME,
@@ -34,11 +38,22 @@ int main(int argc, char ** argv)
 #endif
     };
     uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
+
+    char * instance_layers[] = {
+#ifdef _DEBUG
+	"VK_LAYER_LUNARG_standard_validation",
+	"VK_LAYER_LUNARG_monitor"
+#endif
+    };
+    uint32_t instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);
+    
     VkalInfo * vkal_info =  vkal_init_glfw3(
 	window, 
 	device_extensions, device_extension_count,
-	instance_extensions, instance_extension_count);
+	instance_extensions, instance_extension_count,     
+	instance_layers, instance_layer_count);
 
+    
     vkal_cleanup();
     
     return 0;

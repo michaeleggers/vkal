@@ -30,6 +30,9 @@ if (result != VK_SUCCESS) { \
 #define VKAL_MAKE_ARRAY(arr, type, count) \
 arr = (type *)malloc(count * sizeof(type));
 
+#define VKAL_MAKE_ARRAY2(arr, type, count) \
+type * arr = (type *)malloc(count * sizeof(type));
+
 #define VKAL_KILL_ARRAY(arr) \
 free(arr)
 
@@ -56,77 +59,77 @@ typedef struct vec4
 
 typedef struct Vertex /* Packed as 16 floats */
 {
-	vec3 pos;
-	vec2 uv;
-	vec3 normal;
-	//glm::vec3 barycentric;
-	vec4 color;
-	vec3 tangent;
-	float     dummy; /* round up to 16 floats. Easier to access vertex data in shader through indexing. */
+    vec3 pos;
+    vec2 uv;
+    vec3 normal;
+    //glm::vec3 barycentric;
+    vec4 color;
+    vec3 tangent;
+    float     dummy; /* round up to 16 floats. Easier to access vertex data in shader through indexing. */
 } Vertex;
 
 typedef struct Texture
 {
-	uint32_t  device_memory_id;
-	VkSampler sampler;
-	uint32_t  image;
-	uint32_t  image_view;
-	uint32_t  width;
-	uint32_t  height;
-	uint32_t  channels;
-	uint32_t  binding;
-	char      texture_file[64];
+    uint32_t  device_memory_id;
+    VkSampler sampler;
+    uint32_t  image;
+    uint32_t  image_view;
+    uint32_t  width;
+    uint32_t  height;
+    uint32_t  channels;
+    uint32_t  binding;
+    char      texture_file[64];
 } Texture;
 
 typedef struct DeviceMemory
 {
-	VkDeviceMemory vk_device_memory;
-	VkDeviceSize   size;
-	VkDeviceSize   alignment;
-	VkDeviceSize   free;
+    VkDeviceMemory vk_device_memory;
+    VkDeviceSize   size;
+    VkDeviceSize   alignment;
+    VkDeviceSize   free;
 } DeviceMemory;
 
 typedef struct Buffer
 {
-	VkBuffer buffer;
-	uint64_t size;
-	uint64_t offset;
-	VkDeviceMemory device_memory;
-	VkBufferUsageFlags usage;
-	void * mapped;
+    VkBuffer buffer;
+    uint64_t size;
+    uint64_t offset;
+    VkDeviceMemory device_memory;
+    VkBufferUsageFlags usage;
+    void * mapped;
 } Buffer;
 
 typedef struct VkalImage
 {
-	uint32_t      image;
-	uint32_t      image_view;
-	VkSampler     sampler;
-	uint32_t      device_memory;
-	uint32_t      width, height;
+    uint32_t      image;
+    uint32_t      image_view;
+    VkSampler     sampler;
+    uint32_t      device_memory;
+    uint32_t      width, height;
 } VkalImage;
 
 typedef struct RenderImage
 {
-	uint32_t      image;
-	uint32_t      image_view;
-	VkSampler     sampler;
-	uint32_t	  device_memory;	
-	uint32_t      width, height;
-	VkalImage     depth_image;
-	uint32_t      framebuffer;
+    uint32_t      image;
+    uint32_t      image_view;
+    VkSampler     sampler;
+    uint32_t	  device_memory;	
+    uint32_t      width, height;
+    VkalImage     depth_image;
+    uint32_t      framebuffer;
 } RenderImage; 
 
 typedef struct UniformBuffer
 {
-	uint32_t size;
-	uint64_t offset;
-	uint32_t binding;
+    uint32_t size;
+    uint64_t offset;
+    uint32_t binding;
 } UniformBuffer;
 
 typedef struct DescriptorSetLayout
 {
-	uint32_t binding;
-	VkDescriptorSetLayout layout;
+    uint32_t binding;
+    VkDescriptorSetLayout layout;
 } DescriptorSetLayout;
 
 // Indices for the different ray tracing shader types used in this example
@@ -145,56 +148,56 @@ typedef struct Blas {
 
 typedef struct NvRaytracingCtx
 {
-	VkPhysicalDeviceRayTracingPropertiesNV properties;
+    VkPhysicalDeviceRayTracingPropertiesNV properties;
 
-	struct StorageImage {
-		uint32_t     image;
-		uint32_t     image_view;
-		uint32_t     device_memory_id;
-	} storage_image;
+    struct StorageImage {
+	uint32_t     image;
+	uint32_t     image_view;
+	uint32_t     device_memory_id;
+    } storage_image;
 
-	struct TargetImage {
-		uint32_t     image;
-		uint32_t     image_view;
-		VkSampler    sampler;
-		uint32_t     device_memory_id;
-	} target_image;
+    struct TargetImage {
+	uint32_t     image;
+	uint32_t     image_view;
+	VkSampler    sampler;
+	uint32_t     device_memory_id;
+    } target_image;
 
-	Blas * blas;
-	uint32_t blas_count;
+    Blas * blas;
+    uint32_t blas_count;
 
-	struct Tlas {
-		VkAccelerationStructureNV accel_structure;
-		uint32_t device_memory_handle;
-		uint64_t handle;
-	} tlas; 
+    struct Tlas {
+	VkAccelerationStructureNV accel_structure;
+	uint32_t device_memory_handle;
+	uint64_t handle;
+    } tlas; 
 
-	VkCommandBuffer*      command_buffers;
+    VkCommandBuffer*      command_buffers;
 
-	DeviceMemory          shader_binding_table_device_memory;
-	Buffer                shader_binding_table;
+    DeviceMemory          shader_binding_table_device_memory;
+    Buffer                shader_binding_table;
 
-	VkDescriptorPool      descriptor_pool;
-	VkDescriptorSetLayout descset_layout;
-	VkDescriptorSet*      descriptor_sets;
+    VkDescriptorPool      descriptor_pool;
+    VkDescriptorSetLayout descset_layout;
+    VkDescriptorSet*      descriptor_sets;
 
-	VkRenderPass          renderpass;
+    VkRenderPass          renderpass;
 
-	VkPipelineLayout      pipeline_layout;
-	VkPipeline            pipeline;
+    VkPipelineLayout      pipeline_layout;
+    VkPipeline            pipeline;
 
-	DeviceMemory          rt_uniform_buffer_device_memory;
-	Buffer                ubo;
+    DeviceMemory          rt_uniform_buffer_device_memory;
+    Buffer                ubo;
 } NvRaytracingCtx;
 
 typedef struct GeometryInstance 
 {
 //	glm::mat3x4 transform;
-	uint32_t instance_id : 24;
-	uint32_t mask : 8;
-	uint32_t hit_group_id : 24;
-	uint32_t flags : 8;
-	uint64_t acceleration_structure_handle;
+    uint32_t instance_id : 24;
+    uint32_t mask : 8;
+    uint32_t hit_group_id : 24;
+    uint32_t flags : 8;
+    uint64_t acceleration_structure_handle;
 } GeometryInstance;
 
 
@@ -214,12 +217,6 @@ typedef struct GeometryInstance
 #define VKAL_VSYNC_ON					0
 #define VKAL_SHADOW_MAP_DIMENSION		2048
 
-static const char * instance_layers[] = {
-    //"VK_LAYER_KHRONOS_validation",
-    //"VK_LAYER_RENDERDOC_Capture"
-    "VK_LAYER_LUNARG_standard_validation",
-    "VK_LAYER_LUNARG_monitor"
-};
 
 typedef struct VkalDeviceMemoryHandle {
     VkDeviceMemory device_memory;
@@ -282,125 +279,137 @@ typedef struct OffscreenPass {
 
 typedef struct VkalInfo
 {
-	GLFWwindow * window;
-	VkInstance instance;
-	int enable_instance_layers;
+    GLFWwindow * window;
+    VkInstance instance;
 
-        VkalDeviceMemoryHandle user_device_memory[VKAL_MAX_VKDEVICEMEMORY];
-	uint32_t               user_device_memory_id;
+    VkExtensionProperties * available_instance_extensions;
+    uint32_t available_instance_extension_count;
 
-	VkalImageHandle user_images[VKAL_MAX_VKIMAGE];
-	uint32_t        user_image_count;
+    VkLayerProperties * available_instance_layers;
+    uint32_t available_instance_layer_count;
+    int enable_instance_layers;
 
-	VkalImageViewHandle     user_image_views[VKAL_MAX_VKIMAGEVIEW];
-	VkalShaderModuleHandle  user_shader_modules[VKAL_MAX_VKSHADERMODULE];
-	VkalPipelineLayoutHandle user_pipeline_layouts[VKAL_MAX_VKPIPELINELAYOUT];
-	VkalDescriptorSetLayoutHande user_descriptor_set_layouts[VKAL_MAX_VKDESCRIPTORSETLAYOUT];
-	VkalPipelineHandle user_pipelines[VKAL_MAX_VKPIPELINE];
-	VkalSamplerHandle user_samplers[VKAL_MAX_VKSAMPLER];
-	VkalFramebufferHandle user_framebuffers[VKAL_MAX_VKFRAMEBUFFER];
+    VkalDeviceMemoryHandle user_device_memory[VKAL_MAX_VKDEVICEMEMORY];
+    uint32_t               user_device_memory_id;
+
+    VkalImageHandle user_images[VKAL_MAX_VKIMAGE];
+    uint32_t        user_image_count;
+
+    VkalImageViewHandle     user_image_views[VKAL_MAX_VKIMAGEVIEW];
+    VkalShaderModuleHandle  user_shader_modules[VKAL_MAX_VKSHADERMODULE];
+    VkalPipelineLayoutHandle user_pipeline_layouts[VKAL_MAX_VKPIPELINELAYOUT];
+    VkalDescriptorSetLayoutHande user_descriptor_set_layouts[VKAL_MAX_VKDESCRIPTORSETLAYOUT];
+    VkalPipelineHandle user_pipelines[VKAL_MAX_VKPIPELINE];
+    VkalSamplerHandle user_samplers[VKAL_MAX_VKSAMPLER];
+    VkalFramebufferHandle user_framebuffers[VKAL_MAX_VKFRAMEBUFFER];
 
     VkPhysicalDevice physical_device; // = VK_NULL_HANDLE;
-	VkPhysicalDeviceProperties physical_device_properties;
-	VkDevice device;
-	VkQueue graphics_queue;
-	VkQueue present_queue;
-	VkSurfaceKHR surface;
+    VkPhysicalDeviceProperties physical_device_properties;
+    VkDevice device;
+    VkQueue graphics_queue;
+    VkQueue present_queue;
+    VkSurfaceKHR surface;
 
-	VkSwapchainKHR swapchain;
+    VkSwapchainKHR swapchain;
     uint32_t should_recreate_swapchain; // = 0;
-	VkImage * swapchain_images;
-	uint32_t swapchain_image_count;
-	VkFormat swapchain_image_format;
-	VkExtent2D swapchain_extent;
-	VkImageView * swapchain_image_views;
-	uint32_t depth_stencil_image;
-	uint32_t depth_stencil_image_view;
-	uint32_t device_memory_depth_stencil;
+    VkImage * swapchain_images;
+    uint32_t swapchain_image_count;
+    VkFormat swapchain_image_format;
+    VkExtent2D swapchain_extent;
+    VkImageView * swapchain_image_views;
+    uint32_t depth_stencil_image;
+    uint32_t depth_stencil_image_view;
+    uint32_t device_memory_depth_stencil;
 
-	VkDeviceMemory device_memory_staging;
-	Buffer staging_buffer;
+    VkDeviceMemory device_memory_staging;
+    Buffer staging_buffer;
 
-	VkRenderPass render_pass;
-	VkRenderPass render_to_image_render_pass;
-	VkRenderPass imgui_render_pass;
-	VkFramebuffer * framebuffers;
-	uint32_t framebuffer_count;
-	VkPipelineLayout pipeline_layout;
-	VkPipeline graphics_pipeline;
-	VkPipeline offscreen_pipeline;
+    VkRenderPass render_pass;
+    VkRenderPass render_to_image_render_pass;
+    VkRenderPass imgui_render_pass;
+    VkFramebuffer * framebuffers;
+    uint32_t framebuffer_count;
+    VkPipelineLayout pipeline_layout;
+    VkPipeline graphics_pipeline;
+    VkPipeline offscreen_pipeline;
 
-        OffscreenPass offscreen_pass;
+    OffscreenPass offscreen_pass;
 
-        VkCommandPool command_pools[VKAL_MAX_COMMAND_POOLS];
-	uint32_t commandpool_count;
-	VkCommandBuffer * command_buffers;
-	uint32_t command_buffer_count;
-	VkCommandBuffer * command_buffers_imgui;
-	uint32_t command_buffer_imgui_count;
+    VkCommandPool command_pools[VKAL_MAX_COMMAND_POOLS];
+    uint32_t commandpool_count;
+    VkCommandBuffer * command_buffers;
+    uint32_t command_buffer_count;
+    VkCommandBuffer * command_buffers_imgui;
+    uint32_t command_buffer_imgui_count;
 
-	VkSemaphore image_available_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
-	VkSemaphore render_finished_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
-	VkFence     draw_fences[VKAL_MAX_IMAGES_IN_FLIGHT];
-	VkFence     * image_in_flight_fences;
-	uint32_t frames_rendered;
-	uint32_t current_frame;
+    VkSemaphore image_available_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
+    VkSemaphore render_finished_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
+    VkFence     draw_fences[VKAL_MAX_IMAGES_IN_FLIGHT];
+    VkFence     * image_in_flight_fences;
+    uint32_t frames_rendered;
+    uint32_t current_frame;
 
-	VkSemaphore present_complete_semaphore;
-	VkSemaphore render_complete_semaphore;
+    VkSemaphore present_complete_semaphore;
+    VkSemaphore render_complete_semaphore;
 
-	Buffer uniform_buffer;
-	VkBufferView uniform_buffer_view;
-	Buffer vertex_buffer;
-	Buffer index_buffer;
-	uint64_t vertex_buffer_offset;
-	uint64_t index_buffer_offset;
-	VkDeviceMemory device_memory_uniform;
-	VkDeviceMemory device_memory_vertex;
-	VkDeviceMemory device_memory_index;
-	uint64_t uniform_buffer_offset;
-	uint32_t uniform_size;
-	void * mapped_uniform_memory;
+    Buffer uniform_buffer;
+    VkBufferView uniform_buffer_view;
+    Buffer vertex_buffer;
+    Buffer index_buffer;
+    uint64_t vertex_buffer_offset;
+    uint64_t index_buffer_offset;
+    VkDeviceMemory device_memory_uniform;
+    VkDeviceMemory device_memory_vertex;
+    VkDeviceMemory device_memory_index;
+    uint64_t uniform_buffer_offset;
+    uint32_t uniform_size;
+    void * mapped_uniform_memory;
 
-	VkDescriptorPool descriptor_pool;
-	VkDescriptorSet descriptor_set_global;
-	VkDescriptorSetLayout descriptor_set_layout_global;
-	VkDescriptorSetLayout descriptor_set_layout_texture;
-	VkDescriptorSetLayout descriptor_set_layout_cubemap;
+    VkDescriptorPool descriptor_pool;
+    VkDescriptorSet descriptor_set_global;
+    VkDescriptorSetLayout descriptor_set_layout_global;
+    VkDescriptorSetLayout descriptor_set_layout_texture;
+    VkDescriptorSetLayout descriptor_set_layout_cubemap;
 
-	NvRaytracingCtx nv_rt_ctx;
+    NvRaytracingCtx nv_rt_ctx;
 } VkalInfo;
 
 typedef struct QueueFamilyIndicies {
-	int has_graphics_family;
-	uint32_t graphics_family;
-	int has_present_family;
-	uint32_t present_family;
+    int has_graphics_family;
+    uint32_t graphics_family;
+    int has_present_family;
+    uint32_t present_family;
 } QueueFamilyIndicies;
 
 typedef struct ShaderStageSetup
 {
-	VkPipelineShaderStageCreateInfo vertex_shader_create_info;
-	VkPipelineShaderStageCreateInfo fragment_shader_create_info;
-	uint32_t vert_shader_module;
-	uint32_t frag_shader_module;
+    VkPipelineShaderStageCreateInfo vertex_shader_create_info;
+    VkPipelineShaderStageCreateInfo fragment_shader_create_info;
+    uint32_t vert_shader_module;
+    uint32_t frag_shader_module;
 } ShaderStageSetup;
 
 #define VKAL_MAX_SURFACE_FORMATS 176
 #define VKAL_MAX_PRESENT_MODES 9
 
 typedef struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities;
-	VkSurfaceFormatKHR formats[VKAL_MAX_SURFACE_FORMATS];
-	uint32_t format_count;
-	VkPresentModeKHR present_modes[VKAL_MAX_PRESENT_MODES];
-	uint32_t present_mode_count;
+    VkSurfaceCapabilitiesKHR capabilities;
+    VkSurfaceFormatKHR formats[VKAL_MAX_SURFACE_FORMATS];
+    uint32_t format_count;
+    VkPresentModeKHR present_modes[VKAL_MAX_PRESENT_MODES];
+    uint32_t present_mode_count;
 } SwapChainSupportDetails;
 
-VkalInfo * vkal_init_glfw3(GLFWwindow * window, char ** extensions, uint32_t extension_count, char ** instance_extensions, uint32_t instance_extension_count);
-void create_instance(char ** instance_extensions, uint32_t instance_extension_count);
+VkalInfo * vkal_init_glfw3(GLFWwindow * window,
+			   char ** extensions, uint32_t extension_count,
+			   char ** instance_extensions, uint32_t instance_extension_count,
+			   char ** instance_layers, uint32_t instance_layer_count);
+void create_instance(
+    char ** instance_extensions, uint32_t instance_extension_count,
+    char ** instance_layers, uint32_t instance_layer_count);
 void pick_physical_device(char ** extensions, uint32_t extension_count);
-int check_validation_layer_support(char const * requested_layer, char ** available_layers, uint32_t available_layer_count);
+int check_validation_layer_support(char const * requested_layer,
+				   VkLayerProperties * available_layers, uint32_t available_layer_count);
 void create_logical_device(char ** extensions, uint32_t extension_count);
 QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
 void create_swapchain();
@@ -413,9 +422,9 @@ void destroy_framebuffer(uint32_t id);
 uint32_t create_render_image_framebuffer(RenderImage render_image, uint32_t width, uint32_t height);
 RenderImage recreate_render_image(RenderImage render_image, uint32_t width, uint32_t height);
 VkalImage create_vkal_image(uint32_t width, uint32_t height, 
-	VkFormat format,
-	VkImageUsageFlagBits usage_flags, VkImageAspectFlags aspect_bits,
-	VkImageLayout layout, char const * name);
+			    VkFormat format,
+			    VkImageUsageFlagBits usage_flags, VkImageAspectFlags aspect_bits,
+			    VkImageLayout layout, char const * name);
 void create_command_buffers();
 VkCommandBuffer create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uint32_t begin);
 void create_render_pass();
@@ -423,13 +432,13 @@ void create_render_to_image_render_pass();
 void create_offscreen_render_pass();
 void create_offscreen_framebuffer();
 VkPipeline vkal_create_graphics_pipeline(
-	ShaderStageSetup shader_setup,
-	VkBool32 depth_test_enable, VkCompareOp depth_compare_op,
-	VkCullModeFlags cull_mode,
-	VkPolygonMode polygon_mode,
-	VkPrimitiveTopology primitive_topology,
-	VkFrontFace face_winding, VkRenderPass render_pass,
-	VkPipelineLayout pipeline_layout);
+    ShaderStageSetup shader_setup,
+    VkBool32 depth_test_enable, VkCompareOp depth_compare_op,
+    VkCullModeFlags cull_mode,
+    VkPolygonMode polygon_mode,
+    VkPrimitiveTopology primitive_topology,
+    VkFrontFace face_winding, VkRenderPass render_pass,
+    VkPipelineLayout pipeline_layout);
 void create_graphics_pipeline(VkGraphicsPipelineCreateInfo create_info, uint32_t * out_graphics_pipeline);
 VkPipeline get_graphics_pipeline(uint32_t id);
 void destroy_graphics_pipeline(uint32_t id);
@@ -466,26 +475,26 @@ VkResult map_memory(Buffer * buffer, VkDeviceSize size, VkDeviceSize offset);
 void unmap_memory(Buffer * buffer);
 void vkal_update_buffer(Buffer buffer, uint8_t* data);
 void create_image(uint32_t width, uint32_t height, uint32_t mip_levels, uint32_t array_layers,
-	VkImageCreateFlags flags, VkFormat format, VkImageUsageFlags usage_flags, uint32_t * out_image_id);
+		  VkImageCreateFlags flags, VkFormat format, VkImageUsageFlags usage_flags, uint32_t * out_image_id);
 void destroy_image(uint32_t id);
 VkImage get_image(uint32_t id);
 void create_image_view(VkImage image,
-	VkImageViewType view_type, VkFormat format, VkImageAspectFlags aspect_flags,
-	uint32_t base_mip_level, uint32_t mip_level_count,
-	uint32_t base_array_layer, uint32_t array_layer_count,
-	uint32_t * out_image_view);
+		       VkImageViewType view_type, VkFormat format, VkImageAspectFlags aspect_flags,
+		       uint32_t base_mip_level, uint32_t mip_level_count,
+		       uint32_t base_array_layer, uint32_t array_layer_count,
+		       uint32_t * out_image_view);
 void destroy_image_view(uint32_t id);
 VkImageView get_image_view(uint32_t id);
 VkSampler create_sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode u,
-	VkSamplerAddressMode v, VkSamplerAddressMode w);
+			 VkSamplerAddressMode v, VkSamplerAddressMode w);
 void internal_create_sampler(VkSamplerCreateInfo create_info, uint32_t * out_sampler);
 VkSampler get_sampler(uint32_t id);
 void destroy_sampler(uint32_t id);
 VkPipelineLayout vkal_create_pipeline_layout(VkDescriptorSetLayout * descriptor_set_layouts, uint32_t descriptor_set_layout_count, VkPushConstantRange * push_constant_ranges, uint32_t push_constant_range_count);
 void create_pipeline_layout(
-	VkDescriptorSetLayout * descriptor_set_layouts, uint32_t descriptor_set_layout_count,
-	VkPushConstantRange * push_constant_ranges, uint32_t push_constant_range_count,
-	uint32_t * out_pipeline_layout);
+    VkDescriptorSetLayout * descriptor_set_layouts, uint32_t descriptor_set_layout_count,
+    VkPushConstantRange * push_constant_ranges, uint32_t push_constant_range_count,
+    uint32_t * out_pipeline_layout);
 void destroy_pipeline_layout(uint32_t id);
 VkPipelineLayout get_pipeline_layout(uint32_t id);
 VkDeviceMemory allocate_memory(uint32_t size, uint32_t mem_type_bits);
@@ -493,17 +502,17 @@ void create_device_memory(uint32_t size, uint32_t mem_type_bits, uint32_t * out_
 uint32_t destroy_device_memory(uint32_t id);
 VkDeviceMemory get_device_memory(uint32_t id);
 VkWriteDescriptorSet create_write_descriptor_set_image(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,
-	uint32_t count, VkDescriptorType type, VkDescriptorImageInfo * image_info);
+						       uint32_t count, VkDescriptorType type, VkDescriptorImageInfo * image_info);
 VkWriteDescriptorSet create_write_descriptor_set_image2(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding, uint32_t array_element,
-	uint32_t count, VkDescriptorType type, VkDescriptorImageInfo * image_info);
+							uint32_t count, VkDescriptorType type, VkDescriptorImageInfo * image_info);
 VkWriteDescriptorSet create_write_descriptor_set_buffer(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,
-	uint32_t count, VkDescriptorType type, VkDescriptorBufferInfo * buffer_info);
+							uint32_t count, VkDescriptorType type, VkDescriptorBufferInfo * buffer_info);
 VkWriteDescriptorSet create_write_descriptor_set_buffer2(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding, uint32_t dst_array_element,
-	uint32_t count, VkDescriptorType type, VkDescriptorBufferInfo * buffer_info);
+							 uint32_t count, VkDescriptorType type, VkDescriptorBufferInfo * buffer_info);
 void vkal_allocate_descriptor_sets(VkDescriptorPool pool, VkDescriptorSetLayout * layout, uint32_t layout_count, VkDescriptorSet ** out_descriptor_set);
 Texture vkal_create_texture(uint32_t binding, unsigned char * texture_data, uint32_t width, uint32_t height, uint32_t channels, VkImageCreateFlags flags, VkImageViewType view_type,
-	uint32_t base_mip_level, uint32_t mip_level_count, uint32_t base_array_layer, uint32_t array_layer_count,
-	VkFilter min_filter, VkFilter mag_filter);
+			    uint32_t base_mip_level, uint32_t mip_level_count, uint32_t base_array_layer, uint32_t array_layer_count,
+			    VkFilter min_filter, VkFilter mag_filter);
 RenderImage create_render_image(uint32_t width, uint32_t height);
 void vkal_update_descriptor_set_texture(VkDescriptorSet descriptor_set, Texture texture);
 void vkal_descriptor_set_add_image_sampler(VkDescriptorSet descriptor_set, uint32_t binding, VkImageView image_view, VkSampler sampler);
@@ -514,21 +523,21 @@ VkShaderModule get_shader_module(uint32_t id);
 void destroy_shader_module(uint32_t id);
 uint32_t vkal_get_image();
 /* 
-void vkal_record_models_pc(
-	uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-	Model * models, uint32_t model_draw_count);
-void vkal_record_models(
-	uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-	UniformBuffer * uniforms, uint32_t uniform_count,
-	Model * models, uint32_t model_draw_count);
-void vkal_record_models_dimensions(
-	uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-	UniformBuffer * uniforms, uint32_t uniform_count,
-	Model * models, uint32_t model_draw_count, float width, float height);
-void vkal_record_models_indexed(
-	uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-	UniformBuffer * uniforms, uint32_t uniform_count,
-	Model * models, uint32_t model_draw_count);
+   void vkal_record_models_pc(
+   uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
+   Model * models, uint32_t model_draw_count);
+   void vkal_record_models(
+   uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
+   UniformBuffer * uniforms, uint32_t uniform_count,
+   Model * models, uint32_t model_draw_count);
+   void vkal_record_models_dimensions(
+   uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
+   UniformBuffer * uniforms, uint32_t uniform_count,
+   Model * models, uint32_t model_draw_count, float width, float height);
+   void vkal_record_models_indexed(
+   uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
+   UniformBuffer * uniforms, uint32_t uniform_count,
+   Model * models, uint32_t model_draw_count);
 */
 void vkal_bind_descriptor_set(uint32_t image_id, uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count, VkPipelineLayout pipeline_layout);
 void vkal_begin_command_buffer(VkCommandBuffer command_buffer);
@@ -547,13 +556,13 @@ void destroy_descriptor_set_layout(uint32_t id);
 QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
 void vkal_destroy_graphics_pipeline(VkPipeline pipeline);
 /*
-void build_shadow_command_buffers(Model * models, uint32_t model_draw_count, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-	VkDescriptorSet * descriptor_sets, uint32_t first_set, uint32_t descriptor_set_count);
+  void build_shadow_command_buffers(Model * models, uint32_t model_draw_count, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
+  VkDescriptorSet * descriptor_sets, uint32_t first_set, uint32_t descriptor_set_count);
 */
 void offscreen_buffers_submit(uint32_t image_id);
 /*
-void update_shadow_command_buffer(uint32_t image_id, Model * models, uint32_t model_draw_count, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-	VkDescriptorSet * descriptor_sets, uint32_t first_set, uint32_t descriptor_set_count);
+  void update_shadow_command_buffer(uint32_t image_id, Model * models, uint32_t model_draw_count, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
+  VkDescriptorSet * descriptor_sets, uint32_t first_set, uint32_t descriptor_set_count);
 */
 void create_offscreen_descriptor_set(VkDescriptorSetLayout descriptor_set_layout, uint32_t binding);
 
@@ -577,13 +586,13 @@ void build_rt_commandbuffers();
 /* End NV Raytracing */
 
 void set_image_layout(
-	VkCommandBuffer         command_buffer,
-	VkImage                 image,
-	VkImageLayout           old_layout,
-	VkImageLayout           new_layout,
-	VkImageSubresourceRange subresource_range,
-	VkPipelineStageFlags    src_mask, // = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-	VkPipelineStageFlags    dst_mask); // = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+    VkCommandBuffer         command_buffer,
+    VkImage                 image,
+    VkImageLayout           old_layout,
+    VkImageLayout           new_layout,
+    VkImageSubresourceRange subresource_range,
+    VkPipelineStageFlags    src_mask, // = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+    VkPipelineStageFlags    dst_mask); // = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int free);
 #endif
 

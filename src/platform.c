@@ -102,44 +102,5 @@ void init_platform(Platform * p)
 #endif
 
 	/* Platform independent*/
-	p->mmalloc = mmalloc;
-	p->mdalloc = mdalloc;
-	p->memused = memused;
-}
 
-/* Platform independent part */
-
-void initialize_arena(MemoryArena * arena, void * base, uint32_t size)
-{
-	arena->base = base;
-	arena->size = size;
-	arena->current = 0;
-}
-
-void * mmalloc(MemoryArena * arena, uint32_t size) {
-	if ((uint8_t*)arena->base + arena->current + size > (uint8_t*)arena->base + arena->size) {
-		// ASSERT
-	}
-	arena->current += size;
-	return (void*) ((uint8_t*)arena->base + arena->current - size);
-}
-
-void mdalloc(MemoryArena * arena)
-{
-	internal_zero_memory(arena->base, arena->size);
-	arena->current = 0;
-}
-
-uint32_t memused(MemoryArena * arena)
-{
-	return arena->current;
-}
-
-/* internal */
-void internal_zero_memory(void * memory, uint32_t size)
-{
-	uint8_t * m = (uint8_t*)memory;
-	while (size--) {
-		*m++ = 0;
-	}
 }

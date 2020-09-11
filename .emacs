@@ -4,12 +4,13 @@
       c-basic-offset 4)
  
 ; (setq backup-directory-alist `(("." . "~/.saves")))
+(blink-cursor-mode 0) ; disable cursor blinking
 
 ; keyboard bindings
 (defun split-window-and-change-to-new ()
   (interactive)
   (split-window-right)
-  (other-window))
+  (other-window))  
   
 (global-set-key (kbd "C-p") 'split-window-and-change-to-new)
 (global-set-key (kbd "C-S-p") 'delete-window)
