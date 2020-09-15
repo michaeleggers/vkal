@@ -76,12 +76,94 @@ int main(int argc, char ** argv)
     vkal_select_physical_device(&devices[0]);
     VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
 
-#if 1
+    
+    /* Shader Setup */
+    uint8_t * vertex_byte_code = 0;
+    int vertex_code_size;
+    p.rfb("../assets/shaders/vert.spv", &vertex_byte_code, &vertex_code_size);
+    uint8_t * fragment_byte_code = 0;
+    int fragment_code_size;
+    p.rfb("../assets/shaders/frag.spv", &fragment_byte_code, &fragment_code_size);
+    ShaderStageSetup shader_setup = vkal_create_shaders(
+	vertex_byte_code, vertex_code_size, 
+	fragment_byte_code, fragment_code_size);
+
+    /* Pipeline */
+    VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
+	NULL, 0, 
+	NULL, 0);
+    VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+	VK_FRONT_FACE_COUNTER_CLOCKWISE,
+	vkal_info->render_pass, pipeline_layout);
+
+    /* Model Data */
+    float cube_vertices[] = {
+	// front
+	-1.0, -1.0,  1.0,
+	1.0, -1.0,  1.0,
+	1.0,  1.0,  1.0,
+	-1.0,  1.0,  1.0,
+	// back
+	-1.0, -1.0, -1.0,
+	1.0, -1.0, -1.0,
+	1.0,  1.0, -1.0,
+	-1.0,  1.0, -1.0
+    };
+
+    uint32_t cube_indices[] = {
+	// front
+	0, 1, 2,
+	2, 3, 0,
+	// right
+	1, 5, 6,
+	6, 2, 1,
+	// back
+	7, 6, 5,
+	5, 4, 7,
+	// left
+	4, 0, 3,
+	3, 7, 4,
+	// bottom
+	4, 5, 1,
+	1, 0, 4,
+	// top
+	3, 2, 6,
+	6, 7, 3
+    };
+    uint32_t index_count = sizeof(cube_indices)/sizeof(*cube_indices);
+    Vertex * vertices = (Vertex*)malloc(8 * sizeof(Vertex));
+    for (int i = 0; i < 8; ++i) {
+	vertices[i].pos = (vec3){ cube_vertices[i*3+0], cube_vertices[i*3+1], cube_vertices[i*3+2] };
+    }
+    uint32_t offset_vertices = vkal_vertex_buffer_add(vertices, 8);
+    uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
+    
+    // Main Loop
     while (!glfwWindowShouldClose(window))
     {
 	glfwPollEvents();
+
+	{
+	    uint32_t image_id = vkal_get_image();
+
+	    vkal_begin_command_buffer(vkal_info->command_buffers[image_id]);
+	    vkal_begin_render_pass(image_id, vkal_info->command_buffers[image_id], vkal_info->render_pass);
+// Do draw calls here
+	    vkal_draw_indexed(image_id, graphics_pipeline,
+			      offset_indices, index_count,
+			      offset_vertices, 8);
+	    vkal_end_renderpass(vkal_info->command_buffers[image_id]);
+	    vkal_end_command_buffer(vkal_info->command_buffers[image_id]);
+			
+	    VkCommandBuffer command_buffers[] = { vkal_info->command_buffers[image_id] };
+	    vkal_queue_submit(command_buffers, 1);
+
+	    vkal_present(image_id);
+	}
     }
-#endif
+
     
     vkal_cleanup();
 

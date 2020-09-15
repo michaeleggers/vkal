@@ -561,6 +561,10 @@ uint32_t vkal_get_image();
    UniformBuffer * uniforms, uint32_t uniform_count,
    Model * models, uint32_t model_draw_count);
 */
+void vkal_draw_indexed(
+    uint32_t image_id, VkPipeline pipeline,
+    VkDeviceSize index_buffer_offset, uint32_t index_count,
+    VkDeviceSize vertex_buffer_offset, uint32_t vertex_count);
 void vkal_bind_descriptor_set(uint32_t image_id, uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count, VkPipelineLayout pipeline_layout);
 void vkal_begin_command_buffer(VkCommandBuffer command_buffer);
 void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass);

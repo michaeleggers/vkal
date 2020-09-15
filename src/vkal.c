@@ -3495,6 +3495,34 @@ void vkal_bind_descriptor_set(uint32_t image_id, uint32_t first_set, VkDescripto
   }
 */
 
+void vkal_draw_indexed(
+    uint32_t image_id, VkPipeline pipeline,
+    VkDeviceSize index_buffer_offset, uint32_t index_count,
+    VkDeviceSize vertex_buffer_offset, uint32_t vertex_count)
+{
+    vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    
+    VkViewport viewport = { 0 };
+    viewport.x = 0.f;
+    viewport.y = 0.f;
+    viewport.width = vkal_info.swapchain_extent.width; // (float)vp_width;
+    viewport.height = vkal_info.swapchain_extent.height; // (float)vp_height;
+    viewport.minDepth = 0.f;
+    viewport.maxDepth = 1.f;
+    vkCmdSetViewport(vkal_info.command_buffers[image_id], 0, 1, &viewport);
+    
+    VkRect2D scissor = { 0 };
+    scissor.offset = (VkOffset2D){ 0,0 };
+    scissor.extent = vkal_info.swapchain_extent;
+    vkCmdSetScissor(vkal_info.command_buffers[image_id], 0, 1, &scissor);
+    
+    vkCmdBindIndexBuffer(vkal_info.command_buffers[image_id],
+			 vkal_info.index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
+    uint64_t vertex_buffer_offsets[] = { vertex_buffer_offset };
+    VkBuffer vertex_buffers[] = { vkal_info.vertex_buffer.buffer };
+    vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
+    vkCmdDrawIndexed(vkal_info.command_buffers[image_id], index_count, 1, 0, 0, 0);
+}
 
 uint32_t vkal_get_image()
 {
