@@ -2121,12 +2121,10 @@ void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count,
 	printf("physical device found: %s\n", physical_device_property.deviceName);
 	if ( is_device_suitable(vkal_info.physical_devices[i], extensions, extension_count) ) {
 	    QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_devices[i], vkal_info.surface);
-	    vkal_info.suitable_devices[i].device = vkal_info.physical_devices[i];
-	    vkal_info.suitable_devices[i].property = physical_device_property;
-	    vkal_info.suitable_device_count++;
 	    if (indicies.has_graphics_family && indicies.has_present_family) {
-//		vkal_info.physical_device = physical_devices[i];
-//		vkal_info.physical_device_properties = physical_device_property;
+		vkal_info.suitable_devices[i].device = vkal_info.physical_devices[i];
+		vkal_info.suitable_devices[i].property = physical_device_property;
+		vkal_info.suitable_device_count++;
 	    }
 	}
     }
