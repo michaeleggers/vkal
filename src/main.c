@@ -62,7 +62,7 @@ int main(int argc, char ** argv)
    
     vkal_create_instance(window,
 			 instance_extensions, instance_extension_count,
-			 instance_layers, instance_layer_count);
+ 			 instance_layers, instance_layer_count);
     
     VkalPhysicalDevice * devices = 0;
     uint32_t device_count;
