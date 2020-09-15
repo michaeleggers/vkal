@@ -281,7 +281,7 @@ typedef struct VkalPhysicalDevice
 {
     VkPhysicalDeviceProperties property; 
     VkPhysicalDevice device;
-} VkalPhysicalDevice;
+}VkalPhysicalDevice;
 
 typedef struct VkalInfo
 {
@@ -305,7 +305,7 @@ typedef struct VkalInfo
     VkPhysicalDeviceProperties * physical_devices_properties;
     uint32_t physical_device_count;
     VkalPhysicalDevice * suitable_devices;
-    uint32_t * suitable_device_count;
+    uint32_t suitable_device_count;
     
     /* Active Physical Device */
     VkPhysicalDevice physical_device;
@@ -425,7 +425,9 @@ void vkal_create_instance(
     void * window,
     char ** instance_extensions, uint32_t instance_extension_count,
     char ** instance_layers, uint32_t instance_layer_count);
-void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count);
+void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count,
+				VkalPhysicalDevice ** out_devices, uint32_t * out_device_count);
+void vkal_select_physical_device(VkalPhysicalDevice * physical_device);
 int check_instance_layer_support(char const * requested_layer,
 				   VkLayerProperties * available_layers, uint32_t available_layer_count);
 int check_instance_extension_support(char const * requested_extension,

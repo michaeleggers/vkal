@@ -58,11 +58,10 @@ PFN_vkSetDebugUtilsObjectNameEXT                       vkSetDebugUtilsObjectName
 VkalInfo * vkal_init(
     char ** extensions, uint32_t extension_count)
 {
-    
-
     vkal_info.mapped_uniform_memory = 0;
 
 #ifdef _DEBUG
+    // TODO: Do I really need to go the indirection through a #define here?
     vkSetDebugUtilsObjectNameEXT_DEF = (PFN_vkSetDebugUtilsObjectNameEXT)glfwGetInstanceProcAddress(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
 #endif 
 
@@ -2101,7 +2100,8 @@ QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR su
     return indicies;
 }
 
-void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count)
+void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count,
+				VkalPhysicalDevice ** out_devices, uint32_t * out_device_count)
 {
     vkal_info.physical_device_count = 0;
     vkEnumeratePhysicalDevices(vkal_info.instance, &vkal_info.physical_device_count, 0);
@@ -2130,10 +2130,15 @@ void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count)
 	    }
 	}
     }
-    if (vkal_info.physical_device == VK_NULL_HANDLE) {
-	printf("failed to find suitable GPU\n");
-	exit(-1);
-    }
+
+    *out_devices = vkal_info.suitable_devices;
+    *out_device_count = vkal_info.suitable_device_count;
+}
+
+void vkal_select_physical_device(VkalPhysicalDevice * physical_device)
+{
+    vkal_info.physical_device = physical_device->device;
+    vkal_info.physical_device_properties = physical_device->property;
 }
 
 void create_logical_device(char ** extensions, uint32_t extension_count)

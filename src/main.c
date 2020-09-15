@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <assert.h>
 
 #include <GLFW/glfw3.h>
 
@@ -40,19 +41,27 @@ int main(int argc, char ** argv)
     uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
 
     char * instance_layers[] = {
-#ifdef _DEBUG
 	"VK_LAYER_LUNARG_standard_validation",
 	"VK_LAYER_LUNARG_monitor"
-#else
-	0
-#endif
     };
-    uint32_t instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);
-
+    uint32_t instance_layer_count = 0;
+#ifdef _DEBUG
+    instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);    
+#endif
+   
     vkal_create_instance(window,
 			 instance_extensions, instance_extension_count,
 			 instance_layers, instance_layer_count);
-    vkal_find_suitable_devices(device_extensions, device_extension_count);
+    
+    VkalPhysicalDevice * devices = 0;
+    uint32_t device_count;
+    vkal_find_suitable_devices(device_extensions, device_extension_count,
+			       &devices, &device_count);
+    assert(device_count > 0);
+    for (uint32_t i = 0; i < device_count; ++i) {
+	printf("Phyiscal Device %d: %s\n", i, devices[0].property.deviceName);
+    }
+    vkal_select_physical_device(&devices[0]);
     VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
 
     
