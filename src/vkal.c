@@ -1688,7 +1688,8 @@ void vkal_update_descriptor_set_texture(VkDescriptorSet descriptor_set, Texture 
     vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_image, 0, 0);
 }
 
-void vkal_update_descriptor_set_texturearray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type, uint32_t binding, uint32_t array_element, Texture texture)
+void vkal_update_descriptor_set_texturearray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type,
+					     uint32_t array_element, Texture texture)
 {
     // update floats in fragment shader
     VkDescriptorImageInfo image_infos[1];
@@ -1697,7 +1698,7 @@ void vkal_update_descriptor_set_texturearray(VkDescriptorSet descriptor_set, VkD
     image_infos[0].sampler = texture.sampler; /* This is the offset _WITHIN_ the buffer, not its VkDeviceMemory! */
     VkWriteDescriptorSet write_set_uniform = create_write_descriptor_set_image2(
 	descriptor_set,
-	binding, array_element, 1,
+	texture.binding, array_element, 1,
 	descriptor_type, image_infos);
 
     vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_uniform, 0, 0);

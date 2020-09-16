@@ -488,7 +488,9 @@ void create_surface();
 UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t binding);
 void vkal_update_descriptor_set_uniform(VkDescriptorSet descriptor_set, UniformBuffer uniform_buffer);
 void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type, uint32_t binding, uint32_t array_element, Buffer buffer);
-void vkal_update_descriptor_set_texturearray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type, uint32_t binding, uint32_t array_element, Texture texture);
+void vkal_update_descriptor_set_texturearray(VkDescriptorSet descriptor_set,
+					     VkDescriptorType descriptor_type,
+					     uint32_t array_element, Texture texture);
 void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data);
 uint32_t check_memory_type_index(uint32_t const memory_requirement_bits, VkMemoryPropertyFlags const wanted_property);
 void upload_texture(VkImage const image, uint32_t w, uint32_t h, uint32_t n, uint32_t array_layer_count, unsigned char * texture_data);
@@ -516,7 +518,9 @@ VkSampler create_sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddr
 void internal_create_sampler(VkSamplerCreateInfo create_info, uint32_t * out_sampler);
 VkSampler get_sampler(uint32_t id);
 void destroy_sampler(uint32_t id);
-VkPipelineLayout vkal_create_pipeline_layout(VkDescriptorSetLayout * descriptor_set_layouts, uint32_t descriptor_set_layout_count, VkPushConstantRange * push_constant_ranges, uint32_t push_constant_range_count);
+VkPipelineLayout vkal_create_pipeline_layout(
+    VkDescriptorSetLayout * descriptor_set_layouts, uint32_t descriptor_set_layout_count,
+    VkPushConstantRange * push_constant_ranges, uint32_t push_constant_range_count);
 void create_pipeline_layout(
     VkDescriptorSetLayout * descriptor_set_layouts, uint32_t descriptor_set_layout_count,
     VkPushConstantRange * push_constant_ranges, uint32_t push_constant_range_count,
@@ -536,8 +540,12 @@ VkWriteDescriptorSet create_write_descriptor_set_buffer(VkDescriptorSet dst_desc
 VkWriteDescriptorSet create_write_descriptor_set_buffer2(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding, uint32_t dst_array_element,
 							 uint32_t count, VkDescriptorType type, VkDescriptorBufferInfo * buffer_info);
 void vkal_allocate_descriptor_sets(VkDescriptorPool pool, VkDescriptorSetLayout * layout, uint32_t layout_count, VkDescriptorSet ** out_descriptor_set);
-Texture vkal_create_texture(uint32_t binding, unsigned char * texture_data, uint32_t width, uint32_t height, uint32_t channels, VkImageCreateFlags flags, VkImageViewType view_type,
-			    uint32_t base_mip_level, uint32_t mip_level_count, uint32_t base_array_layer, uint32_t array_layer_count,
+Texture vkal_create_texture(uint32_t binding,
+			    unsigned char * texture_data,
+			    uint32_t width, uint32_t height, uint32_t channels,
+			    VkImageCreateFlags flags, VkImageViewType view_type,
+			    uint32_t base_mip_level, uint32_t mip_level_count,
+			    uint32_t base_array_layer, uint32_t array_layer_count,
 			    VkFilter min_filter, VkFilter mag_filter);
 RenderImage create_render_image(uint32_t width, uint32_t height);
 void vkal_update_descriptor_set_texture(VkDescriptorSet descriptor_set, Texture texture);

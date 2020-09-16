@@ -7,9 +7,17 @@
 #include "vkal.h"
 #include "platform.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 static GLFWwindow * window;
 static Platform p;
 
+typedef struct Image
+{
+    uint32_t width, height, channels;
+    unsigned char * data;
+} Image;
 
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
@@ -29,6 +37,19 @@ void init_window()
     glfwSetKeyCallback(window, glfw_key_callback);
     //glfwSetMouseButtonCallback(window, glfw_mouse_button_callback);
     //glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
+}
+
+Image load_image_file(char const * file)
+{
+    Image image = {};
+    int tw, th, tn;
+    image.data = stbi_load(file, &tw, &th, &tn, 4);
+    assert(image.data != NULL);
+    image.width = tw;
+    image.height = th;
+    image.channels = tn;
+
+    return image;
 }
 
 int main(int argc, char ** argv)
@@ -91,22 +112,43 @@ int main(int argc, char ** argv)
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
 	{
-	    { 0, 2*sizeof(vec3), VK_VERTEX_INPUT_RATE_VERTEX }
+	    { 0, 2*sizeof(vec3) + sizeof(vec2), VK_VERTEX_INPUT_RATE_VERTEX }
 	};
     
     VkVertexInputAttributeDescription vertex_attributes[] =
 	{
-	    { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 }, // pos
-	    { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(vec3) } // color
+	    { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },               // pos
+	    { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(vec3) },    // color
+	    { 2, 0, VK_FORMAT_R32G32_SFLOAT,    2*sizeof(vec3) },  // UV 
 	};
+    uint32_t vertex_attribute_count = sizeof(vertex_attributes)/sizeof(*vertex_attributes);
 
+    /* Descriptor Sets */
+    VkDescriptorSetLayoutBinding set_layout[] = {
+	{
+	    0,
+	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	    1, /* Texture Array-Count: How many Textures do we need? */
+	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    0
+	}       
+    };
+    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 1);
+
+    VkDescriptorSetLayout layouts[] = {
+	descriptor_set_layout
+    };
+    uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
+    VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
+    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_sets);
+    
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
-	NULL, 0, 
+	layouts, descriptor_set_layout_count, 
 	NULL, 0);
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
-	vertex_attributes, 2,
+	vertex_attributes, vertex_attribute_count,
 	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_COUNTER_CLOCKWISE,
@@ -114,21 +156,37 @@ int main(int argc, char ** argv)
 
     /* Model Data */
     float cube_vertices[] = {
-	// front
-	-1.0, -1.0,  1.0,  1.0, 0.0, 0.0,
-	0.0, 1.0,  1.0,    0.0, 1.0, 0.0,
-	1.0,  -1.0,  1.0,  0.0, 0.0, 1.0
+	// Pos            // Color        // UV
+	-1.0, -1.0, 1.0,  1.0, 0.0, 0.0,  1.0, 0.0,
+	-1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 1.0,
+	 1.0,  1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
+    	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  0.0, 0.0
     };
     uint32_t vertex_count = sizeof(cube_vertices)/sizeof(*cube_vertices);
     
     uint16_t cube_indices[] = {
 	// front
-	0, 1, 2
+	0, 1, 2,
+	0, 2, 3
     };
     uint32_t index_count = sizeof(cube_indices)/sizeof(*cube_indices);
   
-    uint32_t offset_vertices = vkal_vertex_buffer_add2(cube_vertices, 2*sizeof(vec3), 3);
+    uint32_t offset_vertices = vkal_vertex_buffer_add2(cube_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
     uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
+
+    /* Texture Data */
+    Image image = load_image_file("../assets/textures/indy1.jpg");
+    Texture texture = vkal_create_texture(0, image.data, image.width, image.height, image.channels, 0,
+					  VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+    free(image.data);
+#if 1
+    vkal_update_descriptor_set_texturearray(
+	descriptor_sets[0], 
+	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+	0, /* texture-id (index into array) */
+	texture);
+#endif
+//    vkal_update_descriptor_set_texture(descriptor_sets[0], texture);
     
     // Main Loop
     while (!glfwWindowShouldClose(window))
@@ -140,6 +198,7 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(vkal_info->command_buffers[image_id]);
 	    vkal_begin_render_pass(image_id, vkal_info->command_buffers[image_id], vkal_info->render_pass);
+	    vkal_bind_descriptor_set(image_id, 0, &descriptor_sets[0], 1, pipeline_layout);
 // Do draw calls here
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
