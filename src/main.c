@@ -91,12 +91,13 @@ int main(int argc, char ** argv)
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
 	{
-	    { 0, sizeof(vec3), VK_VERTEX_INPUT_RATE_VERTEX }
+	    { 0, 2*sizeof(vec3), VK_VERTEX_INPUT_RATE_VERTEX }
 	};
     
     VkVertexInputAttributeDescription vertex_attributes[] =
 	{
-	    { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 }
+	    { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 }, // pos
+	    { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(vec3) } // color
 	};
 
     /* Pipeline */
@@ -105,18 +106,18 @@ int main(int argc, char ** argv)
 	NULL, 0);
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
-	vertex_attributes, 1,
+	vertex_attributes, 2,
 	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_COUNTER_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
-    vec3 cube_vertices[] = {
+    float cube_vertices[] = {
 	// front
-	{-1.0, -1.0,  1.0},
-	{0.0, 1.0,  1.0},
-	{1.0,  -1.0,  1.0}
+	-1.0, -1.0,  1.0,  1.0, 0.0, 0.0,
+	0.0, 1.0,  1.0,    0.0, 1.0, 0.0,
+	1.0,  -1.0,  1.0,  0.0, 0.0, 1.0
     };
     uint32_t vertex_count = sizeof(cube_vertices)/sizeof(*cube_vertices);
     
@@ -126,7 +127,7 @@ int main(int argc, char ** argv)
     };
     uint32_t index_count = sizeof(cube_indices)/sizeof(*cube_indices);
   
-    uint32_t offset_vertices = vkal_vertex_buffer_add2(cube_vertices, sizeof(vec3), vertex_count);
+    uint32_t offset_vertices = vkal_vertex_buffer_add2(cube_vertices, 2*sizeof(vec3), 3);
     uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
     
     // Main Loop
