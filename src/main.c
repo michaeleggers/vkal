@@ -175,18 +175,24 @@ int main(int argc, char ** argv)
     uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
 
     /* Texture Data */
+    Image image2 = load_image_file("../assets/textures/mario.jpg");
+    Texture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, image2.channels, 0,
+					   VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     Image image = load_image_file("../assets/textures/indy1.jpg");
     Texture texture = vkal_create_texture(0, image.data, image.width, image.height, image.channels, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image.data);
-#if 1
+    free(image2.data);
+    
+#if 0
     vkal_update_descriptor_set_texturearray(
 	descriptor_sets[0], 
 	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 	0, /* texture-id (index into array) */
 	texture);
 #endif
-//    vkal_update_descriptor_set_texture(descriptor_sets[0], texture);
+
+    vkal_update_descriptor_set_texture(descriptor_sets[0], texture2);
     
     // Main Loop
     while (!glfwWindowShouldClose(window))
@@ -198,6 +204,7 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(vkal_info->command_buffers[image_id]);
 	    vkal_begin_render_pass(image_id, vkal_info->command_buffers[image_id], vkal_info->render_pass);
+	    vkal_update_descriptor_set_texture(descriptor_sets[0], texture);
 	    vkal_bind_descriptor_set(image_id, 0, &descriptor_sets[0], 1, pipeline_layout);
 // Do draw calls here
 	    vkal_draw_indexed(image_id, graphics_pipeline,
@@ -205,9 +212,22 @@ int main(int argc, char ** argv)
 			      offset_vertices);
 	    vkal_end_renderpass(vkal_info->command_buffers[image_id]);
 	    vkal_end_command_buffer(vkal_info->command_buffers[image_id]);
-			
-	    VkCommandBuffer command_buffers[] = { vkal_info->command_buffers[image_id] };
-	    vkal_queue_submit(command_buffers, 1);
+	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
+	    vkal_queue_submit(command_buffers1, 1);
+
+	    vkDeviceWaitIdle(vkal_info->device);
+	    
+	    vkal_begin_command_buffer(vkal_info->command_buffers[image_id]);
+	    vkal_begin_render_pass(image_id, vkal_info->command_buffers[image_id], vkal_info->render_pass);
+	    vkal_update_descriptor_set_texture(descriptor_sets[0], texture2);
+	    vkal_bind_descriptor_set(image_id, 0, &descriptor_sets[0], 1, pipeline_layout);
+	    vkal_draw_indexed(image_id, graphics_pipeline,
+			      offset_indices, index_count,
+			      offset_vertices);
+	    vkal_end_renderpass(vkal_info->command_buffers[image_id]);
+	    vkal_end_command_buffer(vkal_info->command_buffers[image_id]);
+	    VkCommandBuffer command_buffers2[] = { vkal_info->command_buffers[image_id] };
+	    vkal_queue_submit(command_buffers2, 1);
 
 	    vkal_present(image_id);
 	}

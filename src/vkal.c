@@ -1722,9 +1722,11 @@ Texture vkal_create_texture(uint32_t binding,
     // Back the image with actual memory:
     VkMemoryRequirements image_memory_requirements = { 0 };
     vkGetImageMemoryRequirements(vkal_info.device, get_image(texture.image), &image_memory_requirements);
-    uint32_t mem_type_bits = check_memory_type_index(image_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    uint32_t mem_type_bits = check_memory_type_index(image_memory_requirements.memoryTypeBits,
+						     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     create_device_memory(image_memory_requirements.size, mem_type_bits, &texture.device_memory_id);
-    VkResult result = vkBindImageMemory(vkal_info.device, get_image(texture.image), get_device_memory(texture.device_memory_id), 0);
+    VkResult result = vkBindImageMemory(vkal_info.device,
+					get_image(texture.image), get_device_memory(texture.device_memory_id), 0);
     DBG_VULKAN_ASSERT(result, "failed to bind texture image memory!");
     
     create_image_view(get_image(texture.image), view_type,
@@ -1876,7 +1878,10 @@ void vkal_update_buffer(Buffer buffer, uint8_t* data)
 		       "Failed to flush mapped memory!" );
 }
 
-void upload_texture(VkImage const image, uint32_t w, uint32_t h, uint32_t n, uint32_t array_layer_count, unsigned char * texture_data)
+void upload_texture(VkImage const image,
+		    uint32_t w, uint32_t h, uint32_t n,
+		    uint32_t array_layer_count,
+		    unsigned char * texture_data)
 {
     // Copy image data to staging buffer
     void * staging_buffer;
@@ -1885,7 +1890,7 @@ void upload_texture(VkImage const image, uint32_t w, uint32_t h, uint32_t n, uin
     VkMappedMemoryRange flush_range = { 0 };
     flush_range.memory = vkal_info.device_memory_staging;
     flush_range.offset = 0;
-    flush_range.size = array_layer_count*w*h*4;
+    flush_range.size = VK_WHOLE_SIZE; // array_layer_count*w*h*4;
     flush_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     vkFlushMappedMemoryRanges(vkal_info.device, 1, &flush_range);
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
