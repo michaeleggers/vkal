@@ -453,14 +453,17 @@ void create_render_pass();
 void create_render_to_image_render_pass();
 void create_offscreen_render_pass();
 void create_offscreen_framebuffer();
-VkPipeline vkal_create_graphics_pipeline(
-    ShaderStageSetup shader_setup,
-    VkBool32 depth_test_enable, VkCompareOp depth_compare_op,
-    VkCullModeFlags cull_mode,
-    VkPolygonMode polygon_mode,
-    VkPrimitiveTopology primitive_topology,
-    VkFrontFace face_winding, VkRenderPass render_pass,
-    VkPipelineLayout pipeline_layout);
+VkPipeline vkal_create_graphics_pipeline(VkVertexInputBindingDescription * vertex_input_bindings,
+					 uint32_t vertex_input_binding_count,
+					 VkVertexInputAttributeDescription * vertex_attributes,
+					 uint32_t vertex_attribute_count,
+					 ShaderStageSetup shader_setup, 
+                                         VkBool32 depth_test_enable, VkCompareOp depth_compare_op, 
+                                         VkCullModeFlags cull_mode,
+                                         VkPolygonMode polygon_mode,
+                                         VkPrimitiveTopology primitive_topology,
+                                         VkFrontFace face_winding, VkRenderPass render_pass,
+					 VkPipelineLayout pipeline_layout);
 void create_graphics_pipeline(VkGraphicsPipelineCreateInfo create_info, uint32_t * out_graphics_pipeline);
 VkPipeline get_graphics_pipeline(uint32_t id);
 void destroy_graphics_pipeline(uint32_t id);
@@ -478,8 +481,9 @@ void create_semaphores();
 void vkal_cleanup();
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset);
 uint32_t vkal_vertex_buffer_add(Vertex * vertices, uint32_t vertex_count);
+uint32_t vkal_vertex_buffer_add2(void * vertices, uint32_t vertex_size, uint32_t vertex_count);
 uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkDeviceSize offset);
-uint32_t vkal_index_buffer_add(uint32_t * indices, uint32_t index_count);
+uint32_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count);
 void create_surface();
 UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t binding);
 void vkal_update_descriptor_set_uniform(VkDescriptorSet descriptor_set, UniformBuffer uniform_buffer);
@@ -564,7 +568,7 @@ uint32_t vkal_get_image();
 void vkal_draw_indexed(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,
-    VkDeviceSize vertex_buffer_offset, uint32_t vertex_count);
+    VkDeviceSize vertex_buffer_offset);
 void vkal_bind_descriptor_set(uint32_t image_id, uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count, VkPipelineLayout pipeline_layout);
 void vkal_begin_command_buffer(VkCommandBuffer command_buffer);
 void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass);

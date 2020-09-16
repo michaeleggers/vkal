@@ -2950,7 +2950,11 @@ void vkal_destroy_graphics_pipeline(VkPipeline pipeline)
     vkDestroyPipeline(vkal_info.device, pipeline, 0);
 }
 
-VkPipeline vkal_create_graphics_pipeline(ShaderStageSetup shader_setup, 
+VkPipeline vkal_create_graphics_pipeline(VkVertexInputBindingDescription * vertex_input_bindings,
+					 uint32_t vertex_input_binding_count,
+					 VkVertexInputAttributeDescription * vertex_attributes,
+					 uint32_t vertex_attribute_count,
+					 ShaderStageSetup shader_setup, 
                                          VkBool32 depth_test_enable, VkCompareOp depth_compare_op, 
                                          VkCullModeFlags cull_mode,
                                          VkPolygonMode polygon_mode,
@@ -2958,28 +2962,15 @@ VkPipeline vkal_create_graphics_pipeline(ShaderStageSetup shader_setup,
                                          VkFrontFace face_winding, VkRenderPass render_pass,
 					 VkPipelineLayout pipeline_layout)
 {    
-    VkPipelineShaderStageCreateInfo shader_stages_infos[] = { shader_setup.vertex_shader_create_info, shader_setup.fragment_shader_create_info };
-	
-    //
-    VkVertexInputBindingDescription vertex_input_bindings[] =
-	{
-	    { 0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX }
-	};
-    
-    VkVertexInputAttributeDescription vertex_attributes[] =
-	{
-	    { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },								                            // position
-	    { 1, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(vec3) },					                            // UV
-	    { 2, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(vec2) + sizeof(vec3) },                        // normal
-	    { 3, 0, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(vec3) + sizeof(vec2) + sizeof(vec3) },                   // color
-	    { 4, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(vec3) + sizeof(vec2) + sizeof(vec3) + sizeof(vec4) } //  tangent
-	};
+    VkPipelineShaderStageCreateInfo shader_stages_infos[] = {
+	shader_setup.vertex_shader_create_info,
+	shader_setup.fragment_shader_create_info };
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
     vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertex_input_info.vertexBindingDescriptionCount = 1;
+    vertex_input_info.vertexBindingDescriptionCount = vertex_input_binding_count;
     vertex_input_info.pVertexBindingDescriptions = vertex_input_bindings;
-    vertex_input_info.vertexAttributeDescriptionCount = 5;
+    vertex_input_info.vertexAttributeDescriptionCount = vertex_attribute_count;
     vertex_input_info.pVertexAttributeDescriptions = vertex_attributes;
     //
     VkPipelineInputAssemblyStateCreateInfo input_assembly_info = {0};
@@ -3498,7 +3489,7 @@ void vkal_bind_descriptor_set(uint32_t image_id, uint32_t first_set, VkDescripto
 void vkal_draw_indexed(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,
-    VkDeviceSize vertex_buffer_offset, uint32_t vertex_count)
+    VkDeviceSize vertex_buffer_offset)
 {
     vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
     
@@ -3881,14 +3872,14 @@ uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkD
     return offset;
 }
 
-/* TODO: Maybe create a temporary command buffer to copy from staging buffer to device only memory... */
 uint32_t vkal_vertex_buffer_add(Vertex * vertices, uint32_t vertex_count)
 {
     uint32_t vertices_in_bytes = vertex_count * sizeof(Vertex);
     
     // map staging memory and upload vertex data
     void * staging_memory;
-    VkResult result = vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, vertices_in_bytes, 0, &staging_memory);
+    VkResult result = vkMapMemory(vkal_info.device,
+				  vkal_info.device_memory_staging, 0, vertices_in_bytes, 0, &staging_memory);
     DBG_VULKAN_ASSERT(result, "failed to map device staging memory!");
     flush_to_memory(vkal_info.device_memory_staging, staging_memory, vertices, vertices_in_bytes, 0);
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
@@ -3903,7 +3894,8 @@ uint32_t vkal_vertex_buffer_add(Vertex * vertices, uint32_t vertex_count)
 	buffer_copy.dstOffset = offset;
 	buffer_copy.srcOffset = 0;
 	buffer_copy.size = vertices_in_bytes;
-	vkCmdCopyBuffer(vkal_info.command_buffers[i], vkal_info.staging_buffer.buffer, vkal_info.vertex_buffer.buffer, 1, &buffer_copy);
+	vkCmdCopyBuffer(vkal_info.command_buffers[i],
+			vkal_info.staging_buffer.buffer, vkal_info.vertex_buffer.buffer, 1, &buffer_copy);
 	vkEndCommandBuffer(vkal_info.command_buffers[i]);
     }
     
@@ -3923,9 +3915,52 @@ uint32_t vkal_vertex_buffer_add(Vertex * vertices, uint32_t vertex_count)
     return offset;
 }
 
-uint32_t vkal_index_buffer_add(uint32_t * indices, uint32_t index_count)
+uint32_t vkal_vertex_buffer_add2(void * vertices, uint32_t vertex_size, uint32_t vertex_count)
 {
-    uint32_t indices_in_bytes = index_count * sizeof(uint32_t);
+    uint32_t vertices_in_bytes = vertex_count * vertex_size;
+    
+    // map staging memory and upload vertex data
+    void * staging_memory;
+    VkResult result = vkMapMemory(vkal_info.device,
+				  vkal_info.device_memory_staging, 0, vertices_in_bytes, 0, &staging_memory);
+    DBG_VULKAN_ASSERT(result, "failed to map device staging memory!");
+    flush_to_memory(vkal_info.device_memory_staging, staging_memory, vertices, vertices_in_bytes, 0);
+    vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
+    
+    // copy vertex buffer data from staging memory (host visible) to device local memory for every command buffer
+    uint32_t offset = vkal_info.vertex_buffer_offset;
+    VkCommandBufferBeginInfo begin_info = { 0 };
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    for (int i = 0; i < 1; ++i) {
+	vkBeginCommandBuffer(vkal_info.command_buffers[i], &begin_info);
+	VkBufferCopy buffer_copy = { 0 };
+	buffer_copy.dstOffset = offset;
+	buffer_copy.srcOffset = 0;
+	buffer_copy.size = vertices_in_bytes;
+	vkCmdCopyBuffer(vkal_info.command_buffers[i],
+			vkal_info.staging_buffer.buffer, vkal_info.vertex_buffer.buffer, 1, &buffer_copy);
+	vkEndCommandBuffer(vkal_info.command_buffers[i]);
+    }
+    
+    VkSubmitInfo submit_info = { 0 };
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;// vkal_info.command_buffer_count;
+    submit_info.pCommandBuffers = &vkal_info.command_buffers[0];
+    vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+    vkDeviceWaitIdle(vkal_info.device);
+    
+    // TODO: this is not COOL!
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
+    uint64_t next_offset = vkal_info.vertex_buffer_offset + (vertices_in_bytes / alignment) * alignment;
+    next_offset += vertices_in_bytes % alignment ? alignment : 0;
+    vkal_info.vertex_buffer_offset = next_offset;
+    
+    return offset;
+}
+
+uint32_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
+{
+    uint32_t indices_in_bytes = index_count * sizeof(uint16_t);
     
     // map staging memory and upload index data
     void * staging_memory;

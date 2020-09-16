@@ -88,56 +88,45 @@ int main(int argc, char ** argv)
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
 
+    /* Vertex Input Assembly */
+    VkVertexInputBindingDescription vertex_input_bindings[] =
+	{
+	    { 0, sizeof(vec3), VK_VERTEX_INPUT_RATE_VERTEX }
+	};
+    
+    VkVertexInputAttributeDescription vertex_attributes[] =
+	{
+	    { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 }
+	};
+
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
 	NULL, 0, 
 	NULL, 0);
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
+	vertex_input_bindings, 1,
+	vertex_attributes, 1,
 	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_COUNTER_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
-    float cube_vertices[] = {
+    vec3 cube_vertices[] = {
 	// front
-	-1.0, -1.0,  1.0,
-	1.0, -1.0,  1.0,
-	1.0,  1.0,  1.0,
-	-1.0,  1.0,  1.0,
-	// back
-	-1.0, -1.0, -1.0,
-	1.0, -1.0, -1.0,
-	1.0,  1.0, -1.0,
-	-1.0,  1.0, -1.0
+	{-1.0, -1.0,  1.0},
+	{0.0, 1.0,  1.0},
+	{1.0,  -1.0,  1.0}
     };
-
-    uint32_t cube_indices[] = {
+    uint32_t vertex_count = sizeof(cube_vertices)/sizeof(*cube_vertices);
+    
+    uint16_t cube_indices[] = {
 	// front
-	0, 1, 2,
-	2, 3, 0,
-	// right
-	1, 5, 6,
-	6, 2, 1,
-	// back
-	7, 6, 5,
-	5, 4, 7,
-	// left
-	4, 0, 3,
-	3, 7, 4,
-	// bottom
-	4, 5, 1,
-	1, 0, 4,
-	// top
-	3, 2, 6,
-	6, 7, 3
+	0, 1, 2
     };
     uint32_t index_count = sizeof(cube_indices)/sizeof(*cube_indices);
-    Vertex * vertices = (Vertex*)malloc(8 * sizeof(Vertex));
-    for (int i = 0; i < 8; ++i) {
-	vertices[i].pos = (vec3){ cube_vertices[i*3+0], cube_vertices[i*3+1], cube_vertices[i*3+2] };
-    }
-    uint32_t offset_vertices = vkal_vertex_buffer_add(vertices, 8);
+  
+    uint32_t offset_vertices = vkal_vertex_buffer_add2(cube_vertices, sizeof(vec3), vertex_count);
     uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
     
     // Main Loop
@@ -153,7 +142,7 @@ int main(int argc, char ** argv)
 // Do draw calls here
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
-			      offset_vertices, 8);
+			      offset_vertices);
 	    vkal_end_renderpass(vkal_info->command_buffers[image_id]);
 	    vkal_end_command_buffer(vkal_info->command_buffers[image_id]);
 			
