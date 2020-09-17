@@ -151,23 +151,23 @@ int main(int argc, char ** argv)
 	vertex_attributes, vertex_attribute_count,
 	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-	VK_FRONT_FACE_COUNTER_CLOCKWISE,
+	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
     float cube_vertices[] = {
 	// Pos            // Color        // UV
-	-1.0, -1.0, 1.0,  1.0, 0.0, 0.0,  1.0, 0.0,
-	-1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 1.0,
-	 1.0,  1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
-    	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  0.0, 0.0
+	-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
+	 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
+	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
+    	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  1.0, 1.0
     };
     uint32_t vertex_count = sizeof(cube_vertices)/sizeof(*cube_vertices);
     
     uint16_t cube_indices[] = {
 	// front
-	0, 1, 2,
-	0, 2, 3
+ 	0, 1, 2,
+	2, 1, 3
     };
     uint32_t index_count = sizeof(cube_indices)/sizeof(*cube_indices);
   

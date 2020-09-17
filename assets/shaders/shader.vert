@@ -17,4 +17,5 @@ void main()
     out_color = color;
     out_uv = uv;
 	gl_Position = vec4(position, 1.0);
+    gl_Position.y = -gl_Position.y; // Hack: vulkan's y is down
 }
