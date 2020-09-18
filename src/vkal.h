@@ -15,8 +15,8 @@
 
 #endif
 
-#define VKAL_SCREEN_WIDTH  1920
-#define VKAL_SCREEN_HEIGHT 1080
+#define VKAL_SCREEN_WIDTH  800
+#define VKAL_SCREEN_HEIGHT 800
 #define VKAL_RT_SIZE_X     1920
 #define VKAL_RT_SIZE_Y     1080
 
@@ -206,15 +206,16 @@ typedef struct GeometryInstance
 #define VKAL_MAX_DESCRIPTOR_SETS		10
 #define VKAL_MAX_COMMAND_POOLS			2
 #define VKAL_MAX_VKDEVICEMEMORY			64
-#define VKAL_MAX_VKIMAGE				64
+#define VKAL_MAX_VKIMAGE			64
 #define VKAL_MAX_VKIMAGEVIEW			64
 #define VKAL_MAX_VKSHADERMODULE			64
 #define VKAL_MAX_VKPIPELINELAYOUT		64
-#define VKAL_MAX_VKDESCRIPTORSETLAYOUT	128
-#define VKAL_MAX_VKPIPELINE             64
-#define VKAL_MAX_VKSAMPLER              128
+#define VKAL_MAX_VKDESCRIPTORSETLAYOUT	        128
+#define VKAL_MAX_VKPIPELINE                     64
+#define VKAL_MAX_VKSAMPLER                      128
+#define VKAL_MAX_TEXTURES                       10
 #define VKAL_MAX_VKFRAMEBUFFER			64
-#define VKAL_VSYNC_ON					0
+#define VKAL_VSYNC_ON				0
 #define VKAL_SHADOW_MAP_DIMENSION		2048
 
 
@@ -480,8 +481,7 @@ void create_index_buffer(uint32_t size);
 void create_semaphores();
 void vkal_cleanup();
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset);
-uint32_t vkal_vertex_buffer_add(Vertex * vertices, uint32_t vertex_count);
-uint32_t vkal_vertex_buffer_add2(void * vertices, uint32_t vertex_size, uint32_t vertex_count);
+uint32_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count);
 uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkDeviceSize offset);
 uint32_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count);
 void create_surface();
@@ -532,12 +532,16 @@ void create_device_memory(uint32_t size, uint32_t mem_type_bits, uint32_t * out_
 uint32_t destroy_device_memory(uint32_t id);
 VkDeviceMemory get_device_memory(uint32_t id);
 VkWriteDescriptorSet create_write_descriptor_set_image(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,
-						       uint32_t count, VkDescriptorType type, VkDescriptorImageInfo * image_info);
-VkWriteDescriptorSet create_write_descriptor_set_image2(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding, uint32_t array_element,
-							uint32_t count, VkDescriptorType type, VkDescriptorImageInfo * image_info);
+						       uint32_t count, VkDescriptorType type,
+						       VkDescriptorImageInfo * image_info);
+VkWriteDescriptorSet create_write_descriptor_set_image2(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,
+							uint32_t array_element, uint32_t count,
+							VkDescriptorType type, VkDescriptorImageInfo * image_info);
 VkWriteDescriptorSet create_write_descriptor_set_buffer(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,
-							uint32_t count, VkDescriptorType type, VkDescriptorBufferInfo * buffer_info);
-VkWriteDescriptorSet create_write_descriptor_set_buffer2(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding, uint32_t dst_array_element,
+							uint32_t count, VkDescriptorType type,
+							VkDescriptorBufferInfo * buffer_info);
+VkWriteDescriptorSet create_write_descriptor_set_buffer2(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,
+							 uint32_t dst_array_element,
 							 uint32_t count, VkDescriptorType type, VkDescriptorBufferInfo * buffer_info);
 void vkal_allocate_descriptor_sets(VkDescriptorPool pool, VkDescriptorSetLayout * layout, uint32_t layout_count, VkDescriptorSet ** out_descriptor_set);
 Texture vkal_create_texture(uint32_t binding,
@@ -577,7 +581,16 @@ void vkal_draw_indexed(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,
     VkDeviceSize vertex_buffer_offset);
-void vkal_bind_descriptor_set(uint32_t image_id, uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count, VkPipelineLayout pipeline_layout);
+void vkal_draw_indexed2(
+    VkCommandBuffer command_buffer, VkPipeline pipeline,
+    VkDeviceSize index_buffer_offset, uint32_t index_count,
+    VkDeviceSize vertex_buffer_offset);
+void vkal_bind_descriptor_set(uint32_t image_id,
+			      VkDescriptorSet * descriptor_sets,
+			      VkPipelineLayout pipeline_layout);
+void vkal_bind_descriptor_set2(VkCommandBuffer command_buffer,
+			       uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,
+			       VkPipelineLayout pipeline_layout);
 void vkal_begin_command_buffer(VkCommandBuffer command_buffer);
 void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass);
 void vkal_render_to_image(VkCommandBuffer command_buffer, VkRenderPass render_pass, RenderImage render_image);

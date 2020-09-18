@@ -59,8 +59,8 @@ int main(int argc, char ** argv)
     
     char * device_extensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	VK_KHR_MAINTENANCE3_EXTENSION_NAME,
-	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME
+	VK_KHR_MAINTENANCE3_EXTENSION_NAME
+//	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME /* is core already in Vulkan 1.2, not necessary */
     };
     uint32_t device_extension_count = sizeof(device_extensions) / sizeof(*device_extensions);
 
@@ -96,7 +96,6 @@ int main(int argc, char ** argv)
     }
     vkal_select_physical_device(&devices[0]);
     VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
-
     
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
@@ -128,7 +127,7 @@ int main(int argc, char ** argv)
 	{
 	    0,
 	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	    1, /* Texture Array-Count: How many Textures do we need? */
+	    VKAL_MAX_TEXTURES, /* Texture Array-Count: How many Textures do we need? */
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
 	}       
@@ -141,7 +140,20 @@ int main(int argc, char ** argv)
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
     vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_sets);
-    
+
+    /* HACK: Update Texture Slots so validation layer won't complain */
+    Image yakult_image = load_image_file("../assets/textures/yakult.png");
+    Texture yakult_texture = vkal_create_texture(
+	0, yakult_image.data, yakult_image.width, yakult_image.height, yakult_image.channels, 0,
+	VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+    for (uint32_t i = 0; i < VKAL_MAX_TEXTURES; ++i) {
+	vkal_update_descriptor_set_texturearray(
+	    descriptor_sets[0], 
+	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+	    i, /* texture-id (index into array) */
+	    yakult_texture);
+    }
+
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
 	layouts, descriptor_set_layout_count, 
@@ -171,7 +183,7 @@ int main(int argc, char ** argv)
     };
     uint32_t index_count = sizeof(cube_indices)/sizeof(*cube_indices);
   
-    uint32_t offset_vertices = vkal_vertex_buffer_add2(cube_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
+    uint32_t offset_vertices = vkal_vertex_buffer_add(cube_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
     uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
 
     /* Texture Data */
@@ -184,16 +196,19 @@ int main(int argc, char ** argv)
     free(image.data);
     free(image2.data);
     
-#if 0
+#if 1
     vkal_update_descriptor_set_texturearray(
 	descriptor_sets[0], 
 	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 	0, /* texture-id (index into array) */
 	texture);
+    vkal_update_descriptor_set_texturearray(
+	descriptor_sets[0], 
+	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+	1, /* texture-id (index into array) */
+	texture2);
 #endif
 
-    vkal_update_descriptor_set_texture(descriptor_sets[0], texture2);
-    
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -204,8 +219,7 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(vkal_info->command_buffers[image_id]);
 	    vkal_begin_render_pass(image_id, vkal_info->command_buffers[image_id], vkal_info->render_pass);
-	    vkal_update_descriptor_set_texture(descriptor_sets[0], texture);
-	    vkal_bind_descriptor_set(image_id, 0, &descriptor_sets[0], 1, pipeline_layout);
+	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
 // Do draw calls here
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
@@ -215,24 +229,9 @@ int main(int argc, char ** argv)
 	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
 	    vkal_queue_submit(command_buffers1, 1);
 
-	    vkDeviceWaitIdle(vkal_info->device);
-	    
-	    vkal_begin_command_buffer(vkal_info->command_buffers[image_id]);
-	    vkal_begin_render_pass(image_id, vkal_info->command_buffers[image_id], vkal_info->render_pass);
-	    vkal_update_descriptor_set_texture(descriptor_sets[0], texture2);
-	    vkal_bind_descriptor_set(image_id, 0, &descriptor_sets[0], 1, pipeline_layout);
-	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, index_count,
-			      offset_vertices);
-	    vkal_end_renderpass(vkal_info->command_buffers[image_id]);
-	    vkal_end_command_buffer(vkal_info->command_buffers[image_id]);
-	    VkCommandBuffer command_buffers2[] = { vkal_info->command_buffers[image_id] };
-	    vkal_queue_submit(command_buffers2, 1);
-
 	    vkal_present(image_id);
 	}
     }
-
     
     vkal_cleanup();
 

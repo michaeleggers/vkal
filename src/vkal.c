@@ -17,6 +17,7 @@ static void * vkal_memory;
 static VkalInfo vkal_info;
 static Texture g_texture;
 
+
 #define MB                  (1024 * 1024)
 #define STAGING_BUFFER_SIZE (128 * MB)
 #define UNIFORM_BUFFER_SIZE (10 * MB)
@@ -1386,7 +1387,12 @@ VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR * capabilities)
     }
     else {
 	int width, height;
+
+#if defined (VKAL_GLFW)
 	glfwGetFramebufferSize(vkal_info.window, &width, &height);
+#elif defined (VKAL_SDL)
+	// TODO: Implement
+#endif
 	VkExtent2D actual_extent = { width, height };
 	//actual_extent.width  = max(capabilities->minImageExtent.width, VKAL_MIN(capabilities->maxImageExtent.width, actual_extent.width));
 	//actual_extent.height = max(capabilities->minImageExtent.height, VKAL_MIN(capabilities->maxImageExtent.height, actual_extent.height));
@@ -1674,7 +1680,7 @@ void vkal_descriptor_set_add_image_sampler(VkDescriptorSet descriptor_set, uint3
     image_infos[0].sampler = sampler;
 
     VkWriteDescriptorSet write_set_image = create_write_descriptor_set_image(descriptor_set, binding, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_infos);
-    vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_image, 0, 0);
+    vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_image, 0, NULL);
 }
 
 void vkal_update_descriptor_set_texture(VkDescriptorSet descriptor_set, Texture texture)
@@ -1684,8 +1690,11 @@ void vkal_update_descriptor_set_texture(VkDescriptorSet descriptor_set, Texture 
     image_infos[0].imageView = get_image_view(texture.image_view);
     image_infos[0].sampler = texture.sampler;
 
-    VkWriteDescriptorSet write_set_image = create_write_descriptor_set_image(descriptor_set, texture.binding, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_infos);
-    vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_image, 0, 0);
+    VkWriteDescriptorSet write_set_image = create_write_descriptor_set_image(descriptor_set,
+									     texture.binding, 1,
+									     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+									     image_infos);
+    vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_image, 0, NULL);
 }
 
 void vkal_update_descriptor_set_texturearray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type,
@@ -1701,7 +1710,7 @@ void vkal_update_descriptor_set_texturearray(VkDescriptorSet descriptor_set, VkD
 	texture.binding, array_element, 1,
 	descriptor_type, image_infos);
 
-    vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_uniform, 0, 0);
+    vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_uniform, 0, NULL);
 }
 
 Texture vkal_create_texture(uint32_t binding,
@@ -3126,8 +3135,10 @@ VkWriteDescriptorSet create_write_descriptor_set_image(VkDescriptorSet dst_descr
     return write_set;
 }
 
-VkWriteDescriptorSet create_write_descriptor_set_image2(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding, uint32_t array_element,
-							uint32_t count, VkDescriptorType type, VkDescriptorImageInfo * image_info)
+VkWriteDescriptorSet create_write_descriptor_set_image2(VkDescriptorSet dst_descriptor_set,
+							uint32_t dst_binding, uint32_t array_element,
+							uint32_t count,
+							VkDescriptorType type, VkDescriptorImageInfo * image_info)
 {
     VkWriteDescriptorSet write_set = { 0 };
     write_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -3342,12 +3353,21 @@ void vkal_end(VkCommandBuffer command_buffer)
     DBG_VULKAN_ASSERT(result, "failed to end command buffer");
 }
 
-void vkal_bind_descriptor_set(uint32_t image_id, uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count, VkPipelineLayout pipeline_layout)
+void vkal_bind_descriptor_set(uint32_t image_id,
+			      VkDescriptorSet * descriptor_sets,
+			      VkPipelineLayout pipeline_layout)
 {
     vkCmdBindDescriptorSets(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, 
-                            pipeline_layout, first_set, descriptor_set_count, descriptor_sets, 0, 0);
+                            pipeline_layout, 0, 1, descriptor_sets, 0, 0);
 }
 
+void vkal_bind_descriptor_set2(VkCommandBuffer command_buffer,
+			      uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,
+			      VkPipelineLayout pipeline_layout)
+{
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
+                            pipeline_layout, first_set, descriptor_set_count, descriptor_sets, 0, 0);
+}
 
 /* Draw models. If you use this it is expected to use the predefined push constants for materials and model-matrices! */
 /*
@@ -3519,6 +3539,35 @@ void vkal_draw_indexed(
     VkBuffer vertex_buffers[] = { vkal_info.vertex_buffer.buffer };
     vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
     vkCmdDrawIndexed(vkal_info.command_buffers[image_id], index_count, 1, 0, 0, 0);
+}
+
+void vkal_draw_indexed2(
+    VkCommandBuffer command_buffer, VkPipeline pipeline,
+    VkDeviceSize index_buffer_offset, uint32_t index_count,
+    VkDeviceSize vertex_buffer_offset)
+{
+    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    
+    VkViewport viewport = { 0 };
+    viewport.x = 0.f;
+    viewport.y = 0.f;
+    viewport.width = vkal_info.swapchain_extent.width; // (float)vp_width;
+    viewport.height = vkal_info.swapchain_extent.height; // (float)vp_height;
+    viewport.minDepth = 0.f;
+    viewport.maxDepth = 1.f;
+    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+    
+    VkRect2D scissor = { 0 };
+    scissor.offset = (VkOffset2D){ 0,0 };
+    scissor.extent = vkal_info.swapchain_extent;
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+    
+    vkCmdBindIndexBuffer(command_buffer,
+			 vkal_info.index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
+    uint64_t vertex_buffer_offsets[] = { vertex_buffer_offset };
+    VkBuffer vertex_buffers[] = { vkal_info.vertex_buffer.buffer };
+    vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_buffer_offsets);
+    vkCmdDrawIndexed(command_buffer, index_count, 1, 0, 0, 0);
 }
 
 uint32_t vkal_get_image()
@@ -3878,50 +3927,7 @@ uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkD
     return offset;
 }
 
-uint32_t vkal_vertex_buffer_add(Vertex * vertices, uint32_t vertex_count)
-{
-    uint32_t vertices_in_bytes = vertex_count * sizeof(Vertex);
-    
-    // map staging memory and upload vertex data
-    void * staging_memory;
-    VkResult result = vkMapMemory(vkal_info.device,
-				  vkal_info.device_memory_staging, 0, vertices_in_bytes, 0, &staging_memory);
-    DBG_VULKAN_ASSERT(result, "failed to map device staging memory!");
-    flush_to_memory(vkal_info.device_memory_staging, staging_memory, vertices, vertices_in_bytes, 0);
-    vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
-    
-    // copy vertex buffer data from staging memory (host visible) to device local memory for every command buffer
-    uint32_t offset = vkal_info.vertex_buffer_offset;
-    VkCommandBufferBeginInfo begin_info = { 0 };
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    for (int i = 0; i < 1; ++i) {
-	vkBeginCommandBuffer(vkal_info.command_buffers[i], &begin_info);
-	VkBufferCopy buffer_copy = { 0 };
-	buffer_copy.dstOffset = offset;
-	buffer_copy.srcOffset = 0;
-	buffer_copy.size = vertices_in_bytes;
-	vkCmdCopyBuffer(vkal_info.command_buffers[i],
-			vkal_info.staging_buffer.buffer, vkal_info.vertex_buffer.buffer, 1, &buffer_copy);
-	vkEndCommandBuffer(vkal_info.command_buffers[i]);
-    }
-    
-    VkSubmitInfo submit_info = { 0 };
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = 1;// vkal_info.command_buffer_count;
-    submit_info.pCommandBuffers = &vkal_info.command_buffers[0];
-    vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
-    vkDeviceWaitIdle(vkal_info.device);
-    
-    // TODO: this is not COOL!
-    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
-    uint64_t next_offset = vkal_info.vertex_buffer_offset + (vertices_in_bytes / alignment) * alignment;
-    next_offset += vertices_in_bytes % alignment ? alignment : 0;
-    vkal_info.vertex_buffer_offset = next_offset;
-    
-    return offset;
-}
-
-uint32_t vkal_vertex_buffer_add2(void * vertices, uint32_t vertex_size, uint32_t vertex_count)
+uint32_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count)
 {
     uint32_t vertices_in_bytes = vertex_count * vertex_size;
     
