@@ -73,7 +73,7 @@ int main(int argc, char ** argv)
     uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
 
     char * instance_layers[] = {
-	"VK_LAYER_LUNARG_standard_validation",
+	"VK_LAYER_KHRONOS_validation", //"VK_LAYER_LUNARG_standard_validation", <- deprecated!
 	"VK_LAYER_LUNARG_monitor"
     };
     uint32_t instance_layer_count = 0;
