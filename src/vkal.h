@@ -203,6 +203,7 @@ typedef struct GeometryInstance
 
 
 #define VKAL_MAX_IMAGES_IN_FLIGHT		2
+#define VKAL_MAX_SWAPCHAIN_IMAGES               4
 #define VKAL_MAX_DESCRIPTOR_SETS		10
 #define VKAL_MAX_COMMAND_POOLS			2
 #define VKAL_MAX_VKDEVICEMEMORY			64
@@ -333,11 +334,11 @@ typedef struct VkalInfo
 
     VkSwapchainKHR swapchain;
     uint32_t should_recreate_swapchain; // = 0;
-    VkImage * swapchain_images;
+    VkImage swapchain_images[VKAL_MAX_SWAPCHAIN_IMAGES];
     uint32_t swapchain_image_count;
     VkFormat swapchain_image_format;
     VkExtent2D swapchain_extent;
-    VkImageView * swapchain_image_views;
+    VkImageView swapchain_image_views[VKAL_MAX_SWAPCHAIN_IMAGES];
     uint32_t depth_stencil_image;
     uint32_t depth_stencil_image_view;
     uint32_t device_memory_depth_stencil;

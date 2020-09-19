@@ -25,7 +25,7 @@ pushd "%~dp0"
 mkdir build
 pushd build
 
-REM gcc %flags_debug%  ..\src\main.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_dbg_main 
+gcc %flags_debug%  ..\src\main.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_dbg_main 
 REM gcc %flags_release% ..\src\main.c -o gcc_release_main
 
 REM clang-cl %clang_flags_debug%   ..\src\main.c -o clang_dbg_main.exe

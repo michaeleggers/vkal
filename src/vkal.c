@@ -1413,13 +1413,13 @@ void cleanup_swapchain()
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
 	vkDestroyImageView(vkal_info.device, vkal_info.swapchain_image_views[i], 0);
     }
-    VKAL_KILL_ARRAY(vkal_info.swapchain_image_views);
+    //VKAL_KILL_ARRAY(vkal_info.swapchain_image_views);
     
     destroy_image(vkal_info.depth_stencil_image);
     destroy_image_view(vkal_info.depth_stencil_image_view);
     
     vkDestroySwapchainKHR(vkal_info.device, vkal_info.swapchain, 0);
-    VKAL_KILL_ARRAY(vkal_info.swapchain_images);
+    //VKAL_KILL_ARRAY(vkal_info.swapchain_images);
 }
 
 void recreate_swapchain()
@@ -1445,10 +1445,9 @@ void create_swapchain()
     VkPresentModeKHR present_mode = choose_swapchain_present_mode(swap_chain_support.present_modes, swap_chain_support.present_mode_count);
     VkExtent2D extent = choose_swap_extent(&swap_chain_support.capabilities);
     
-    uint32_t image_count = swap_chain_support.capabilities.minImageCount + 1;
-    if (swap_chain_support.capabilities.maxImageCount > 0 &&
-	image_count > swap_chain_support.capabilities.maxImageArrayLayers) {
-	image_count = swap_chain_support.capabilities.maxImageCount;
+    uint32_t image_count = VKAL_MAX_SWAPCHAIN_IMAGES;
+    if (swap_chain_support.capabilities.maxImageCount > 0) {
+	image_count = VKAL_MIN(image_count, swap_chain_support.capabilities.maxImageCount);
     }
     
     VkSwapchainCreateInfoKHR create_info = { 0 };
@@ -1485,7 +1484,7 @@ void create_swapchain()
     
     vkGetSwapchainImagesKHR(vkal_info.device, vkal_info.swapchain, &image_count, 0);
     vkal_info.swapchain_image_count = image_count;
-    VKAL_MAKE_ARRAY(vkal_info.swapchain_images, VkImage, image_count);
+//    VKAL_MAKE_ARRAY(vkal_info.swapchain_images, VkImage, image_count);
     vkGetSwapchainImagesKHR(vkal_info.device, vkal_info.swapchain, &image_count, vkal_info.swapchain_images);
     
     vkal_info.swapchain_image_format = surface_format.format;
@@ -1494,7 +1493,7 @@ void create_swapchain()
 
 void create_image_views()
 {
-    VKAL_MAKE_ARRAY(vkal_info.swapchain_image_views, VkImageView, vkal_info.swapchain_image_count);
+//    VKAL_MAKE_ARRAY(vkal_info.swapchain_image_views, VkImageView, vkal_info.swapchain_image_count);
     
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
 	VkImageViewCreateInfo create_info = { 0 };
@@ -3574,7 +3573,10 @@ uint32_t vkal_get_image()
 {
     uint32_t image_index;
     // don't actually wait for the semaphore here. just associate it with this operation. check when needed during vkQueueSubmit
-    VkResult result = vkAcquireNextImageKHR(vkal_info.device, vkal_info.swapchain, UINT64_MAX, vkal_info.present_complete_semaphore, VK_NULL_HANDLE, &image_index);
+    VkResult result = vkAcquireNextImageKHR(vkal_info.device,
+					    vkal_info.swapchain,
+					    UINT64_MAX, vkal_info.present_complete_semaphore,
+					    VK_NULL_HANDLE, &image_index);
     
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 	vkal_info.should_recreate_swapchain = 0;

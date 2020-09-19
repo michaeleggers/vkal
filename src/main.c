@@ -41,7 +41,7 @@ void init_window()
 
 Image load_image_file(char const * file)
 {
-    Image image = {};
+    Image image = (Image){0};
     int tw, th, tn;
     image.data = stbi_load(file, &tw, &th, &tn, 4);
     assert(image.data != NULL);
@@ -92,7 +92,7 @@ int main(int argc, char ** argv)
     assert(device_count > 0);
     printf("Suitable Devices:\n");
     for (uint32_t i = 0; i < device_count; ++i) {
-	printf("Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
+	printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
     vkal_select_physical_device(&devices[0]);
     VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
@@ -124,24 +124,42 @@ int main(int argc, char ** argv)
 
     /* Descriptor Sets */
     VkDescriptorSetLayoutBinding set_layout[] = {
+	#if 0
 	{
 	    0,
 	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 	    VKAL_MAX_TEXTURES, /* Texture Array-Count: How many Textures do we need? */
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
-	}       
+	},
+	#endif
+	{
+	    0,
+	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	    1, /* Texture Array-Count: How many Textures do we need? */
+	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    0
+	}
     };
     VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 1);
-
+    
     VkDescriptorSetLayout layouts[] = {
 	descriptor_set_layout
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
+
+#if 0
     VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
     vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_sets);
-
+#endif
+    
+    VkDescriptorSet * descriptor_set_tex_1 = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
+    VkDescriptorSet * descriptor_set_tex_2 = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
+    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_set_tex_1);
+    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_set_tex_2);
+	
     /* HACK: Update Texture Slots so validation layer won't complain */
+#if 0
     Image yakult_image = load_image_file("../assets/textures/yakult.png");
     Texture yakult_texture = vkal_create_texture(
 	0, yakult_image.data, yakult_image.width, yakult_image.height, yakult_image.channels, 0,
@@ -153,6 +171,8 @@ int main(int argc, char ** argv)
 	    i, /* texture-id (index into array) */
 	    yakult_texture);
     }
+#endif
+
 
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
@@ -196,7 +216,7 @@ int main(int argc, char ** argv)
     free(image.data);
     free(image2.data);
     
-#if 1
+#if 0
     vkal_update_descriptor_set_texturearray(
 	descriptor_sets[0], 
 	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
@@ -207,7 +227,10 @@ int main(int argc, char ** argv)
 	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 	1, /* texture-id (index into array) */
 	texture2);
+    vkal_update_descriptor_set_texture(descriptor_sets[0], texture);
 #endif
+    vkal_update_descriptor_set_texture(descriptor_set_tex_1[0], texture);
+    vkal_update_descriptor_set_texture(descriptor_set_tex_2[0], texture2);				       
 
     // Main Loop
     while (!glfwWindowShouldClose(window))
@@ -219,8 +242,12 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(vkal_info->command_buffers[image_id]);
 	    vkal_begin_render_pass(image_id, vkal_info->command_buffers[image_id], vkal_info->render_pass);
-	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
+	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_1[0], pipeline_layout);
 // Do draw calls here
+	    vkal_draw_indexed(image_id, graphics_pipeline,
+			      offset_indices, index_count,
+			      offset_vertices);
+	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_2[0], pipeline_layout);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
