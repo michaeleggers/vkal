@@ -2244,15 +2244,15 @@ void create_descriptor_pool()
 	{
 	    {
 		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,     // type of the resource
-		10							           // number of descriptors of that type to be stored in the pool. This is per set maybe?
+		1024							           // number of descriptors of that type to be stored in the pool. This is per set maybe?
 	    },
 	    {
 		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		10 // TODO(Michael): figure out why we must have one additional available even if we're only using two textures!
+		1024 // TODO(Michael): figure out why we must have one additional available even if we're only using two textures!
 	    },
 	    { // for sampling the shadow map
 		VK_DESCRIPTOR_TYPE_SAMPLER,
-		10
+		1024
 	    }
 	};
     

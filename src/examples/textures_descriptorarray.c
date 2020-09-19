@@ -10,14 +10,22 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stb_image.h"
 
-static GLFWwindow * window;
-static Platform p;
 
 typedef struct Image
 {
     uint32_t width, height, channels;
     unsigned char * data;
 } Image;
+
+typedef struct MaterialUniform
+{
+    uint32_t index;
+} MaterialUniform;
+
+
+static GLFWwindow * window;
+static Platform p;
+static MaterialUniform material_data;
 
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
@@ -130,9 +138,16 @@ int main(int argc, char ** argv)
 	    VKAL_MAX_TEXTURES, /* Texture Array-Count: How many Textures do we need? */
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
+	},
+		{
+	    1,
+	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	    1, /* Texture Array-Count: How many Textures do we need? */
+	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    0
 	}
     };
-    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 1);
+    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 2);
     
     VkDescriptorSetLayout layouts[] = {
 	descriptor_set_layout
@@ -154,7 +169,6 @@ int main(int argc, char ** argv)
 	    i, /* texture-id (index into array) */
 	    yakult_texture);
     }
-
 
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
@@ -210,6 +224,11 @@ int main(int argc, char ** argv)
 	texture2);
     vkal_update_descriptor_set_texture(descriptor_sets[0], texture);
 
+    /* Material Uniform */
+    material_data.index = 1;
+    UniformBuffer material_ubo = vkal_create_uniform_buffer(sizeof(MaterialUniform), 1);
+    vkal_update_descriptor_set_uniform(descriptor_sets[0], material_ubo);
+    
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -222,10 +241,19 @@ int main(int argc, char ** argv)
 	    vkal_begin_render_pass(image_id, vkal_info->command_buffers[image_id], vkal_info->render_pass);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
 // Do draw calls here
+	    material_data.index = 1;
+	    vkal_update_uniform(&material_ubo, &material_data);
+	    vkal_draw_indexed(image_id, graphics_pipeline,
+			      offset_indices, index_count,
+			      offset_vertices);
+	    material_data.index = 0;
+	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
+	    vkal_update_uniform(&material_ubo, &material_data);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
 	    vkal_end_renderpass(vkal_info->command_buffers[image_id]);
+	    
 	    vkal_end_command_buffer(vkal_info->command_buffers[image_id]);
 	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
 	    vkal_queue_submit(command_buffers1, 1);
