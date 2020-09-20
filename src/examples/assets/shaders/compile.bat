@@ -5,4 +5,6 @@
 
 %VULKAN_SDK%/bin/glslc textures_descriptorarray.vert -o textures_descriptorarray_vert.spv
 %VULKAN_SDK%/bin/glslc textures_descriptorarray.frag -o textures_descriptorarray_frag.spv
-                         
+          
+%VULKAN_SDK%/bin/glslc textures_descriptorarray_push_constant.vert -o textures_descriptorarray_push_constant_vert.spv
+%VULKAN_SDK%/bin/glslc textures_descriptorarray_push_constant.frag -o textures_descriptorarray_push_constant_frag.spv          
