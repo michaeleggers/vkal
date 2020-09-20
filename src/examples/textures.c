@@ -7,6 +7,7 @@
    all the same layout. With many textures this results in many descriptor-sets
    just for the textures. This problem can be solved through dynamic uniform buffers
    and descriptor-arrays for the textures. This is shown in textures_descriptorarray.c.
+   COOL!
 */
 
 

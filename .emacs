@@ -6,6 +6,10 @@
 ; (setq backup-directory-alist `(("." . "~/.saves")))
 (blink-cursor-mode 0) ; disable cursor blinking
 
+; disable auto-save and auto-backup
+(setq auto-save-default nil)
+(setq make-backup-files nil)
+
 ; keyboard bindings
 (defun split-window-and-change-to-new ()
   (interactive)
