@@ -367,14 +367,10 @@ typedef struct VkalInfo
 
     VkSemaphore image_available_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
     VkSemaphore render_finished_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
-    VkFence     draw_fences[VKAL_MAX_IMAGES_IN_FLIGHT];
-    VkFence     * image_in_flight_fences;
+    VkFence     in_flight_fences[VKAL_MAX_IMAGES_IN_FLIGHT];
     uint32_t frames_rendered;
-    uint32_t current_frame;
-
-    VkSemaphore present_complete_semaphore;
-    VkSemaphore render_complete_semaphore;
-
+    //uint32_t current_frame;
+    
     Buffer uniform_buffer;
     VkBufferView uniform_buffer_view;
     Buffer vertex_buffer;

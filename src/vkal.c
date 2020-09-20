@@ -3583,11 +3583,15 @@ void vkal_draw_indexed2(
 
 uint32_t vkal_get_image()
 {
+    vkWaitForFences(vkal_info.device, 1, &vkal_info.in_flight_fences[vkal_info.frames_rendered], VK_TRUE, UINT64_MAX);
+    vkResetFences(vkal_info.device, 1, &vkal_info.in_flight_fences[vkal_info.frames_rendered]);
+    
     uint32_t image_index;
-    // don't actually wait for the semaphore here. just associate it with this operation. check when needed during vkQueueSubmit
+    // don't actually wait for the semaphore here. just associate it with this operation.
+    // check when needed during vkQueueSubmit
     VkResult result = vkAcquireNextImageKHR(vkal_info.device,
 					    vkal_info.swapchain,
-					    UINT64_MAX, vkal_info.present_complete_semaphore,
+					    UINT64_MAX, vkal_info.image_available_semaphores[vkal_info.frames_rendered],
 					    VK_NULL_HANDLE, &image_index);
     
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -3606,17 +3610,18 @@ void vkal_queue_submit(VkCommandBuffer * command_buffers, uint32_t command_buffe
 {
     VkSubmitInfo submit_info = { 0 };
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    VkSemaphore wait_semaphores[] = { vkal_info.present_complete_semaphore };
+    VkSemaphore wait_semaphores[] = { vkal_info.image_available_semaphores[vkal_info.frames_rendered] };
     VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     submit_info.waitSemaphoreCount = 1;
     submit_info.pWaitSemaphores = wait_semaphores; // wait until image is available from swapchain ringbuffer
     submit_info.pWaitDstStageMask = wait_stages;
     submit_info.commandBufferCount = command_buffer_count;
     submit_info.pCommandBuffers = command_buffers;
-    VkSemaphore signal_semaphores[] = { vkal_info.render_complete_semaphore };
+    VkSemaphore signal_semaphores[] = { vkal_info.render_finished_semaphores[vkal_info.frames_rendered] };
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
-    VkResult result = vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+    VkResult result = vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info,
+				    vkal_info.in_flight_fences[vkal_info.frames_rendered]);
     DBG_VULKAN_ASSERT(result, "Failed to submit command buffer to queue!");
 }
 
@@ -3636,8 +3641,8 @@ void vkal_present(uint32_t image_id)
     VkPresentInfoKHR present_info = { 0 };
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
-    VkSemaphore signal_semaphores[] = { vkal_info.render_complete_semaphore };
-    present_info.pWaitSemaphores = signal_semaphores;
+    VkSemaphore wait_semaphores[] = { vkal_info.render_finished_semaphores[vkal_info.frames_rendered] };
+    present_info.pWaitSemaphores = wait_semaphores;
     VkSwapchainKHR swap_chains[] = { vkal_info.swapchain };
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swap_chains;
@@ -3653,43 +3658,27 @@ void vkal_present(uint32_t image_id)
 	// TODO
     }
     
-    vkal_info.frames_rendered++;
+    vkal_info.frames_rendered = (vkal_info.frames_rendered+1) % VKAL_MAX_IMAGES_IN_FLIGHT;
 //    vkQueueWaitIdle(vkal_info.graphics_queue);
 }
 
 void create_semaphores()
 {
-    /*VKAL_MAKE_ARRAY(vkal_info.image_in_flight_fences, VkFence, vkal_info.swapchain_image_count);
-      for (int i = 0; i < VKAL_MAX_IMAGES_IN_FLIGHT; ++i) {
-      {
-      VkSemaphoreCreateInfo semaphore_info = { 0 };
-      semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-      VkResult result = vkCreateSemaphore(vkal_info.device, &semaphore_info, 0, &vkal_info.image_available_semaphores[i]);
-      DBG_VULKAN_ASSERT(result, "failed to create image-available semaphore");
-      }
-      {
-      VkSemaphoreCreateInfo semaphore_info = { 0 };
-      semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-      VkResult result = vkCreateSemaphore(vkal_info.device, &semaphore_info, 0, &vkal_info.render_finished_semaphores[i]);
-      DBG_VULKAN_ASSERT(result, "failed to create render-finished semaphore");
-      }
-      {
-      VkFenceCreateInfo fenceInfo;
-      fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-      fenceInfo.pNext = NULL;
-      fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-      VkResult result = vkCreateFence(vkal_info.device, &fenceInfo, NULL, &vkal_info.draw_fences[i]);
-      DBG_VULKAN_ASSERT(result, "failed to create draw-fence");
-      }
-      }*/
+    for (int i = 0; i < VKAL_MAX_IMAGES_IN_FLIGHT; ++i) {
+	VkFenceCreateInfo fenceInfo;
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.pNext = NULL;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+	VkResult result = vkCreateFence(vkal_info.device, &fenceInfo, NULL, &vkal_info.in_flight_fences[i]);
+	DBG_VULKAN_ASSERT(result, "failed to create draw-fence");
+
+	VkSemaphoreCreateInfo sem_info = (VkSemaphoreCreateInfo){ 0 };
+	sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	vkCreateSemaphore(vkal_info.device, &sem_info, 0, &vkal_info.image_available_semaphores[i]);
+	vkCreateSemaphore(vkal_info.device, &sem_info, 0, &vkal_info.render_finished_semaphores[i]);
+
+    }
     //memset(vkal_info.image_in_flight_fences, VK_NULL_HANDLE, vkal_info.swapchain_image_count * sizeof(VkFence));
-    
-    VkSemaphoreCreateInfo sem_info = { 0 };
-    sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    vkCreateSemaphore(vkal_info.device, &sem_info, 0, &vkal_info.present_complete_semaphore);
-    vkCreateSemaphore(vkal_info.device, &sem_info, 0, &vkal_info.render_complete_semaphore);
-    
-    
 }
 
 void allocate_device_memory_uniform()
@@ -3910,7 +3899,7 @@ UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint3
     return uniform_buffer;
 }
 
-// NOTE: If vertex_count is higher than the current buffer, vertex data after offset+vertex_count (in bytes) will be overwritten!!!
+// NOTE: If vertex_count is higher than the currentbuffer, vertex data after offset+vertex_count (in bytes) will be overwritten!!!
 uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkDeviceSize offset)
 {
     uint32_t vertices_in_bytes = vertex_count * sizeof(Vertex);
@@ -4031,13 +4020,14 @@ uint32_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
 
 void vkal_cleanup() {
 
+    static int memory_destroyed = 0;
+    vkQueueWaitIdle(vkal_info.graphics_queue);
+    
     VKAL_KILL_ARRAY(vkal_info.available_instance_extensions);
     VKAL_KILL_ARRAY(vkal_info.available_instance_layers);
     VKAL_KILL_ARRAY(vkal_info.physical_devices);
     VKAL_KILL_ARRAY(vkal_info.suitable_devices);
     
-    static int memory_destroyed = 0;
-    vkQueueWaitIdle(vkal_info.graphics_queue);
 
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
 	vkDestroyImageView(vkal_info.device, vkal_info.swapchain_image_views[i], 0);
@@ -4061,8 +4051,6 @@ void vkal_cleanup() {
 	vkDestroyCommandPool(vkal_info.device, vkal_info.command_pools[i], 0);
     }
 
-    vkDestroySemaphore(vkal_info.device, vkal_info.present_complete_semaphore, 0);
-    vkDestroySemaphore(vkal_info.device, vkal_info.render_complete_semaphore, 0);
 	
     for (uint32_t i = 0; i < VKAL_MAX_VKDEVICEMEMORY; ++i) {
 	if ( destroy_device_memory(i) ) {
@@ -4074,7 +4062,11 @@ void vkal_cleanup() {
     vkFreeMemory(vkal_info.device, vkal_info.device_memory_uniform, 0); memory_destroyed++;
     vkFreeMemory(vkal_info.device, vkal_info.device_memory_vertex, 0); memory_destroyed++;
     
-    VKAL_KILL_ARRAY(vkal_info.image_in_flight_fences);
+    for (uint32_t i = 0; i < VKAL_MAX_IMAGES_IN_FLIGHT; ++i) {
+	vkDestroyFence(vkal_info.device, vkal_info.in_flight_fences[i], NULL);
+	vkDestroySemaphore(vkal_info.device, vkal_info.render_finished_semaphores[i], NULL);
+	vkDestroySemaphore(vkal_info.device, vkal_info.image_available_semaphores[i], NULL);
+    }
     
     vkDestroyBuffer(vkal_info.device, vkal_info.uniform_buffer.buffer, 0);
     vkDestroyBuffer(vkal_info.device, vkal_info.vertex_buffer.buffer, 0);
