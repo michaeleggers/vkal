@@ -1,3 +1,15 @@
+/* Michael Eggers, 9/20/2020
+
+   This example uses vkal_bind_descriptor_set_dynamic to send the texture index to
+   the fragment shader. These Dynamic Descriptor Sets are explained well here:
+   https://github.com/SaschaWillems/Vulkan/tree/master/examples/dynamicuniformbuffer
+   
+   This way the index which is used to lookup the correct texture in the
+   descriptor-array for samplers can be passed through a single descriptor.
+   when binding, the offset within the buffer is provided.
+*/
+
+
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
@@ -21,7 +33,6 @@ typedef struct MaterialUniform
 {
     uint32_t * index;
 } MaterialUniform;
-
 
 static GLFWwindow * window;
 static Platform p;
@@ -243,8 +254,8 @@ int main(int argc, char ** argv)
        those two 64 byte-chunks with only 4 bytes each (for uint32_t).
     */
     material_data.index = (uint32_t*)malloc(2*sizeof(material_ubo.alignment));
-    *material_data.index = 0;
-    *(uint32_t*)((uint8_t*)material_data.index + material_ubo.alignment) = 1;
+    *material_data.index = 1;
+    *(uint32_t*)((uint8_t*)material_data.index + material_ubo.alignment) = 0;
     vkal_update_descriptor_set_uniform(descriptor_sets[0], material_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
     vkal_update_uniform(&material_ubo, material_data.index);
 

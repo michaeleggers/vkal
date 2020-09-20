@@ -30,10 +30,8 @@ void main()
 {
 	vec4 texel = texture(textures[u_texture_info.index], in_uv);
     
-    if (u_dummy.a == 999)
+    if (u_dummy.a == 998 && u_dummy_large.b == 1811)
         outColor = vec4(texel.rgb, 1.0);
-    else if (u_dummy_large.b == 1811)
-        outColor = vec4(1, 0, 0, 1);
     else
         outColor = vec4(0, 0, 1, 1);
 }
