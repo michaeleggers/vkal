@@ -19,7 +19,7 @@ typedef struct Image
 
 typedef struct MaterialUniform
 {
-    uint32_t index;
+    uint32_t * index;
 } MaterialUniform;
 
 
@@ -139,15 +139,29 @@ int main(int argc, char ** argv)
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
 	},
-		{
+	{
 	    1,
+	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+	    1, /* Texture Array-Count: How many Textures do we need? */
+	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    0
+	},
+	{
+	    2,
+	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	    1, /* Texture Array-Count: How many Textures do we need? */
+	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    0
+	},
+	{
+	    3,
 	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 	    1, /* Texture Array-Count: How many Textures do we need? */
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
 	}
     };
-    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 2);
+    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 4);
     
     VkDescriptorSetLayout layouts[] = {
 	descriptor_set_layout
@@ -204,10 +218,10 @@ int main(int argc, char ** argv)
 
     /* Texture Data */
     Image image2 = load_image_file("../src/examples/assets/textures/mario.jpg");
-    Texture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, image2.channels, 0,
+    Texture mario_texture = vkal_create_texture(0, image2.data, image2.width, image2.height, image2.channels, 0,
 					   VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     Image image = load_image_file("../src/examples/assets/textures/indy1.jpg");
-    Texture texture = vkal_create_texture(0, image.data, image.width, image.height, image.channels, 0,
+    Texture indy_texture = vkal_create_texture(0, image.data, image.width, image.height, image.channels, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image.data);
     free(image2.data);
@@ -216,18 +230,32 @@ int main(int argc, char ** argv)
 	descriptor_sets[0], 
 	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 	0, /* texture-id (index into array) */
-	texture);
+	indy_texture);
     vkal_update_descriptor_set_texturearray(
 	descriptor_sets[0], 
 	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 	1, /* texture-id (index into array) */
-	texture2);
-    vkal_update_descriptor_set_texture(descriptor_sets[0], texture);
+	mario_texture);
 
-    /* Material Uniform */
-    material_data.index = 1;
-    UniformBuffer material_ubo = vkal_create_uniform_buffer(sizeof(MaterialUniform), 1);
-    vkal_update_descriptor_set_uniform(descriptor_sets[0], material_ubo);
+    /* Material Uniform using Dynamic Descriptors */
+    UniformBuffer material_ubo = vkal_create_uniform_buffer(sizeof(uint32_t), 2, 1);
+    /* NOTE: Wasting a bit of memory here. The alignment will be 64bytes (probably) but we are filling
+       those two 64 byte-chunks with only 4 bytes each (for uint32_t).
+    */
+    material_data.index = (uint32_t*)malloc(2*sizeof(material_ubo.alignment));
+    *material_data.index = 0;
+    *(uint32_t*)((uint8_t*)material_data.index + material_ubo.alignment) = 1;
+    vkal_update_descriptor_set_uniform(descriptor_sets[0], material_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
+    vkal_update_uniform(&material_ubo, material_data.index);
+
+    UniformBuffer dummy_ubo = vkal_create_uniform_buffer(sizeof(uint64_t), 1, 2);
+    UniformBuffer dummy_ubo_large = vkal_create_uniform_buffer(100, 1, 3);
+    vkal_update_descriptor_set_uniform(descriptor_sets[0], dummy_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    vkal_update_descriptor_set_uniform(descriptor_sets[0], dummy_ubo_large, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    uint32_t dummy_data[2] = { 998, 999 };
+    vkal_update_uniform(&dummy_ubo, dummy_data);
+    uint32_t dummy_data_large[4] = { 42, 1811, 666, 3008 };
+    vkal_update_uniform(&dummy_ubo_large, dummy_data_large);
     
     // Main Loop
     while (!glfwWindowShouldClose(window))
@@ -239,16 +267,12 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(vkal_info->command_buffers[image_id]);
 	    vkal_begin_render_pass(image_id, vkal_info->command_buffers[image_id], vkal_info->render_pass);
-	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
+	    vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, 0);
 // Do draw calls here
-	    material_data.index = 1;
-	    vkal_update_uniform(&material_ubo, &material_data);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
-	    material_data.index = 0;
-	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
-	    vkal_update_uniform(&material_ubo, &material_data);
+	    vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, material_ubo.alignment);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);

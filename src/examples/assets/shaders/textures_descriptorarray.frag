@@ -13,10 +13,27 @@ layout(set = 0, binding = 1) uniform u_texture_info_t
 {
     uint index;
 } u_texture_info;
+layout(set = 0, binding = 2) uniform u_dummy_t
+{
+    uint a;
+    uint b;
+} u_dummy;
+layout(set = 0, binding = 3) uniform u_dummy_large_t
+{
+    uint a;
+    uint b;
+    uint c;
+    uint d;
+} u_dummy_large;
 
 void main() 
 {
 	vec4 texel = texture(textures[u_texture_info.index], in_uv);
     
-	outColor = vec4(texel.rgb, 1.0);
+    if (u_dummy.a == 999)
+        outColor = vec4(texel.rgb, 1.0);
+    else if (u_dummy_large.b == 1811)
+        outColor = vec4(1, 0, 0, 1);
+    else
+        outColor = vec4(0, 0, 1, 1);
 }

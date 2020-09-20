@@ -2247,6 +2247,10 @@ void create_descriptor_pool()
 		1024							           // number of descriptors of that type to be stored in the pool. This is per set maybe?
 	    },
 	    {
+		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+		1024
+	    },
+	    {
 		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 		1024 // TODO(Michael): figure out why we must have one additional available even if we're only using two textures!
 	    },
@@ -3360,6 +3364,14 @@ void vkal_bind_descriptor_set(uint32_t image_id,
                             pipeline_layout, 0, 1, descriptor_sets, 0, 0);
 }
 
+void vkal_bind_descriptor_set_dynamic(uint32_t image_id,
+				      VkDescriptorSet * descriptor_sets,
+				      VkPipelineLayout pipeline_layout, uint32_t dynamic_offset)
+{
+    vkCmdBindDescriptorSets(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, 
+                            pipeline_layout, 0, 1, descriptor_sets, 1, &dynamic_offset);
+}
+
 void vkal_bind_descriptor_set2(VkCommandBuffer command_buffer,
 			      uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,
 			      VkPipelineLayout pipeline_layout)
@@ -3736,6 +3748,8 @@ void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data)
 	
     //memset(mapped_device_memory, 0, size);
     memcpy(mapped_uniform_memory, data, uniform_buffer->size);
+//    memcpy(mapped_uniform_memory, data, 64);
+//    memcpy((uint8_t*)mapped_uniform_memory+64, (uint8_t*)data+64, 64);
     VkMappedMemoryRange flush_range = {
 	VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
 	0,
@@ -3852,7 +3866,8 @@ void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src
     DBG_VULKAN_ASSERT(result, "failed to invalidate mapped memory range(s) for vertex buffer!");
 }
 
-void vkal_update_descriptor_set_uniform(VkDescriptorSet descriptor_set, UniformBuffer uniform_buffer)
+void vkal_update_descriptor_set_uniform(VkDescriptorSet descriptor_set, UniformBuffer uniform_buffer,
+					VkDescriptorType descriptor_type)
 {
     VkDescriptorBufferInfo buffer_infos[1];
     buffer_infos[0].buffer = vkal_info.uniform_buffer.buffer;
@@ -3861,7 +3876,7 @@ void vkal_update_descriptor_set_uniform(VkDescriptorSet descriptor_set, UniformB
     VkWriteDescriptorSet write_set_uniform = create_write_descriptor_set_buffer(
 	descriptor_set, 
 	uniform_buffer.binding, 1,
-	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, buffer_infos);
+	descriptor_type, buffer_infos);
 
     vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_uniform, 0, 0);
 }
@@ -3881,15 +3896,16 @@ void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDe
     vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_uniform, 0, 0);
 }
 
-UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t binding)
+UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint32_t binding)
 {
     UniformBuffer uniform_buffer = { 0 };
     uniform_buffer.offset = vkal_info.uniform_buffer_offset;
-    uniform_buffer.size = size;
+//    uniform_buffer.size = size;
     uniform_buffer.binding = binding;
-
-    uint64_t alignment = vkal_info.physical_device_properties.limits.minUniformBufferOffsetAlignment;
-    uint64_t next_offset = alignment * (size / alignment + 1); // TODO: This is dumb!
+    uint64_t min_ubo_alignment = vkal_info.physical_device_properties.limits.minUniformBufferOffsetAlignment;
+    uniform_buffer.alignment = (size + min_ubo_alignment - 1) & ~(min_ubo_alignment - 1);
+    uniform_buffer.size = elements * uniform_buffer.alignment;
+    uint64_t next_offset = uniform_buffer.size; //uniform_buffer.alignment * (uniform_buffer.size / uniform_buffer.alignment + 1); // TODO: This is dumb!
     vkal_info.uniform_buffer_offset += next_offset;
     return uniform_buffer;
 }

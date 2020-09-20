@@ -124,6 +124,7 @@ typedef struct UniformBuffer
     uint32_t size;
     uint64_t offset;
     uint32_t binding;
+    uint64_t alignment;
 } UniformBuffer;
 
 typedef struct DescriptorSetLayout
@@ -486,8 +487,9 @@ uint32_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
 uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkDeviceSize offset);
 uint32_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count);
 void create_surface();
-UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t binding);
-void vkal_update_descriptor_set_uniform(VkDescriptorSet descriptor_set, UniformBuffer uniform_buffer);
+UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint32_t binding);
+void vkal_update_descriptor_set_uniform(VkDescriptorSet descriptor_set, UniformBuffer uniform_buffer,
+					VkDescriptorType descriptor_type);
 void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type, uint32_t binding, uint32_t array_element, Buffer buffer);
 void vkal_update_descriptor_set_texturearray(VkDescriptorSet descriptor_set,
 					     VkDescriptorType descriptor_type,
@@ -589,6 +591,9 @@ void vkal_draw_indexed2(
 void vkal_bind_descriptor_set(uint32_t image_id,
 			      VkDescriptorSet * descriptor_sets,
 			      VkPipelineLayout pipeline_layout);
+void vkal_bind_descriptor_set_dynamic(uint32_t image_id,
+				      VkDescriptorSet * descriptor_sets,
+				      VkPipelineLayout pipeline_layout, uint32_t dynamic_offset);
 void vkal_bind_descriptor_set2(VkCommandBuffer command_buffer,
 			       uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,
 			       VkPipelineLayout pipeline_layout);
