@@ -3296,7 +3296,7 @@ void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass 
     vkCmdBeginRenderPass(command_buffer, &pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void vkal_begin_render_pass(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass)
+void vkal_begin_render_pass(uint32_t image_id, VkRenderPass render_pass)
 {
     VkRenderPassBeginInfo pass_begin_info = {0};
     pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -3310,14 +3310,14 @@ void vkal_begin_render_pass(uint32_t image_id, VkCommandBuffer command_buffer, V
 
     pass_begin_info.clearValueCount = 2;
     pass_begin_info.pClearValues = clear_values;
-    vkCmdBeginRenderPass(command_buffer, &pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(vkal_info.command_buffers[image_id], &pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void vkal_begin_command_buffer(VkCommandBuffer command_buffer)
+void vkal_begin_command_buffer(uint32_t image_id)
 {
     VkCommandBufferBeginInfo begin_info = {0};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    vkBeginCommandBuffer(command_buffer, &begin_info);
+    vkBeginCommandBuffer(vkal_info.command_buffers[image_id], &begin_info);
 }
 
 void vkal_render_to_image(VkCommandBuffer command_buffer, VkRenderPass render_pass, RenderImage render_image)
@@ -3338,14 +3338,14 @@ void vkal_render_to_image(VkCommandBuffer command_buffer, VkRenderPass render_pa
     vkCmdBeginRenderPass(command_buffer, &pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void vkal_end_renderpass(VkCommandBuffer command_buffer)
+void vkal_end_renderpass(uint32_t image_id)
 {
-    vkCmdEndRenderPass(command_buffer);
+    vkCmdEndRenderPass(vkal_info.command_buffers[image_id]);
 }
 
-void vkal_end_command_buffer(VkCommandBuffer command_buffer)
+void vkal_end_command_buffer(uint32_t image_id)
 {
-    VkResult result = vkEndCommandBuffer(command_buffer);
+    VkResult result = vkEndCommandBuffer(vkal_info.command_buffers[image_id]);
     DBG_VULKAN_ASSERT(result, "failed to end command buffer");
 }
 
@@ -3654,7 +3654,7 @@ void vkal_present(uint32_t image_id)
     }
     
     vkal_info.frames_rendered++;
-    vkQueueWaitIdle(vkal_info.graphics_queue);
+//    vkQueueWaitIdle(vkal_info.graphics_queue);
 }
 
 void create_semaphores()

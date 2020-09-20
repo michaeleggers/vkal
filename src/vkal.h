@@ -597,13 +597,13 @@ void vkal_bind_descriptor_set_dynamic(uint32_t image_id,
 void vkal_bind_descriptor_set2(VkCommandBuffer command_buffer,
 			       uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,
 			       VkPipelineLayout pipeline_layout);
-void vkal_begin_command_buffer(VkCommandBuffer command_buffer);
+void vkal_begin_command_buffer(uint32_t image_id);
 void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass);
 void vkal_render_to_image(VkCommandBuffer command_buffer, VkRenderPass render_pass, RenderImage render_image);
-void vkal_begin_render_pass(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass);
+void vkal_begin_render_pass(uint32_t image_id, VkRenderPass render_pass);
 void vkal_end(VkCommandBuffer command_buffer);
-void vkal_end_command_buffer(VkCommandBuffer command_buffer);
-void vkal_end_renderpass(VkCommandBuffer command_buffer);
+void vkal_end_command_buffer(uint32_t image_id);
+void vkal_end_renderpass(uint32_t image_id);
 void vkal_queue_submit(VkCommandBuffer * command_buffers, uint32_t command_buffer_count);
 void vkal_present(uint32_t image_id);
 VkDescriptorSetLayout vkal_create_descriptor_set_layout(VkDescriptorSetLayoutBinding * layout, uint32_t binding_count);
