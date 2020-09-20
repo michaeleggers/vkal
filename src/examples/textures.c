@@ -1,3 +1,15 @@
+/* Michael Eggers, 9/20/2020
+
+   This example uses distinct descriptor-sets to change the texture being used in the
+   shader. This means, however, that for every different texture we need to have
+   another descriptor set (as a descriptor set cannot be updated while a command
+   buffer is in flight). Those sets essentially are the same in that they have
+   all the same layout. With many textures this results in many descriptor-sets
+   just for the textures. This problem can be solved through dynamic uniform buffers
+   and descriptor-arrays for the textures. This is shown in textures_descriptorarray.c.
+*/
+
+
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
