@@ -207,8 +207,8 @@ typedef struct GeometryInstance
 #define VKAL_MAX_SWAPCHAIN_IMAGES               4
 #define VKAL_MAX_DESCRIPTOR_SETS		10
 #define VKAL_MAX_COMMAND_POOLS			2
-#define VKAL_MAX_VKDEVICEMEMORY			64
-#define VKAL_MAX_VKIMAGE			64
+#define VKAL_MAX_VKDEVICEMEMORY			10
+#define VKAL_MAX_VKIMAGE			10
 #define VKAL_MAX_VKIMAGEVIEW			64
 #define VKAL_MAX_VKSHADERMODULE			64
 #define VKAL_MAX_VKPIPELINELAYOUT		64
@@ -233,7 +233,8 @@ typedef struct VkalImageHandle {
 
 typedef struct VkalImageViewHandle {
     VkImageView image_view;
-    uint8_t      used;
+    uint8_t     used;
+    uint32_t    offset;
 } VkalImageViewHandle;
 
 typedef struct VkalShaderModuleHandle {
@@ -315,7 +316,6 @@ typedef struct VkalInfo
     VkPhysicalDeviceProperties physical_device_properties;
     
     VkalDeviceMemoryHandle user_device_memory[VKAL_MAX_VKDEVICEMEMORY];
-    uint32_t               user_device_memory_id;
 
     VkalImageHandle user_images[VKAL_MAX_VKIMAGE];
     uint32_t        user_image_count;

@@ -1415,9 +1415,6 @@ void cleanup_swapchain()
     }
     //VKAL_KILL_ARRAY(vkal_info.swapchain_image_views);
     
-    destroy_image(vkal_info.depth_stencil_image);
-    destroy_image_view(vkal_info.depth_stencil_image_view);
-    
     vkDestroySwapchainKHR(vkal_info.device, vkal_info.swapchain, 0);
     //VKAL_KILL_ARRAY(vkal_info.swapchain_images);
 }
@@ -1430,6 +1427,10 @@ void recreate_swapchain()
     
     create_swapchain();
     create_image_views();
+
+    destroy_image_view( vkal_info.depth_stencil_image_view );
+    destroy_image( vkal_info.depth_stencil_image );
+    destroy_device_memory( vkal_info.device_memory_depth_stencil ); // TODO: Is this smart to destroy the whole memory object?
     create_depth_buffer();
     //create_render_pass();
     //VkPipeline pipeline = vkal_create_graphics_pipeline(vkal_info.uniform_size, vkal_info.uniform_offset, shader_setup);
@@ -1576,7 +1577,11 @@ void create_image_view(VkImage image,
     VkImageViewCreateInfo view_info = { 0 };
     view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     view_info.image = image;
-    view_info.components = (VkComponentMapping){ VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
+    view_info.components = (VkComponentMapping){
+	VK_COMPONENT_SWIZZLE_IDENTITY,
+	VK_COMPONENT_SWIZZLE_IDENTITY,
+	VK_COMPONENT_SWIZZLE_IDENTITY,
+	VK_COMPONENT_SWIZZLE_IDENTITY };
     view_info.format = format;
     view_info.viewType = view_type;
     view_info.subresourceRange.aspectMask = aspect_flags;
@@ -1584,6 +1589,7 @@ void create_image_view(VkImage image,
     view_info.subresourceRange.levelCount = mip_level_count;
     view_info.subresourceRange.baseArrayLayer = base_array_layer;
     view_info.subresourceRange.layerCount = array_layer_count;
+
     uint32_t free_index;
     for (free_index = 0; free_index < VKAL_MAX_VKDEVICEMEMORY; ++free_index) {
 	if (vkal_info.user_image_views[free_index].used) {
@@ -1591,7 +1597,9 @@ void create_image_view(VkImage image,
 	}
 	break;
     }
-    VkResult result = vkCreateImageView(vkal_info.device, &view_info, 0, &vkal_info.user_image_views[free_index].image_view);
+    VkResult result = vkCreateImageView(vkal_info.device, &view_info,
+					0,
+					&vkal_info.user_image_views[free_index].image_view);
     DBG_VULKAN_ASSERT(result, "failed to create VkImageView!");
 
     *out_image_view = free_index;
@@ -3689,7 +3697,8 @@ void allocate_device_memory_uniform()
 						      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     vkal_info.device_memory_uniform = allocate_memory(buffer_memory_requirements.size, mem_type_index);
     
-    VkResult result = vkBindBufferMemory(vkal_info.device, vkal_info.uniform_buffer.buffer, vkal_info.device_memory_uniform, 0); // the last param is the memory offset!
+    VkResult result = vkBindBufferMemory(vkal_info.device, vkal_info.uniform_buffer.buffer,
+					 vkal_info.device_memory_uniform, 0); // the last param is the memory offset!
     DBG_VULKAN_ASSERT(result, "failed to bind uniform buffer to device memory!");
 }
 
