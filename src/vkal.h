@@ -15,8 +15,6 @@
 
 #endif
 
-#define VKAL_SCREEN_WIDTH  800
-#define VKAL_SCREEN_HEIGHT 800
 #define VKAL_RT_SIZE_X     1920
 #define VKAL_RT_SIZE_Y     1080
 

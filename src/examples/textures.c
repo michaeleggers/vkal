@@ -46,7 +46,7 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(VKAL_SCREEN_WIDTH, VKAL_SCREEN_HEIGHT, "Vulkan", 0, 0);
+    window = glfwCreateWindow(1920, 1080, "Vulkan", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
     //glfwSetMouseButtonCallback(window, glfw_mouse_button_callback);
     //glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
@@ -194,7 +194,7 @@ int main(int argc, char ** argv)
     Image image2 = load_image_file("../src/examples/assets/textures/mario.jpg");
     Texture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, image2.channels, 0,
 					   VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
-    Image image = load_image_file("../src/examples/assets/textures/indy1.jpg");
+    Image image = load_image_file("../src/examples/assets/textures/indy.png");
     Texture texture = vkal_create_texture(0, image.data, image.width, image.height, image.channels, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image.data);
@@ -213,12 +213,12 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(image_id);
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_1[0], pipeline_layout);
+	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_2[0], pipeline_layout);
 // Do draw calls here
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
-	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_2[0], pipeline_layout);
+	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_1[0], pipeline_layout);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);

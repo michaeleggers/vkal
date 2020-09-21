@@ -52,7 +52,7 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(VKAL_SCREEN_WIDTH, VKAL_SCREEN_HEIGHT, "Vulkan", 0, 0);
+    window = glfwCreateWindow(800, 800, "Vulkan", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
     //glfwSetMouseButtonCallback(window, glfw_mouse_button_callback);
     //glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
