@@ -211,8 +211,8 @@ int main(int argc, char ** argv)
 	{
 	    uint32_t image_id = vkal_get_image();
 
-	    vkal_begin_command_buffer(vkal_info->command_buffers[image_id]);
-	    vkal_begin_render_pass(image_id, vkal_info->command_buffers[image_id], vkal_info->render_pass);
+	    vkal_begin_command_buffer(image_id);
+	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
 	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_1[0], pipeline_layout);
 // Do draw calls here
 	    vkal_draw_indexed(image_id, graphics_pipeline,
@@ -222,8 +222,8 @@ int main(int argc, char ** argv)
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
-	    vkal_end_renderpass(vkal_info->command_buffers[image_id]);
-	    vkal_end_command_buffer(vkal_info->command_buffers[image_id]);
+	    vkal_end_renderpass(image_id);
+	    vkal_end_command_buffer(image_id);
 	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
 	    vkal_queue_submit(command_buffers1, 1);
 
