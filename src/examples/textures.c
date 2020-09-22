@@ -151,7 +151,6 @@ int main(int argc, char ** argv)
 	descriptor_set_layout
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
-
     
     VkDescriptorSet * descriptor_set_tex_1 = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
     VkDescriptorSet * descriptor_set_tex_2 = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
@@ -213,12 +212,11 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(image_id);
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_2[0], pipeline_layout);
-// Do draw calls here
+	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_1[0], pipeline_layout);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
-	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_1[0], pipeline_layout);
+	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_2[0], pipeline_layout);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);

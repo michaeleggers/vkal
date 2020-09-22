@@ -254,8 +254,8 @@ int main(int argc, char ** argv)
        those two 64 byte-chunks with only 4 bytes each (for uint32_t).
     */
     material_data.index = (uint32_t*)malloc(2*sizeof(material_ubo.alignment));
-    *material_data.index = 1;
-    *(uint32_t*)((uint8_t*)material_data.index + material_ubo.alignment) = 0;
+    *material_data.index = 0;
+    *(uint32_t*)((uint8_t*)material_data.index + material_ubo.alignment) = 1;
     vkal_update_descriptor_set_uniform(descriptor_sets[0], material_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
     vkal_update_uniform(&material_ubo, material_data.index);
 
@@ -279,7 +279,6 @@ int main(int argc, char ** argv)
 	    vkal_begin_command_buffer(image_id);
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
 	    vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, 0);
-// Do draw calls here
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
