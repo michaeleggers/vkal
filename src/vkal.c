@@ -695,7 +695,9 @@ RenderImage create_render_image(uint32_t width, uint32_t height)
 	flush_command_buffer(cmd_buf, vkal_info.graphics_queue, 1);
     }
 
-    render_image.framebuffer = create_render_image_framebuffer(render_image, width, height);
+    for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
+	render_image.framebuffers[i] = create_render_image_framebuffer(render_image, width, height);
+    }
     render_image.width = width;
     render_image.height = height;
     return render_image;
@@ -2829,7 +2831,9 @@ RenderImage recreate_render_image(RenderImage render_image, uint32_t width, uint
 {
     vkDeviceWaitIdle(vkal_info.device);
 
-    destroy_framebuffer(render_image.framebuffer);
+    for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
+	destroy_framebuffer(render_image.framebuffers[i]);
+    }
 
     destroy_image(render_image.image);
     destroy_image(render_image.depth_image.image);
@@ -3329,12 +3333,13 @@ void vkal_begin_command_buffer(uint32_t image_id)
     vkBeginCommandBuffer(vkal_info.command_buffers[image_id], &begin_info);
 }
 
-void vkal_render_to_image(VkCommandBuffer command_buffer, VkRenderPass render_pass, RenderImage render_image)
+void vkal_render_to_image(uint32_t image_id, VkCommandBuffer command_buffer,
+			  VkRenderPass render_pass, RenderImage render_image)
 {
     VkRenderPassBeginInfo pass_begin_info = {0};
     pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     pass_begin_info.renderPass = render_pass;
-    pass_begin_info.framebuffer = get_framebuffer(render_image.framebuffer);
+    pass_begin_info.framebuffer = get_framebuffer(render_image.framebuffers[image_id]);
     pass_begin_info.renderArea.offset = (VkOffset2D){ 0, 0 };
     VkExtent2D extent = { render_image.width, render_image.height };
     pass_begin_info.renderArea.extent = extent;

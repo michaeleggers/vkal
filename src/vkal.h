@@ -18,6 +18,23 @@
 #define VKAL_RT_SIZE_X     1920
 #define VKAL_RT_SIZE_Y     1080
 
+#define VKAL_MAX_IMAGES_IN_FLIGHT		2
+#define VKAL_MAX_SWAPCHAIN_IMAGES               4
+#define VKAL_MAX_DESCRIPTOR_SETS		10
+#define VKAL_MAX_COMMAND_POOLS			2
+#define VKAL_MAX_VKDEVICEMEMORY			10
+#define VKAL_MAX_VKIMAGE			10
+#define VKAL_MAX_VKIMAGEVIEW			64
+#define VKAL_MAX_VKSHADERMODULE			64
+#define VKAL_MAX_VKPIPELINELAYOUT		64
+#define VKAL_MAX_VKDESCRIPTORSETLAYOUT	        128
+#define VKAL_MAX_VKPIPELINE                     64
+#define VKAL_MAX_VKSAMPLER                      128
+#define VKAL_MAX_TEXTURES                       10
+#define VKAL_MAX_VKFRAMEBUFFER			64
+#define VKAL_VSYNC_ON				0
+#define VKAL_SHADOW_MAP_DIMENSION		2048
+
 #define DBG_VULKAN_ASSERT(result, msg) \
 if (result != VK_SUCCESS) { \
     printf("%s (Line: %d)\nPress any key to terminate...\n", msg, __LINE__); \
@@ -114,7 +131,7 @@ typedef struct RenderImage
     uint32_t	  device_memory;	
     uint32_t      width, height;
     VkalImage     depth_image;
-    uint32_t      framebuffer;
+    uint32_t      framebuffers[VKAL_MAX_SWAPCHAIN_IMAGES];
 } RenderImage; 
 
 typedef struct UniformBuffer
@@ -200,23 +217,6 @@ typedef struct GeometryInstance
 } GeometryInstance;
 
 
-
-#define VKAL_MAX_IMAGES_IN_FLIGHT		2
-#define VKAL_MAX_SWAPCHAIN_IMAGES               4
-#define VKAL_MAX_DESCRIPTOR_SETS		10
-#define VKAL_MAX_COMMAND_POOLS			2
-#define VKAL_MAX_VKDEVICEMEMORY			10
-#define VKAL_MAX_VKIMAGE			10
-#define VKAL_MAX_VKIMAGEVIEW			64
-#define VKAL_MAX_VKSHADERMODULE			64
-#define VKAL_MAX_VKPIPELINELAYOUT		64
-#define VKAL_MAX_VKDESCRIPTORSETLAYOUT	        128
-#define VKAL_MAX_VKPIPELINE                     64
-#define VKAL_MAX_VKSAMPLER                      128
-#define VKAL_MAX_TEXTURES                       10
-#define VKAL_MAX_VKFRAMEBUFFER			64
-#define VKAL_VSYNC_ON				0
-#define VKAL_SHADOW_MAP_DIMENSION		2048
 
 
 typedef struct VkalDeviceMemoryHandle {
@@ -594,7 +594,8 @@ void vkal_bind_descriptor_set2(VkCommandBuffer command_buffer,
 			       VkPipelineLayout pipeline_layout);
 void vkal_begin_command_buffer(uint32_t image_id);
 void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass);
-void vkal_render_to_image(VkCommandBuffer command_buffer, VkRenderPass render_pass, RenderImage render_image);
+void vkal_render_to_image(uint32_t image_id, VkCommandBuffer command_buffer,
+			  VkRenderPass render_pass, RenderImage render_image);
 void vkal_begin_render_pass(uint32_t image_id, VkRenderPass render_pass);
 void vkal_end(VkCommandBuffer command_buffer);
 void vkal_end_command_buffer(uint32_t image_id);

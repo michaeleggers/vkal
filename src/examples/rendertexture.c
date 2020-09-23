@@ -150,9 +150,16 @@ int main(int argc, char ** argv)
 	    1, /* Texture Array-Count: How many Textures do we need? */
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
+	},
+	{
+	    2,
+	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	    1, /* Texture Array-Count: How many Textures do we need? */
+	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    0
 	}
     };
-    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 2);
+    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 3);
     
     VkDescriptorSetLayout layouts[] = {
 	descriptor_set_layout
@@ -176,14 +183,17 @@ int main(int argc, char ** argv)
 
     /* Render Image (Should this be called render-texture?) */
     RenderImage render_image = create_render_image(1920, 1080);
-    vkal_dbg_image_name(get_image(render_image.image), "Render Image");
+    vkal_dbg_image_name(get_image(render_image.image), "Render Image 1920x1080");
     VkSampler sampler = create_sampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, 
 				       VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 
 				       VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     vkal_update_descriptor_set_render_image(descriptor_sets[0], 1,
 					    get_image_view(render_image.image_view), sampler);
     
-
+    RenderImage render_image2 = create_render_image(1024, 1024);
+    vkal_dbg_image_name(get_image(render_image2.image), "Render Image 1024x1024");
+    vkal_update_descriptor_set_render_image(descriptor_sets[0], 2,
+					    get_image_view(render_image2.image_view), sampler);
     
     /* Model Data */
     float cube_vertices[] = {
@@ -223,8 +233,16 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(image_id);
 
-	    vkal_render_to_image(vkal_info->command_buffers[image_id],
+	    vkal_render_to_image(image_id, vkal_info->command_buffers[image_id],
 				 vkal_info->render_to_image_render_pass, render_image);
+	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
+	    vkal_draw_indexed(image_id, graphics_pipeline,
+			      offset_indices, index_count,
+			      offset_vertices);
+	    vkal_end_renderpass(image_id);
+
+	    vkal_render_to_image(image_id, vkal_info->command_buffers[image_id],
+				 vkal_info->render_to_image_render_pass, render_image2);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,

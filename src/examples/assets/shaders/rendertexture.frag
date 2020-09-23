@@ -10,6 +10,7 @@ layout(location = 1) in vec3 in_color;
 layout(location = 2) in vec2 in_uv;
 layout(set = 0, binding = 0) uniform sampler2D u_texture;
 layout(set = 0, binding = 1) uniform sampler2D u_rendertexture;
+layout(set = 0, binding = 2) uniform sampler2D u_rendertexture2;
 
 void main() 
 {
