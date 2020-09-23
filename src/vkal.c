@@ -1679,7 +1679,8 @@ void destroy_sampler(uint32_t id)
     }
 }
 
-void vkal_descriptor_set_add_image_sampler(VkDescriptorSet descriptor_set, uint32_t binding, VkImageView image_view, VkSampler sampler)
+void vkal_update_descriptor_set_render_image(VkDescriptorSet descriptor_set, uint32_t binding,
+					     VkImageView image_view, VkSampler sampler)
 {
     VkDescriptorImageInfo image_infos[1];
     image_infos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

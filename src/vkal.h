@@ -550,7 +550,8 @@ Texture vkal_create_texture(uint32_t binding,
 			    VkFilter min_filter, VkFilter mag_filter);
 RenderImage create_render_image(uint32_t width, uint32_t height);
 void vkal_update_descriptor_set_texture(VkDescriptorSet descriptor_set, Texture texture);
-void vkal_descriptor_set_add_image_sampler(VkDescriptorSet descriptor_set, uint32_t binding, VkImageView image_view, VkSampler sampler);
+void vkal_update_descriptor_set_render_image(VkDescriptorSet descriptor_set, uint32_t binding,
+					     VkImageView image_view, VkSampler sampler);
 ShaderStageSetup vkal_create_shaders(const uint8_t * vertex_shader_code, uint32_t vertex_shader_code_size, const uint8_t * fragment_shader_code, uint32_t fragment_shader_code_size);
 VkPipelineShaderStageCreateInfo create_shader_stage_info(VkShaderModule module, VkShaderStageFlagBits shader_stage_flag_bits);
 void create_shader_module(uint8_t const * shader_byte_code, int size, uint32_t * out_shader_module);
