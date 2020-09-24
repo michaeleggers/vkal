@@ -575,6 +575,7 @@ uint32_t vkal_get_image();
    UniformBuffer * uniforms, uint32_t uniform_count,
    Model * models, uint32_t model_draw_count);
 */
+void vkal_viewport(VkCommandBuffer command_buffer, float x, float y, float width, float height);
 void vkal_draw_indexed(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,

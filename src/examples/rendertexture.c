@@ -259,6 +259,7 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(image_id);
 
+	    vkal_viewport(vkal_info->command_buffers[image_id], 0, 0, render_image.width, render_image.height);
 	    vkal_render_to_image(image_id, vkal_info->command_buffers[image_id],
 				 vkal_info->render_to_image_render_pass, render_image);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
@@ -267,6 +268,7 @@ int main(int argc, char ** argv)
 			      offset_vertices);
 	    vkal_end_renderpass(image_id);
 
+	    vkal_viewport(vkal_info->command_buffers[image_id], 0, 0, render_image2.width, render_image2.height);
 	    vkal_render_to_image(image_id, vkal_info->command_buffers[image_id],
 				 vkal_info->render_to_image_render_pass, render_image2);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[1], pipeline_layout);
@@ -274,7 +276,9 @@ int main(int argc, char ** argv)
 			      offset_indices, index_count,
 			      offset_vertices);
 	    vkal_end_renderpass(image_id);
-	    
+
+	    vkal_viewport(vkal_info->command_buffers[image_id], 0, 0,
+			  vkal_info->swapchain_extent.width, vkal_info->swapchain_extent.height);
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[2], pipeline_layout_composite);
 	    vkal_draw_indexed(image_id, graphics_pipeline_composite,

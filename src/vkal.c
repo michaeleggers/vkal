@@ -3539,13 +3539,25 @@ void vkal_bind_descriptor_set2(VkCommandBuffer command_buffer,
   }
 */
 
+void vkal_viewport(VkCommandBuffer command_buffer, float x, float y, float width, float height)
+{
+    VkViewport viewport = { 0 };
+    viewport.x = x;
+    viewport.y = y;
+    viewport.width = width; // (float)vp_width;
+    viewport.height = height; // (float)vp_height;
+    viewport.minDepth = 0.f;
+    viewport.maxDepth = 1.f;
+    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+}
+
 void vkal_draw_indexed(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,
     VkDeviceSize vertex_buffer_offset)
 {
     vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-    
+    /*
     VkViewport viewport = { 0 };
     viewport.x = 0.f;
     viewport.y = 0.f;
@@ -3554,7 +3566,7 @@ void vkal_draw_indexed(
     viewport.minDepth = 0.f;
     viewport.maxDepth = 1.f;
     vkCmdSetViewport(vkal_info.command_buffers[image_id], 0, 1, &viewport);
-    
+    */
     VkRect2D scissor = { 0 };
     scissor.offset = (VkOffset2D){ 0,0 };
     scissor.extent = vkal_info.swapchain_extent;
