@@ -2894,7 +2894,9 @@ VkPipelineLayout get_pipeline_layout(uint32_t id)
     return vkal_info.user_pipeline_layouts[id].pipeline_layout;
 }
 
-void vkal_allocate_descriptor_sets(VkDescriptorPool pool, VkDescriptorSetLayout * layout, uint32_t layout_count, VkDescriptorSet ** out_descriptor_set)
+void vkal_allocate_descriptor_sets(VkDescriptorPool pool,
+				   VkDescriptorSetLayout * layout, uint32_t layout_count,
+				   VkDescriptorSet ** out_descriptor_set)
 {
     VkDescriptorSetAllocateInfo allocate_info = { 0 };
     allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;

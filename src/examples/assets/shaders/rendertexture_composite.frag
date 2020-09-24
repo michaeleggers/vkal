@@ -8,12 +8,15 @@ layout(location = 0) out vec4 outColor;
 layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec3 in_color;
 layout(location = 2) in vec2 in_uv;
-layout(set = 0, binding = 0) uniform sampler2D u_texture;
+
+layout(set = 0, binding = 0) uniform sampler2D u_texture_1;
+layout(set = 0, binding = 1) uniform sampler2D u_texture_2;
 
 void main() 
 {
-    vec4 texel = texture(u_texture, in_uv);
+    vec4 texel1 = texture(u_texture_1, in_uv);
+    vec4 texel2 = texture(u_texture_2, in_uv);
     
-	outColor = texel;
+	outColor = vec4(texel1.rgb * texel2.rgb, 1.0);
     
 }

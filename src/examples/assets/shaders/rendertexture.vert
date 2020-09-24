@@ -11,6 +11,7 @@ layout (location = 2) in vec2 uv;
 layout (location = 0) out vec3 out_position;
 layout (location = 1) out vec3 out_color;
 layout (location = 2) out vec2 out_uv;
+
 void main()
 {
     out_position = 0.5*position + 0.5;

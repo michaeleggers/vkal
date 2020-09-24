@@ -9,5 +9,6 @@
 %VULKAN_SDK%/bin/glslc textures_descriptorarray_push_constant.vert -o textures_descriptorarray_push_constant_vert.spv
 %VULKAN_SDK%/bin/glslc textures_descriptorarray_push_constant.frag -o textures_descriptorarray_push_constant_frag.spv          
 
-%VULKAN_SDK%/bin/glslc rendertexture.vert -o rendertexture_vert.spv
-%VULKAN_SDK%/bin/glslc rendertexture.frag -o rendertexture_frag.spv
+%VULKAN_SDK%/bin/glslc rendertexture.vert           -o rendertexture_vert.spv
+%VULKAN_SDK%/bin/glslc rendertexture.frag           -o rendertexture_frag.spv
+%VULKAN_SDK%/bin/glslc rendertexture_composite.frag -o rendertexture_composite_frag.spv

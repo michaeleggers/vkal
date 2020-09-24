@@ -1,5 +1,13 @@
 /* Michael Eggers, 9/20/2020
-   Rendering to two different textures and blending thme together in one last step.
+
+   This example uses distinct descriptor-sets to change the texture being used in the
+   shader. This means, however, that for every different texture we need to have
+   another descriptor set (as a descriptor set cannot be updated while a command
+   buffer is in flight). Those sets essentially are the same in that they have
+   all the same layout. With many textures this results in many descriptor-sets
+   just for the textures. This problem can be solved through dynamic uniform buffers
+   and descriptor-arrays for the textures. This is shown in textures_descriptorarray.c.
+   COOL!
 */
 
 
@@ -109,17 +117,10 @@ int main(int argc, char ** argv)
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
     p.rfb("../src/examples/assets/shaders/rendertexture_frag.spv", &fragment_byte_code, &fragment_code_size);
-    /* Render to Texture Pass */
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
 
-    /* Composite Pass */
-    p.rfb("../src/examples/assets/shaders/rendertexture_composite_frag.spv", &fragment_byte_code, &fragment_code_size);
-    ShaderStageSetup shader_setup_composite = vkal_create_shaders(
-	vertex_byte_code, vertex_code_size,
-	fragment_byte_code, fragment_code_size);
-    
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
 	{
@@ -135,22 +136,7 @@ int main(int argc, char ** argv)
     uint32_t vertex_attribute_count = sizeof(vertex_attributes)/sizeof(*vertex_attributes);
 
     /* Descriptor Sets */
-    /* Render to Texture Pass */
     VkDescriptorSetLayoutBinding set_layout[] = {
-	{
-	    0,
-	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	    1, /* Texture Array-Count: How many Textures do we need? */
-	    VK_SHADER_STAGE_FRAGMENT_BIT,
-	    0
-	}
-    };
-    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 1);
-    
-
-    /* Composite Descriptor Set */
-    VkDescriptorSetLayoutBinding set_layout_composite[] =
-    {
 	{
 	    0,
 	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -164,24 +150,28 @@ int main(int argc, char ** argv)
 	    1, /* Texture Array-Count: How many Textures do we need? */
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
+	},
+	{
+	    2,
+	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	    1, /* Texture Array-Count: How many Textures do we need? */
+	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    0
 	}
     };
-    VkDescriptorSetLayout descriptor_set_layout_composite = vkal_create_descriptor_set_layout(set_layout_composite, 2);
-
-    /* Build the descriptor Sets */
+    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 3);
+    
     VkDescriptorSetLayout layouts[] = {
-	descriptor_set_layout,
-	descriptor_set_layout,
-	descriptor_set_layout_composite
+	descriptor_set_layout
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
-    VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count * sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
+    
+    VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
+    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_sets);
 	
-    /* Pipelines */
-    /* Render Texture */
+    /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
-	&layouts[0], 2, 
+	layouts, descriptor_set_layout_count, 
 	NULL, 0);
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
@@ -189,31 +179,20 @@ int main(int argc, char ** argv)
 	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
-	vkal_info->render_to_image_render_pass, pipeline_layout);
-    /* Composite */
-    VkPipelineLayout pipeline_layout_composite = vkal_create_pipeline_layout(
-	&layouts[2], 1,
-	NULL, 0);
-    VkPipeline graphics_pipeline_composite = vkal_create_graphics_pipeline(
-	vertex_input_bindings, 1,
-	vertex_attributes, vertex_attribute_count,
-	shader_setup_composite, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
-	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-	VK_FRONT_FACE_CLOCKWISE,
-	vkal_info->render_pass, pipeline_layout_composite);
-    
+	vkal_info->render_pass, pipeline_layout);
+
     /* Render Image (Should this be called render-texture?) */
     RenderImage render_image = create_render_image(1920, 1080);
     vkal_dbg_image_name(get_image(render_image.image), "Render Image 1920x1080");
     VkSampler sampler = create_sampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, 
 				       VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 
 				       VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-    vkal_update_descriptor_set_render_image(descriptor_sets[2], 0,
+    vkal_update_descriptor_set_render_image(descriptor_sets[0], 1,
 					    get_image_view(render_image.image_view), sampler);
     
     RenderImage render_image2 = create_render_image(1024, 1024);
     vkal_dbg_image_name(get_image(render_image2.image), "Render Image 1024x1024");
-    vkal_update_descriptor_set_render_image(descriptor_sets[2], 1,
+    vkal_update_descriptor_set_render_image(descriptor_sets[0], 2,
 					    get_image_view(render_image2.image_view), sampler);
     
     /* Model Data */
@@ -237,18 +216,13 @@ int main(int argc, char ** argv)
     uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
 
     /* Texture Data */
-    Image image = load_image_file("../src/examples/assets/textures/yakult.png");
+    Image image = load_image_file("../src/examples/assets/textures/indy.png");
     Texture texture = vkal_create_texture(0, image.data, image.width, image.height, image.channels, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image.data);
-    Image image2 = load_image_file("../src/examples/assets/textures/peru.jpg");
-    Texture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, image2.channels, 0,
-					   VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
-    free(image2.data);    
-    vkal_update_descriptor_set_texture(descriptor_sets[0], texture);
-    vkal_update_descriptor_set_texture(descriptor_sets[1], texture2);
-	
     
+    vkal_update_descriptor_set_texture(descriptor_sets[0], texture);
+
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -269,15 +243,15 @@ int main(int argc, char ** argv)
 
 	    vkal_render_to_image(image_id, vkal_info->command_buffers[image_id],
 				 vkal_info->render_to_image_render_pass, render_image2);
-	    vkal_bind_descriptor_set(image_id, &descriptor_sets[1], pipeline_layout);
+	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
 	    vkal_end_renderpass(image_id);
 	    
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_bind_descriptor_set(image_id, &descriptor_sets[2], pipeline_layout_composite);
-	    vkal_draw_indexed(image_id, graphics_pipeline_composite,
+	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
+	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
 	    vkal_end_renderpass(image_id);
