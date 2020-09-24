@@ -211,7 +211,7 @@ int main(int argc, char ** argv)
     vkal_update_descriptor_set_render_image(descriptor_sets[2], 0,
 					    get_image_view(render_image.image_view), sampler);
     
-    RenderImage render_image2 = create_render_image(1024, 1024);
+    RenderImage render_image2 = create_render_image(900, 900);
     vkal_dbg_image_name(get_image(render_image2.image), "Render Image 1024x1024");
     vkal_update_descriptor_set_render_image(descriptor_sets[2], 1,
 					    get_image_view(render_image2.image_view), sampler);
@@ -241,7 +241,7 @@ int main(int argc, char ** argv)
     Texture texture = vkal_create_texture(0, image.data, image.width, image.height, image.channels, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image.data);
-    Image image2 = load_image_file("../src/examples/assets/textures/peru.jpg");
+    Image image2 = load_image_file("../src/examples/assets/textures/indy1.jpg");
     Texture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, image2.channels, 0,
 					   VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image2.data);    

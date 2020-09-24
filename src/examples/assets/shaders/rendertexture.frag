@@ -14,6 +14,5 @@ void main()
 {
     vec4 texel = texture(u_texture, in_uv);
     
-	outColor = texel;
-    
+	outColor = texel;    
 }
