@@ -3933,7 +3933,7 @@ UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint3
     uint64_t min_ubo_alignment = vkal_info.physical_device_properties.limits.minUniformBufferOffsetAlignment;
     uniform_buffer.alignment = (size + min_ubo_alignment - 1) & ~(min_ubo_alignment - 1);
     uniform_buffer.size = elements * uniform_buffer.alignment;
-    uint64_t next_offset = uniform_buffer.size; //uniform_buffer.alignment * (uniform_buffer.size / uniform_buffer.alignment + 1); // TODO: This is dumb!
+    uint64_t next_offset = uniform_buffer.size;
     vkal_info.uniform_buffer_offset += next_offset;
     return uniform_buffer;
 }
@@ -4009,9 +4009,10 @@ uint32_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     
     // TODO: this is not COOL!
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
-    uint64_t next_offset = vkal_info.vertex_buffer_offset + (vertices_in_bytes / alignment) * alignment;
-    next_offset += vertices_in_bytes % alignment ? alignment : 0;
-    vkal_info.vertex_buffer_offset = next_offset;
+    uint64_t next_offset = (vertices_in_bytes + alignment - 1) & ~(alignment - 1);
+    //vkal_info.vertex_buffer_offset + (vertices_in_bytes / alignment) * alignment;
+    //next_offset += vertices_in_bytes % alignment ? alignment : 0;
+    vkal_info.vertex_buffer_offset += next_offset;
     
     return offset;
 }

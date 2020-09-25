@@ -217,24 +217,24 @@ int main(int argc, char ** argv)
 					    get_image_view(render_image2.image_view), sampler);
     
     /* Model Data */
-    float cube_vertices[] = {
+    float rectvertices[] = {
 	// Pos            // Color        // UV
 	-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
 	 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
 	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
     	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  1.0, 1.0
     };
-    uint32_t vertex_count = sizeof(cube_vertices)/sizeof(*cube_vertices);
+    uint32_t vertex_count = sizeof(rectvertices)/sizeof(*rectvertices);
     
-    uint16_t cube_indices[] = {
+    uint16_t rectindices[] = {
 	// front
  	0, 1, 2,
 	2, 1, 3
     };
-    uint32_t index_count = sizeof(cube_indices)/sizeof(*cube_indices);
+    uint32_t index_count = sizeof(rectindices)/sizeof(*rectindices);
   
-    uint32_t offset_vertices = vkal_vertex_buffer_add(cube_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
-    uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
+    uint32_t offset_vertices = vkal_vertex_buffer_add(rectvertices, 2*sizeof(vec3) + sizeof(vec2), 4);
+    uint32_t offset_indices  = vkal_index_buffer_add(rectindices, index_count);
 
     /* Texture Data */
     Image image = load_image_file("../src/examples/assets/textures/yakult.png");
