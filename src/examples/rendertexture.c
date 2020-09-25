@@ -211,8 +211,8 @@ int main(int argc, char ** argv)
     vkal_update_descriptor_set_render_image(descriptor_sets[2], 0,
 					    get_image_view(render_image.image_view), sampler);
     
-    RenderImage render_image2 = create_render_image(960, 530);
-    vkal_dbg_image_name(get_image(render_image2.image), "Render Image 1024x1024");
+    RenderImage render_image2 = create_render_image(2048, 2048);
+    vkal_dbg_image_name(get_image(render_image2.image), "Render Image 2024x2024");
     vkal_update_descriptor_set_render_image(descriptor_sets[2], 1,
 					    get_image_view(render_image2.image_view), sampler);
     
@@ -259,27 +259,31 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(image_id);
 
+	    vkal_begin_render_to_image_render_pass(image_id, vkal_info->command_buffers[image_id],
+						   vkal_info->render_to_image_render_pass, render_image);
 	    vkal_viewport(vkal_info->command_buffers[image_id], 0, 0, render_image.width, render_image.height);
-	    vkal_render_to_image(image_id, vkal_info->command_buffers[image_id],
-				 vkal_info->render_to_image_render_pass, render_image);
+	    vkal_scissor(vkal_info->command_buffers[image_id], 0, 0, render_image.width, render_image.height);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
 	    vkal_end_renderpass(image_id);
 
+	    vkal_begin_render_to_image_render_pass(image_id, vkal_info->command_buffers[image_id],
+						   vkal_info->render_to_image_render_pass, render_image2);
 	    vkal_viewport(vkal_info->command_buffers[image_id], 0, 0, render_image2.width, render_image2.height);
-	    vkal_render_to_image(image_id, vkal_info->command_buffers[image_id],
-				 vkal_info->render_to_image_render_pass, render_image2);
+	    vkal_scissor(vkal_info->command_buffers[image_id], 0, 0, render_image2.width, render_image2.height);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[1], pipeline_layout);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
 	    vkal_end_renderpass(image_id);
 
-	    vkal_viewport(vkal_info->command_buffers[image_id], 0, 0,
-			  2*image2.width, 2*image2.height);
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
+	    vkal_viewport(vkal_info->command_buffers[image_id], 0, 0,
+			  image2.width, image2.height);
+	    vkal_scissor(vkal_info->command_buffers[image_id], 0, 0,
+			 vkal_info->swapchain_extent.width, vkal_info->swapchain_extent.height);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[2], pipeline_layout_composite);
 	    vkal_draw_indexed(image_id, graphics_pipeline_composite,
 			      offset_indices, index_count,

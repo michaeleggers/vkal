@@ -3335,8 +3335,8 @@ void vkal_begin_command_buffer(uint32_t image_id)
     vkBeginCommandBuffer(vkal_info.command_buffers[image_id], &begin_info);
 }
 
-void vkal_render_to_image(uint32_t image_id, VkCommandBuffer command_buffer,
-			  VkRenderPass render_pass, RenderImage render_image)
+void vkal_begin_render_to_image_render_pass(uint32_t image_id, VkCommandBuffer command_buffer,
+					    VkRenderPass render_pass, RenderImage render_image)
 {
     VkRenderPassBeginInfo pass_begin_info = {0};
     pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -3551,6 +3551,14 @@ void vkal_viewport(VkCommandBuffer command_buffer, float x, float y, float width
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 }
 
+void vkal_scissor(VkCommandBuffer command_buffer, float offset_x, float offset_y, float extent_x, float extent_y)
+{
+    VkRect2D scissor = { 0 };
+    scissor.offset = (VkOffset2D){ (int32_t)offset_x, (int32_t)offset_y };
+    scissor.extent = (VkExtent2D){ (uint32_t)extent_x, (uint32_t)extent_y };
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor); 
+}
+
 void vkal_draw_indexed(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,
@@ -3567,10 +3575,12 @@ void vkal_draw_indexed(
     viewport.maxDepth = 1.f;
     vkCmdSetViewport(vkal_info.command_buffers[image_id], 0, 1, &viewport);
     */
+    /*
     VkRect2D scissor = { 0 };
     scissor.offset = (VkOffset2D){ 0,0 };
     scissor.extent = vkal_info.swapchain_extent;
     vkCmdSetScissor(vkal_info.command_buffers[image_id], 0, 1, &scissor);
+    */
     
     vkCmdBindIndexBuffer(vkal_info.command_buffers[image_id],
 			 vkal_info.index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);

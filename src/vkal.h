@@ -576,6 +576,7 @@ uint32_t vkal_get_image();
    Model * models, uint32_t model_draw_count);
 */
 void vkal_viewport(VkCommandBuffer command_buffer, float x, float y, float width, float height);
+void vkal_scissor(VkCommandBuffer command_buffer, float offset_x, float offset_y, float extent_x, float extent_y);
 void vkal_draw_indexed(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,
@@ -595,8 +596,8 @@ void vkal_bind_descriptor_set2(VkCommandBuffer command_buffer,
 			       VkPipelineLayout pipeline_layout);
 void vkal_begin_command_buffer(uint32_t image_id);
 void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass);
-void vkal_render_to_image(uint32_t image_id, VkCommandBuffer command_buffer,
-			  VkRenderPass render_pass, RenderImage render_image);
+void vkal_begin_render_to_image_render_pass(uint32_t image_id, VkCommandBuffer command_buffer,
+					    VkRenderPass render_pass, RenderImage render_image);
 void vkal_begin_render_pass(uint32_t image_id, VkRenderPass render_pass);
 void vkal_end(VkCommandBuffer command_buffer);
 void vkal_end_command_buffer(uint32_t image_id);
