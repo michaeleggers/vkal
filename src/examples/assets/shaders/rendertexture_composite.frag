@@ -50,6 +50,6 @@ void main()
     final_texel = smoothstep(0.0, 1.0, final_texel);
     
 	//outColor = vec4(texel1.rgb * texel2.rgb, 1.0);
-    outColor = vec4( vec3(final_texel) * texel2.xyz, 1.0 );
+    outColor = vec4( vec3(final_texel) * in_color.xyz, 1.0 );
     
 }

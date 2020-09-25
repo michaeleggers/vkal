@@ -4007,11 +4007,11 @@ uint32_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
     vkDeviceWaitIdle(vkal_info.device);
     
-    // TODO: this is not COOL!
+    // When mapping memory later again to copy into it (see:fluch_to_memory) we must respect
+    // the devices alignment.
+    // See: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkMappedMemoryRange.html
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
     uint64_t next_offset = (vertices_in_bytes + alignment - 1) & ~(alignment - 1);
-    //vkal_info.vertex_buffer_offset + (vertices_in_bytes / alignment) * alignment;
-    //next_offset += vertices_in_bytes % alignment ? alignment : 0;
     vkal_info.vertex_buffer_offset += next_offset;
     
     return offset;

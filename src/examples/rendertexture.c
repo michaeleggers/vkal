@@ -281,7 +281,7 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
 	    vkal_viewport(vkal_info->command_buffers[image_id], 0, 0,
-			  image2.width, image2.height);
+			  2*image2.width, 2*image2.height);
 	    vkal_scissor(vkal_info->command_buffers[image_id], 0, 0,
 			 vkal_info->swapchain_extent.width, vkal_info->swapchain_extent.height);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[2], pipeline_layout_composite);
