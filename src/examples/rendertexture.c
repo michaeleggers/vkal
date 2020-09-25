@@ -38,7 +38,7 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(1920, 1080, "Vulkan", 0, 0);
+    window = glfwCreateWindow(1920, 1080, "Vulkan Sobel", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
     //glfwSetMouseButtonCallback(window, glfw_mouse_button_callback);
     //glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
@@ -211,7 +211,7 @@ int main(int argc, char ** argv)
     vkal_update_descriptor_set_render_image(descriptor_sets[2], 0,
 					    get_image_view(render_image.image_view), sampler);
     
-    RenderImage render_image2 = create_render_image(900, 900);
+    RenderImage render_image2 = create_render_image(960, 530);
     vkal_dbg_image_name(get_image(render_image2.image), "Render Image 1024x1024");
     vkal_update_descriptor_set_render_image(descriptor_sets[2], 1,
 					    get_image_view(render_image2.image_view), sampler);
@@ -278,7 +278,7 @@ int main(int argc, char ** argv)
 	    vkal_end_renderpass(image_id);
 
 	    vkal_viewport(vkal_info->command_buffers[image_id], 0, 0,
-			  vkal_info->swapchain_extent.width, vkal_info->swapchain_extent.height);
+			  2*image2.width, 2*image2.height);
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[2], pipeline_layout_composite);
 	    vkal_draw_indexed(image_id, graphics_pipeline_composite,

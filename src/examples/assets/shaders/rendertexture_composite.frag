@@ -33,6 +33,7 @@ float sobel3x3_Y[9] = float[9](
 void main() 
 {
     vec4 texel1 = texture(u_texture_1, in_uv);
+    vec4 texel2 = texture(u_texture_2, in_uv);
     vec2 texture2_size = textureSize(u_texture_2, 0);
     vec2 dxdy = vec2(1.f/texture2_size.x, 1.f/texture2_size.y);
     
@@ -44,10 +45,11 @@ void main()
         texel2      = sobel3x3_Y[i] * texture( u_texture_2, in_uv + vec2(dxdy.x*offsets3x3[i].x, dxdy.y*offsets3x3[i].y) );
         sobel_y += (texel2.x + texel2.y + texel2.z)/3.0f;       
     }
-    float final_texel = sqrt(sobel_x*sobel_y);
+    float final_texel = sqrt(sobel_x*sobel_x + sobel_y*sobel_y);
     //texel2_sobelX /= 9.f; // normalization not needed here!
+    final_texel = smoothstep(0.0, 1.0, final_texel);
     
 	//outColor = vec4(texel1.rgb * texel2.rgb, 1.0);
-    outColor = vec4( vec3(sobel_x) + texel1.rgb, 1.0 );
+    outColor = vec4( vec3(final_texel) * texel2.xyz, 1.0 );
     
 }
