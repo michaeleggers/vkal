@@ -3380,6 +3380,16 @@ void vkal_bind_descriptor_set(uint32_t image_id,
                             pipeline_layout, 0, 1, descriptor_sets, 0, 0);
 }
 
+void vkal_bind_descriptor_sets(uint32_t image_id,
+			       VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,
+			       uint32_t * dynamic_offsets, uint32_t dynamic_offset_count,
+			       VkPipelineLayout pipeline_layout)
+{
+    vkCmdBindDescriptorSets(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, 
+                            pipeline_layout, 0, descriptor_set_count, descriptor_sets,
+			    dynamic_offset_count, dynamic_offsets);
+}
+
 void vkal_bind_descriptor_set_dynamic(uint32_t image_id,
 				      VkDescriptorSet * descriptor_sets,
 				      VkPipelineLayout pipeline_layout, uint32_t dynamic_offset)

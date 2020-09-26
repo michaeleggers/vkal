@@ -42,6 +42,11 @@ typedef struct ViewProjection
     mat4 proj;
 } ViewProjection;
 
+typedef struct ModelData
+{
+    mat4 model_mat;
+} ModelData;
+
 typedef struct Model
 {
     float *  vertices;
@@ -343,22 +348,28 @@ int main(int argc, char ** argv)
 	    1,
 	    VK_SHADER_STAGE_VERTEX_BIT,
 	    0
-	}/*,
+	}
+    };
+    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 1);
+
+    VkDescriptorSetLayoutBinding set_layout_dynamic[] = {
 	{
-	    1,
+	    0,
 	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 	    1,
-	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    VK_SHADER_STAGE_VERTEX_BIT,
 	    0
-	    }  */    
+	}
     };
-    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 1);    
+    VkDescriptorSetLayout descriptor_set_layout_dynamic = vkal_create_descriptor_set_layout(set_layout_dynamic, 1);
+    
     VkDescriptorSetLayout layouts[] = {
-	descriptor_set_layout
+	descriptor_set_layout,
+	descriptor_set_layout_dynamic	
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
-    VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_sets);
+    VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
+    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
 
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
@@ -408,6 +419,17 @@ int main(int argc, char ** argv)
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
     vkal_update_descriptor_set_uniform(descriptor_sets[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);
+
+    /* Dynamic Uniform Buffers */
+    UniformBuffer model_ubo = vkal_create_uniform_buffer(sizeof(ModelData), 2, 0);
+    ModelData * model_data = (ModelData*)malloc(2*model_ubo.alignment);
+    model_data[0].model_mat = mat4_identity();
+    mat4 model_mat_2 = mat4_identity();
+    model_mat_2 = translate(model_mat_2, (vec3){ 1.f, 0.f, 0.f });
+    ((ModelData*)((uint8_t*)model_data + model_ubo.alignment))->model_mat = model_mat_2;
+    vkal_update_descriptor_set_uniform(descriptor_sets[1], model_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
+    vkal_update_uniform(&model_ubo, model_data);
+    uint32_t dynamic_offsets[] = { 0, model_ubo.alignment };
     
     // Main Loop
     while (!glfwWindowShouldClose(window))
@@ -432,7 +454,13 @@ int main(int argc, char ** argv)
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
 			 width, height);
-	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
+	    vkal_bind_descriptor_sets(image_id, descriptor_sets, descriptor_set_layout_count,
+				      &dynamic_offsets[0], 1,
+				      pipeline_layout);
+	    vkal_draw(image_id, graphics_pipeline, g_model.vertex_buffer_offset, g_model.vertex_count);
+	    vkal_bind_descriptor_sets(image_id, descriptor_sets, descriptor_set_layout_count,
+				      &dynamic_offsets[1], 1,
+				      pipeline_layout);
 	    vkal_draw(image_id, graphics_pipeline, g_model.vertex_buffer_offset, g_model.vertex_count);
 	    vkal_end_renderpass(image_id);
 

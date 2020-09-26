@@ -565,6 +565,10 @@ void vkal_draw_indexed2(
 void vkal_bind_descriptor_set(uint32_t image_id,
 			      VkDescriptorSet * descriptor_sets,
 			      VkPipelineLayout pipeline_layout);
+void vkal_bind_descriptor_sets(uint32_t image_id,
+			       VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,
+			       uint32_t * dynamic_offsets, uint32_t dynamic_offset_count,
+			       VkPipelineLayout pipeline_layout);
 void vkal_bind_descriptor_set_dynamic(uint32_t image_id,
 				      VkDescriptorSet * descriptor_sets,
 				      VkPipelineLayout pipeline_layout, uint32_t dynamic_offset);

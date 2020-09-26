@@ -14,10 +14,15 @@ layout (set = 0, binding = 0) uniform u_view_proj_t
     mat4 proj;
 } u_view_proj;
 
+layout (set = 1, binding = 0) uniform u_model_data_t
+{
+    mat4 model_mat;
+} u_model_data;
+
 void main()
 {
     out_color = color;
-    vec4 pos_clipspace = u_view_proj.proj * u_view_proj.view * vec4(position, 1.0);
+    vec4 pos_clipspace = u_view_proj.proj * u_view_proj.view * u_model_data.model_mat * vec4(position, 1.0);
 	gl_Position = pos_clipspace;
     //gl_Position.y = -gl_Position.y; // Hack: vulkan's y is down
 }
