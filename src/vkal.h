@@ -32,7 +32,7 @@
 #define VKAL_MAX_VKSAMPLER                      128
 #define VKAL_MAX_TEXTURES                       10
 #define VKAL_MAX_VKFRAMEBUFFER			64
-#define VKAL_VSYNC_ON				1
+#define VKAL_VSYNC_ON				0
 #define VKAL_SHADOW_MAP_DIMENSION		2048
 
 #define DBG_VULKAN_ASSERT(result, msg) \
@@ -56,32 +56,6 @@ sizeof(arr) / sizeof(arr[0])
 
 #define VKAL_MIN(a, b) (a < b ? a : b)
 #define VKAL_MAX(a, b) (a > b ? a : b)
-
-typedef struct vec2
-{
-    float x, y;
-} vec2;
-
-typedef struct vec3
-{
-    float x, y, z;
-} vec3;
-
-typedef struct vec4
-{
-    float x, y, z, w;
-} vec4;
-
-typedef struct Vertex /* Packed as 16 floats */
-{
-    vec3 pos;
-    vec2 uv;
-    vec3 normal;
-    //glm::vec3 barycentric;
-    vec4 color;
-    vec3 tangent;
-    float     dummy; /* round up to 16 floats. Easier to access vertex data in shader through indexing. */
-} Vertex;
 
 typedef struct Texture
 {
@@ -478,7 +452,7 @@ void create_semaphores();
 void vkal_cleanup();
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset);
 uint32_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count);
-uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkDeviceSize offset);
+//uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkDeviceSize offset);
 uint32_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count);
 void create_surface();
 UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint32_t binding);
@@ -581,6 +555,9 @@ void vkal_draw_indexed(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,
     VkDeviceSize vertex_buffer_offset);
+void vkal_draw(
+    uint32_t image_id, VkPipeline pipeline,
+    VkDeviceSize vertex_buffer_offset, uint32_t vertex_count);
 void vkal_draw_indexed2(
     VkCommandBuffer command_buffer, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,

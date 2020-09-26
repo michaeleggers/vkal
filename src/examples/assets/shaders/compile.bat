@@ -12,3 +12,6 @@
 %VULKAN_SDK%/bin/glslc rendertexture.vert           -o rendertexture_vert.spv
 %VULKAN_SDK%/bin/glslc rendertexture.frag           -o rendertexture_frag.spv
 %VULKAN_SDK%/bin/glslc rendertexture_composite.frag -o rendertexture_composite_frag.spv
+
+%VULKAN_SDK%/bin/glslc model_loading.vert -o model_loading_vert.spv
+%VULKAN_SDK%/bin/glslc model_loading.frag -o model_loading_frag.spv

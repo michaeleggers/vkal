@@ -3564,30 +3564,24 @@ void vkal_draw_indexed(
     VkDeviceSize index_buffer_offset, uint32_t index_count,
     VkDeviceSize vertex_buffer_offset)
 {
-    vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-    /*
-    VkViewport viewport = { 0 };
-    viewport.x = 0.f;
-    viewport.y = 0.f;
-    viewport.width = vkal_info.swapchain_extent.width; // (float)vp_width;
-    viewport.height = vkal_info.swapchain_extent.height; // (float)vp_height;
-    viewport.minDepth = 0.f;
-    viewport.maxDepth = 1.f;
-    vkCmdSetViewport(vkal_info.command_buffers[image_id], 0, 1, &viewport);
-    */
-    /*
-    VkRect2D scissor = { 0 };
-    scissor.offset = (VkOffset2D){ 0,0 };
-    scissor.extent = vkal_info.swapchain_extent;
-    vkCmdSetScissor(vkal_info.command_buffers[image_id], 0, 1, &scissor);
-    */
-    
+    vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);    
     vkCmdBindIndexBuffer(vkal_info.command_buffers[image_id],
 			 vkal_info.index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
     uint64_t vertex_buffer_offsets[] = { vertex_buffer_offset };
     VkBuffer vertex_buffers[] = { vkal_info.vertex_buffer.buffer };
     vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
     vkCmdDrawIndexed(vkal_info.command_buffers[image_id], index_count, 1, 0, 0, 0);
+}
+
+void vkal_draw(
+    uint32_t image_id, VkPipeline pipeline,
+    VkDeviceSize vertex_buffer_offset, uint32_t vertex_count)
+{
+    vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);    
+    uint64_t vertex_buffer_offsets[] = { vertex_buffer_offset };
+    VkBuffer vertex_buffers[] = { vkal_info.vertex_buffer.buffer };
+    vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
+    vkCmdDraw(vkal_info.command_buffers[image_id], vertex_count, 1, 0, 0);
 }
 
 void vkal_draw_indexed2(
@@ -3939,6 +3933,7 @@ UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint3
 }
 
 // NOTE: If vertex_count is higher than the currentbuffer, vertex data after offset+vertex_count (in bytes) will be overwritten!!!
+/*
 uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkDeviceSize offset)
 {
     uint32_t vertices_in_bytes = vertex_count * sizeof(Vertex);
@@ -3972,6 +3967,7 @@ uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkD
     
     return offset;
 }
+*/
 
 uint32_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count)
 {
