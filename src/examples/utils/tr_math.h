@@ -36,7 +36,7 @@ mat4  mat4_identity(void);
 mat4  mat4_x_mat4(mat4 a, mat4 b);
 vec4  mat4_x_vec4(mat4 m, vec4 v);
 mat4  translate(mat4 m, vec3 v);
-mat4  trm_scale(mat4 m, vec3 v);
+mat4  tr_scale(mat4 m, vec3 v);
 mat4  rotate_x(float angle);
 mat4  rotate_y(float angle);
 mat4  rotate_z(float angle);

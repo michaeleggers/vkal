@@ -1,26 +1,21 @@
 
+#include "model.h"
+#include "../../platform.h"
+
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
-#include "external/tinyobj_loader_c.h"
+#include "../external/tinyobj_loader_c.h"
 
 #define FLT_MAX       100.f;
 
-typedef struct Model
-{
-    float *  vertices;
-    uint32_t vertex_count;
-    uint32_t vertex_buffer_offset;
-    uint16_t * indices;
-    uint32_t index_count;
-    uint32_t index_buffer_offset;
-} Model;
+extern Platform p;
 
-static void clear_model(Model * model)
+void clear_model(Model * model)
 {
     if (model->vertices != NULL) free(model->vertices);
     if (model->indices  != NULL) free(model->indices);
 }
 
-static void CalcNormal(float N[3], float v0[3], float v1[3], float v2[3]) {
+void CalcNormal(float N[3], float v0[3], float v1[3], float v2[3]) {
     float v10[3];
     float v20[3];
     float len2;
@@ -46,12 +41,12 @@ static void CalcNormal(float N[3], float v0[3], float v1[3], float v2[3]) {
     }
 }
 
-static void get_file_data(char const * filename, char ** data, size_t * len)
+void get_file_data(char const * filename, char ** data, size_t * len)
 {
     p.rfb(filename, (uint8_t**)data, (int*)len);
 }
 
-static int load_obj(float bmin[3], float bmax[3], char const * filename, Model * out_model)
+int load_obj(float bmin[3], float bmax[3], char const * filename, Model * out_model)
 {
     tinyobj_attrib_t     attrib;
     tinyobj_shape_t*     shapes = NULL;

@@ -109,7 +109,7 @@ mat4 translate(mat4 m, vec3 v)
     return m;
 }
 
-mat4 trm_scale(mat4 m, vec3 v)
+mat4 tr_scale(mat4 m, vec3 v)
 {
     m.d[0][0] *= v.x;
     m.d[1][1] *= v.y;
