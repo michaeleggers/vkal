@@ -1,5 +1,7 @@
 
 #include <math.h>
+#include <stdlib.h>
+
 #define TR_PI 3.14159265358979323846f
 
 #include "tr_math.h"
@@ -176,4 +178,11 @@ mat4 perspective_vk(float fov, float aspect, float z_near, float z_far)
 float tr_radians(float deg)
 {
     return (TR_PI*deg)/180.0f;
+}
+
+float rand_between(float min, float max)
+{
+	float range = max - min;
+	float step = range / RAND_MAX;
+	return (step * rand()) + min;
 }

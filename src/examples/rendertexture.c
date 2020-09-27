@@ -11,6 +11,7 @@
 
 #include "../vkal.h"
 #include "../platform.h"
+#include "utils/tr_math.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stb_image.h"

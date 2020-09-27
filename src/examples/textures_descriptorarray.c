@@ -18,10 +18,10 @@
 
 #include "../vkal.h"
 #include "../platform.h"
+#include "utils/tr_math.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stb_image.h"
-
 
 typedef struct Image
 {
@@ -272,12 +272,21 @@ int main(int argc, char ** argv)
     while (!glfwWindowShouldClose(window))
     {
 	glfwPollEvents();
+	
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
 
 	{
 	    uint32_t image_id = vkal_get_image();
 
 	    vkal_begin_command_buffer(image_id);
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
+	    vkal_viewport(vkal_info->command_buffers[image_id],
+			  0, 0,
+			  width, height);
+	    vkal_scissor(vkal_info->command_buffers[image_id],
+			 0, 0,
+			 width, height);
 	    vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, 0);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,

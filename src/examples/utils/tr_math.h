@@ -43,6 +43,7 @@ mat4  rotate_z(float angle);
 mat4  perspective_gl(float fov, float aspect, float z_near, float z_far);
 mat4  perspective_vk(float fov, float aspect, float z_near, float z_far);
 float tr_radians(float deg);
+float rand_between(float min, float max);
 
 #ifdef  TRM_NDC_ZERO_TO_ONE
 #define perspective perspective_vk
