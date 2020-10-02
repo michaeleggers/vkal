@@ -16,7 +16,7 @@ set flags_release=   -std=c99 -Wall -Wextra -pedantic-errors -fextended-identifi
 
 set clang_flags_debug= /TC /Z7 /DDEBUG /W4 /WX /MDd -Qunused-arguments
 set clang_flags_debug_easy= /TC /Z7 /DDEBUG /DVKAL_GLFW /W4 /MDd -Qunused-arguments -Wno-unused-variable -ferror-limit=100
-set clang_flags_release= /TC /O2 /W4 /MD -Qunused-arguments -Wno-unused-variable
+set clang_flags_release= /TC /O2 /W4 /MD /DVKAL_GLFW -Qunused-arguments -Wno-unused-variable
 
 set tcc_flags_debug= -Wall -g
 set tcc_flags_release= -Wall

@@ -5,12 +5,13 @@
 
 typedef struct Model
 {
-    float *  vertices;
-    uint32_t vertex_count;
-    uint32_t vertex_buffer_offset;
-    uint16_t * indices;
-    uint32_t index_count;
-    uint32_t index_buffer_offset;
+    float*    vertices;
+    uint32_t  vertex_count;
+    uint8_t   is_indexed;
+    uint32_t  vertex_buffer_offset;
+    uint16_t* indices;
+    uint32_t  index_count;
+    uint32_t  index_buffer_offset;
 } Model;
 
 void clear_model(Model * model);

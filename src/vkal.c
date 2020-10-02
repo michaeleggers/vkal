@@ -3303,7 +3303,7 @@ void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass 
     pass_begin_info.renderArea.offset = (VkOffset2D){ 0, 0 };
     pass_begin_info.renderArea.extent = vkal_info.swapchain_extent;
     VkClearValue clear_values[2];
-    clear_values[0].color = (VkClearColorValue){ 1.f, 1.f, 1.f, 1.f };
+    clear_values[0].color = (VkClearColorValue){ {1.f, 1.f, 1.f, 1.f} };
     clear_values[1].depthStencil  = (VkClearDepthStencilValue){ 1.0f, 0 };
 
     pass_begin_info.clearValueCount = 2;
@@ -3320,7 +3320,7 @@ void vkal_begin_render_pass(uint32_t image_id, VkRenderPass render_pass)
     pass_begin_info.renderArea.offset = (VkOffset2D){ 0, 0 };
     pass_begin_info.renderArea.extent = vkal_info.swapchain_extent;
     VkClearValue clear_values[2];
-    clear_values[0].color = (VkClearColorValue){ 1.f, 1.f, 1.f, 1.f };
+    clear_values[0].color = (VkClearColorValue){ {1.f, 1.f, 1.f, 1.f} };
     clear_values[1].depthStencil  = (VkClearDepthStencilValue){ 1.0f, 0 };
 
     pass_begin_info.clearValueCount = 2;
@@ -3346,7 +3346,7 @@ void vkal_begin_render_to_image_render_pass(uint32_t image_id, VkCommandBuffer c
     VkExtent2D extent = { render_image.width, render_image.height };
     pass_begin_info.renderArea.extent = extent;
     VkClearValue clear_values[2];
-    clear_values[0].color = (VkClearColorValue){ 1.f, 1.f, 1.f, 1.f };
+    clear_values[0].color = (VkClearColorValue){ {1.f, 1.f, 1.f, 1.f} };
     clear_values[1].depthStencil  = (VkClearDepthStencilValue){ 1.0f, 0 };
 
     pass_begin_info.clearValueCount = 2;

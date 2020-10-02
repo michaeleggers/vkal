@@ -1,12 +1,10 @@
 /* Michael Eggers, 9/20/2020
 
-   This example uses vkal_bind_descriptor_set_dynamic to send the texture index to
-   the fragment shader. These Dynamic Descriptor Sets are explained well here:
-   https://github.com/SaschaWillems/Vulkan/tree/master/examples/dynamicuniformbuffer
-   
-   This way the index which is used to lookup the correct texture in the
-   descriptor-array for samplers can be passed through a single descriptor.
-   when binding, the offset within the buffer is provided.
+   The model matrices of the entities are provided to the shader through a dynamic uniform buffer.
+   Note that only two models are loaded but for each a dedicated draw-call is issued. This
+   is not very efficient. Instanced drawing should be used instead.
+   The models come from an obj not using indexed drawing and a hard coded rect which, on the other
+   hand uses indexed vertex data.
 */
 
 
@@ -215,32 +213,38 @@ int main(int argc, char ** argv)
 	vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
-    float cube_vertices[] = {
-	// Pos            // Color        // UV
-	-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
-	 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
-	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
-    	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  1.0, 1.0
+    float rect_vertices[] = {
+	// Pos            // Normal       // Color       
+	-1.0,  1.0, 1.0,  0.0, 0.0, 1.0,  1.0, 0.0, 0.0,  
+	 1.0,  1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0, 0.0,  
+	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 0.0, 1.0,  
+    	 1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  1.0, 1.0, 0.0, 
     };
-    uint32_t vertex_count = sizeof(cube_vertices)/sizeof(*cube_vertices);
+    uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
     
-    uint16_t cube_indices[] = {
-	// front
+    uint16_t rect_indices[] = {
  	0, 1, 2,
 	2, 1, 3
     };
-    uint32_t index_count = sizeof(cube_indices)/sizeof(*cube_indices);
+    uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
   
-    uint32_t offset_vertices = vkal_vertex_buffer_add(cube_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
-    uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
-
+    uint32_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
+    uint32_t offset_indices  = vkal_index_buffer_add(rect_indices, index_count);
+    Model rect_model = { 0 };
+    rect_model.is_indexed = 1;
+    rect_model.vertex_buffer_offset = offset_vertices;
+    rect_model.vertex_count = vertex_count;
+    rect_model.index_buffer_offset = offset_indices;
+    rect_model.index_count = index_count;
+    
     Model model = {0};
+    model.is_indexed = 0;
     float bmin[3], bmax[3];
     load_obj(bmin, bmax, "../src/examples/assets/models/lego.obj", &model);
     model.vertex_buffer_offset = vkal_vertex_buffer_add(model.vertices, 9*sizeof(float), model.vertex_count);
     clear_model(&model);
 
-#define NUM_ENTITIES 100
+#define NUM_ENTITIES 500
     /* Entities */
     Entity entities[NUM_ENTITIES];
     for (int i = 0; i < NUM_ENTITIES; ++i) {
@@ -248,7 +252,13 @@ int main(int argc, char ** argv)
 	vec3 rot   = (vec3){ rand_between(-15.f, 15.f), rand_between(-15.f, 15.f), rand_between(-15.f, 15.f) };
 	float scale_xyz = rand_between(.1f, 3.f);
 	vec3 scale = (vec3){ scale_xyz, scale_xyz, scale_xyz };
-	entities[i] = (Entity){ model, pos, rot, scale };
+	uint8_t model_type = (uint8_t)rand_between(0.0f, 1.99f);
+	if (model_type == 0) {
+	    entities[i] = (Entity){ rect_model, pos, rot, scale };
+	}
+	else {
+	    entities[i] = (Entity){ model, pos, rot, scale };
+	}
     }
     
     /* View Projection */
@@ -269,10 +279,9 @@ int main(int argc, char ** argv)
     vkal_update_uniform(&viewport_ubo, &viewport_data);
 
     /* Dynamic Uniform Buffers */
-    uint32_t transformation_count = NUM_ENTITIES;
-    UniformBuffer model_ubo = vkal_create_uniform_buffer(sizeof(ModelData), transformation_count, 0);
-    ModelData * model_data = (ModelData*)malloc(transformation_count*model_ubo.alignment);
-    for (int i = 0; i < transformation_count; ++i) {
+    UniformBuffer model_ubo = vkal_create_uniform_buffer(sizeof(ModelData), NUM_ENTITIES, 0);
+    ModelData * model_data = (ModelData*)malloc(NUM_ENTITIES*model_ubo.alignment);
+    for (int i = 0; i < NUM_ENTITIES; ++i) {
 	mat4 model_mat = mat4_identity();
 	model_mat = translate(model_mat, entities[i].position);
 	((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
@@ -296,7 +305,7 @@ int main(int argc, char ** argv)
 	vkal_update_uniform(&viewport_ubo, &viewport_data);
 
         /* Update Model Matrices */
-	for (int i = 0; i < transformation_count; ++i) {
+	for (int i = 0; i < NUM_ENTITIES; ++i) {
 	    mat4 model_mat = mat4_identity();
 	    static float d = 1.f;
 	    static float r = .0001f;
@@ -329,12 +338,21 @@ int main(int argc, char ** argv)
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
 			 width, height);
-	    for (int i = 0; i < transformation_count; ++i) {
+	    for (int i = 0; i < NUM_ENTITIES; ++i) {
 		uint32_t dynamic_offset = i*model_ubo.alignment;
 		vkal_bind_descriptor_sets(image_id, descriptor_sets, descriptor_set_layout_count,
 					  &dynamic_offset, 1,
 					  pipeline_layout);
-		vkal_draw(image_id, graphics_pipeline, model.vertex_buffer_offset, model.vertex_count);		
+		Model model_to_draw = entities[i].model;
+		if (model_to_draw.is_indexed) {
+		    vkal_draw_indexed(image_id, graphics_pipeline,
+				      model_to_draw.index_buffer_offset, model_to_draw.index_count,
+				      model_to_draw.vertex_buffer_offset);
+		}
+		else {
+		    vkal_draw(image_id, graphics_pipeline,
+			      model_to_draw.vertex_buffer_offset, model_to_draw.vertex_count);
+		}
 	    }
 
 	    vkal_end_renderpass(image_id);

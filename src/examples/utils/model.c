@@ -1,4 +1,5 @@
-
+#include <math.h>
+    
 #include "model.h"
 #include "../../platform.h"
 
@@ -34,7 +35,7 @@ void CalcNormal(float N[3], float v0[3], float v1[3], float v2[3]) {
 
     len2 = N[0] * N[0] + N[1] * N[1] + N[2] * N[2];
     if (len2 > 0.0f) {
-	float len = (float)sqrt((double)len2);
+	float len = (float)sqrt(len2);
 
 	N[0] /= len;
 	N[1] /= len;
