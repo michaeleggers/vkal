@@ -5,8 +5,9 @@
 
 layout(location = 0) out vec4 outColor;
 
-layout(location = 0) in vec3 in_position;
-layout(location = 1) in vec3 in_color;
+layout (location = 0) in vec3 in_position;
+layout (location = 1) in vec3 in_normal;
+layout (location = 2) in vec3 in_color;
 
 layout (set = 0, binding = 1) uniform u_viewport_t
 {
@@ -20,5 +21,6 @@ void main()
     float dx = gl_FragCoord.x/dimensions.x;
     float dy = gl_FragCoord.y/dimensions.y;
     
-    outColor = vec4(in_color, 1.0);
+    vec3 normal_color = 0.5*normalize(in_normal)+0.5;
+    outColor = vec4(normal_color, 1.0);
 }

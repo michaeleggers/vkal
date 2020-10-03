@@ -308,7 +308,7 @@ int main(int argc, char ** argv)
 	for (int i = 0; i < NUM_ENTITIES; ++i) {
 	    mat4 model_mat = mat4_identity();
 	    static float d = 1.f;
-	    static float r = .0001f;
+	    static float r = .001f;
 	    d += 0.00001f;
 //	    entities[i].position.x += sinf(d);
 	    entities[i].orientation.x += r;
