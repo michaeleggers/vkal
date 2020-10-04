@@ -602,11 +602,17 @@ VkalImage create_vkal_image(
 	    vkBeginCommandBuffer(cmd_buf, &cmd_begin_info),
 	    "failed to put command buffer into recording state");
 
+	VkImageSubresourceRange subresource_range;
+	subresource_range.aspectMask     = aspect_bits;	
+	subresource_range.baseMipLevel   = 0;
+	subresource_range.levelCount     = 1;
+	subresource_range.baseArrayLayer = 0;
+	subresource_range.layerCount     = 1;
 	set_image_layout(
 	    cmd_buf,
 	    get_image(vkal_image.image),
 	    VK_IMAGE_LAYOUT_UNDEFINED, layout,
-	    (VkImageSubresourceRange){ aspect_bits, 0, 1, 0, 1 },
+	    subresource_range,
 	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
@@ -946,9 +952,10 @@ void create_rt_descriptor_sets(VkDescriptorSetLayout * layouts, uint32_t layout_
     VkWriteDescriptorSet uniform_buffer_write = create_write_descriptor_set_buffer(
 	vkal_info.nv_rt_ctx.descriptor_sets[0], 2, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &buffer_descriptor_info);
 
-    VkWriteDescriptorSet descriptor_sets[] = {
-	acceleration_write, image_write, uniform_buffer_write
-    };
+    VkWriteDescriptorSet descriptor_sets[3];
+    descriptor_sets[0] = acceleration_write;
+    descriptor_sets[1] = image_write;
+    descriptor_sets[2] = uniform_buffer_write;
     uint32_t write_count = sizeof(descriptor_sets) / sizeof(*descriptor_sets);
     vkUpdateDescriptorSets(vkal_info.device, write_count, descriptor_sets, 0, VK_NULL_HANDLE);
 }
@@ -1395,7 +1402,9 @@ VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR * capabilities)
 #elif defined (VKAL_SDL)
 	// TODO: Implement
 #endif
-	VkExtent2D actual_extent = { width, height };
+	VkExtent2D actual_extent;
+	actual_extent.width  = width;
+	actual_extent.height = height;
 	//actual_extent.width  = max(capabilities->minImageExtent.width, VKAL_MIN(capabilities->maxImageExtent.width, actual_extent.width));
 	//actual_extent.height = max(capabilities->minImageExtent.height, VKAL_MIN(capabilities->maxImageExtent.height, actual_extent.height));
 	return actual_extent;
@@ -1434,8 +1443,6 @@ void recreate_swapchain()
     destroy_image( vkal_info.depth_stencil_image );
     destroy_device_memory( vkal_info.device_memory_depth_stencil ); // TODO: Is this smart to destroy the whole memory object?
     create_depth_buffer();
-    //create_render_pass();
-    //VkPipeline pipeline = vkal_create_graphics_pipeline(vkal_info.uniform_size, vkal_info.uniform_offset, shader_setup);
     create_framebuffer();
     create_command_buffers();
 }
@@ -1463,12 +1470,14 @@ void create_swapchain()
     create_info.imageArrayLayers = 1;
     create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     
-    QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_device, vkal_info.surface);
-    uint32_t queue_family_indicies[] = { indicies.graphics_family, indicies.present_family };
-    if (indicies.graphics_family != indicies.present_family) {
+    QueueFamilyIndicies indices = find_queue_families(vkal_info.physical_device, vkal_info.surface);
+    uint32_t queue_family_indices[2];
+    queue_family_indices[0] = indices.graphics_family;
+    queue_family_indices[1] = indices.present_family;
+    if (indices.graphics_family != indices.present_family) {
 	create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 	create_info.queueFamilyIndexCount = 2;
-	create_info.pQueueFamilyIndices = queue_family_indicies;
+	create_info.pQueueFamilyIndices = queue_family_indices;
     }
     else {
 	create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -1526,7 +1535,9 @@ void create_image(uint32_t width, uint32_t height, uint32_t mip_levels, uint32_t
     QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_device, vkal_info.surface);
     VkImageCreateInfo image_info = { 0 };
     image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    image_info.extent = (VkExtent3D){ width, height, 1 };
+    image_info.extent.width  = width;
+    image_info.extent.height = height;
+    image_info.extent.depth  = 1;
     image_info.imageType = VK_IMAGE_TYPE_2D;
     image_info.format = format;
     image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -1816,7 +1827,7 @@ DeviceMemory vkal_allocate_devicememory(uint32_t size, VkBufferUsageFlags buffer
     return device_memory;
 }
 
-Buffer vkal_create_buffer(uint32_t size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags)
+Buffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags)
 {
     VkBuffer vk_buffer;
     VkBufferCreateInfo buffer_info = { 0 };
@@ -1949,7 +1960,9 @@ void upload_texture(VkImage const image,
 	copy_info.bufferImageHeight = 0;
 	copy_info.bufferRowLength = 0;
 	copy_info.imageOffset = (VkOffset3D){ 0, 0, 0 };
-	copy_info.imageExtent = (VkExtent3D){ w, h, 1 };
+	copy_info.imageExtent.width = w;
+	copy_info.imageExtent.width = h;
+	copy_info.imageExtent.width = 1;
 	vkCmdCopyBufferToImage(vkal_info.command_buffers[i], vkal_info.staging_buffer.buffer, image,
                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
         
@@ -2167,7 +2180,9 @@ void vkal_select_physical_device(VkalPhysicalDevice * physical_device)
 void create_logical_device(char ** extensions, uint32_t extension_count)
 {
     QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_device, vkal_info.surface);
-    uint32_t unique_queue_families[2] = { indicies.graphics_family, indicies.present_family };
+    uint32_t unique_queue_families[2];
+    unique_queue_families[0] = indicies.graphics_family;
+    unique_queue_families[1] = indicies.present_family;
     VkDeviceQueueCreateInfo queue_create_infos[2];
     uint32_t info_count = 0;
     if (indicies.graphics_family != indicies.present_family) {
@@ -2485,33 +2500,27 @@ void update_shadow_command_buffer(uint32_t image_id, Model * models, uint32_t mo
 
 void create_render_to_image_render_pass()
 {
-    VkAttachmentDescription attachments[] =
-	{
-	    // Color Attachment
-	    {
-		0,
-		vkal_info.swapchain_image_format,
-		VK_SAMPLE_COUNT_1_BIT,
-		VK_ATTACHMENT_LOAD_OP_CLEAR,
-		VK_ATTACHMENT_STORE_OP_STORE,
-		VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-		VK_ATTACHMENT_STORE_OP_DONT_CARE,
-		VK_IMAGE_LAYOUT_UNDEFINED, // layout before rendering
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL // final layout
-	    },
-	    // Depth Stencil Attachment
-	    {
-		0,
-		VK_FORMAT_D32_SFLOAT,
-		VK_SAMPLE_COUNT_1_BIT,
-		VK_ATTACHMENT_LOAD_OP_CLEAR,
-		VK_ATTACHMENT_STORE_OP_STORE,
-		VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-		VK_ATTACHMENT_STORE_OP_DONT_CARE,
-		VK_IMAGE_LAYOUT_UNDEFINED,
-		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-	    }
-	};
+    VkAttachmentDescription attachments[2];
+    // Color Attachment
+    attachments[0].flags          = 0;
+    attachments[0].format         = vkal_info.swapchain_image_format;
+    attachments[0].samples        = VK_SAMPLE_COUNT_1_BIT;
+    attachments[0].loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachments[0].storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+    attachments[0].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachments[0].initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachments[0].finalLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    // Depth Stencil Attachment
+    attachments[1].flags          = 0;
+    attachments[1].format         = VK_FORMAT_D32_SFLOAT;
+    attachments[1].samples        = VK_SAMPLE_COUNT_1_BIT;
+    attachments[1].loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachments[1].storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+    attachments[1].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachments[1].initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachments[1].finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     VkAttachmentReference color_attachment_refs[] =
 	{
@@ -2527,21 +2536,18 @@ void create_render_to_image_render_pass()
 	    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
 	};
 
-    VkSubpassDescription subpasses[] =
-	{
-	    {
-		0, // flags
-		VK_PIPELINE_BIND_POINT_GRAPHICS, // pipelineBindPoint
-		0, // inputAttachmentCount
-		0, // pInputAttachments
-		1, // colorAttachmentCount
-		color_attachment_refs, // pColorAttachments
-		0, // pResolveAttachments
-		&depth_attachment_ref, // pDepthStencilAttachment
-		0, // preserveAttachmentCount
-		0 // pPreserveAttachments
-	    }
-	};
+    VkSubpassDescription subpasses[1];
+    subpasses[0].flags = 0;
+    subpasses[0].pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpasses[0].inputAttachmentCount    = 0;
+    subpasses[0].pInputAttachments       = 0;
+    subpasses[0].colorAttachmentCount    = 1;
+    subpasses[0].pColorAttachments       = color_attachment_refs;
+    subpasses[0].pResolveAttachments     = 0;
+    subpasses[0].pDepthStencilAttachment = &depth_attachment_ref;
+    subpasses[0].preserveAttachmentCount = 0;
+    subpasses[0].pPreserveAttachments    = 0;
+
 
     VkSubpassDependency dependency = { 0 };
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL; // refers to implicit subpass before/after renderpass
@@ -2565,33 +2571,27 @@ void create_render_to_image_render_pass()
 
 void create_render_pass()
 {
-    VkAttachmentDescription attachments[] =
-	{
-	    // Color Attachment
-	    {
-		0,
-		vkal_info.swapchain_image_format,
-		VK_SAMPLE_COUNT_1_BIT,
-		VK_ATTACHMENT_LOAD_OP_CLEAR,
-		VK_ATTACHMENT_STORE_OP_STORE,
-		VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-		VK_ATTACHMENT_STORE_OP_DONT_CARE,
-		VK_IMAGE_LAYOUT_UNDEFINED, // layout before rendering
-		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR // final layout
-	    },
-	    // Depth Stencil Attachment
-	    {
-		0,
-		VK_FORMAT_D32_SFLOAT,
-		VK_SAMPLE_COUNT_1_BIT,
-		VK_ATTACHMENT_LOAD_OP_CLEAR,
-		VK_ATTACHMENT_STORE_OP_STORE,
-		VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-		VK_ATTACHMENT_STORE_OP_DONT_CARE,
-		VK_IMAGE_LAYOUT_UNDEFINED,
-		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-	    } 
-	};
+    VkAttachmentDescription attachments[2];
+    // Color Attachment
+    attachments[0].flags          = 0;
+    attachments[0].format         = vkal_info.swapchain_image_format;
+    attachments[0].samples        = VK_SAMPLE_COUNT_1_BIT;
+    attachments[0].loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachments[0].storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+    attachments[0].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachments[0].initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachments[0].finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    // Depth Stencil Attachment
+    attachments[1].flags          = 0;
+    attachments[1].format         = VK_FORMAT_D32_SFLOAT;
+    attachments[1].samples        = VK_SAMPLE_COUNT_1_BIT;
+    attachments[1].loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachments[1].storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+    attachments[1].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachments[1].initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachments[1].finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     
     VkAttachmentReference color_attachment_refs[] =
 	{
@@ -2607,21 +2607,17 @@ void create_render_pass()
 	    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
 	};
     
-    VkSubpassDescription subpasses[] =
-	{
-	    {
-		0, // flags
-		VK_PIPELINE_BIND_POINT_GRAPHICS, // pipelineBindPoint
-		0, // inputAttachmentCount
-		0, // pInputAttachments
-		1, // colorAttachmentCount
-		color_attachment_refs, // pColorAttachments
-		0, // pResolveAttachments
-		&depth_attachment_ref, // pDepthStencilAttachment
-		0, // preserveAttachmentCount
-		0 // pPreserveAttachments
-	    }
-	};
+    VkSubpassDescription subpasses[1];
+    subpasses[0].flags = 0;
+    subpasses[0].pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpasses[0].inputAttachmentCount    = 0;
+    subpasses[0].pInputAttachments       = 0;
+    subpasses[0].colorAttachmentCount    = 1;
+    subpasses[0].pColorAttachments       = color_attachment_refs;
+    subpasses[0].pResolveAttachments     = 0;
+    subpasses[0].pDepthStencilAttachment = &depth_attachment_ref;
+    subpasses[0].preserveAttachmentCount = 0;
+    subpasses[0].pPreserveAttachments    = 0;
     
     VkSubpassDependency dependency = { 0 };
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL; // refers to implicit subpass before/after renderpass
@@ -2690,7 +2686,9 @@ void create_render_pass()
 	    dependency.srcAccessMask = 0;
 	    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
             
-	    VkAttachmentDescription attachments[] = { attachment, depthAttachment };
+	    VkAttachmentDescription attachments[2];
+	    attachments[0] = attachment;
+	    attachments[1] = depthAttachment;
 	    VkRenderPassCreateInfo info = { 0 };
 	    info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	    info.attachmentCount = 2;
@@ -2995,9 +2993,9 @@ VkPipeline vkal_create_graphics_pipeline(VkVertexInputBindingDescription * verte
                                          VkFrontFace face_winding, VkRenderPass render_pass,
 					 VkPipelineLayout pipeline_layout)
 {    
-    VkPipelineShaderStageCreateInfo shader_stages_infos[] = {
-	shader_setup.vertex_shader_create_info,
-	shader_setup.fragment_shader_create_info };
+    VkPipelineShaderStageCreateInfo shader_stages_infos[2];
+    shader_stages_infos[0] = shader_setup.vertex_shader_create_info;
+    shader_stages_infos[1] = shader_setup.fragment_shader_create_info;
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
     vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -3012,10 +3010,10 @@ VkPipeline vkal_create_graphics_pipeline(VkVertexInputBindingDescription * verte
     input_assembly_info.primitiveRestartEnable = VK_FALSE;
     
     VkViewport viewport = {0};
-    viewport.x = 0.f;
-    viewport.y = 0.f;
-    viewport.width = vkal_info.swapchain_extent.width;
-    viewport.height = vkal_info.swapchain_extent.height;
+    viewport.x        = 0.f;
+    viewport.y        = 0.f;
+    viewport.width    = (float)vkal_info.swapchain_extent.width;
+    viewport.height   = (float)vkal_info.swapchain_extent.height;
     viewport.minDepth = 0.f;
     viewport.maxDepth = 1.f;
     VkRect2D scissor = {0};
@@ -3343,7 +3341,11 @@ void vkal_begin_render_to_image_render_pass(uint32_t image_id, VkCommandBuffer c
     pass_begin_info.renderPass = render_pass;
     pass_begin_info.framebuffer = get_framebuffer(render_image.framebuffers[image_id]);
     pass_begin_info.renderArea.offset = (VkOffset2D){ 0, 0 };
-    VkExtent2D extent = { render_image.width, render_image.height };
+
+    VkExtent2D extent;
+    extent.width  = render_image.width;
+    extent.height = render_image.height;
+    
     pass_begin_info.renderArea.extent = extent;
     VkClearValue clear_values[2];
     clear_values[0].color = (VkClearColorValue){ {1.f, 1.f, 1.f, 1.f} };
@@ -3563,11 +3565,14 @@ void vkal_viewport(VkCommandBuffer command_buffer, float x, float y, float width
 
 void vkal_scissor(VkCommandBuffer command_buffer, float offset_x, float offset_y, float extent_x, float extent_y)
 {
-    VkRect2D scissor = { 0 };
-    scissor.offset = (VkOffset2D){ (int32_t)offset_x, (int32_t)offset_y };
-    scissor.extent = (VkExtent2D){ (uint32_t)extent_x, (uint32_t)extent_y };
+    VkRect2D scissor      = { 0 };
+    scissor.offset.x      = (int32_t)offset_x;
+    scissor.offset.y      = (int32_t)offset_y;
+    scissor.extent.width  = (uint32_t)extent_x;
+    scissor.extent.height = (uint32_t)extent_y;
     vkCmdSetScissor(command_buffer, 0, 1, &scissor); 
 }
+
 
 void vkal_draw_indexed(
     uint32_t image_id, VkPipeline pipeline,
@@ -3577,8 +3582,10 @@ void vkal_draw_indexed(
     vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);    
     vkCmdBindIndexBuffer(vkal_info.command_buffers[image_id],
 			 vkal_info.index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
-    uint64_t vertex_buffer_offsets[] = { vertex_buffer_offset };
-    VkBuffer vertex_buffers[] = { vkal_info.vertex_buffer.buffer };
+    uint64_t vertex_buffer_offsets[1];
+    vertex_buffer_offsets[0] = vertex_buffer_offset;
+    VkBuffer vertex_buffers[1];
+    vertex_buffers[0] = vkal_info.vertex_buffer.buffer;
     vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
     vkCmdDrawIndexed(vkal_info.command_buffers[image_id], index_count, 1, 0, 0, 0);
 }
@@ -3588,8 +3595,10 @@ void vkal_draw(
     VkDeviceSize vertex_buffer_offset, uint32_t vertex_count)
 {
     vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);    
-    uint64_t vertex_buffer_offsets[] = { vertex_buffer_offset };
-    VkBuffer vertex_buffers[] = { vkal_info.vertex_buffer.buffer };
+    uint64_t vertex_buffer_offsets[1];
+    vertex_buffer_offsets[0] = vertex_buffer_offset;
+    VkBuffer vertex_buffers[1];
+    vertex_buffers[0] = vkal_info.vertex_buffer.buffer;
     vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
     vkCmdDraw(vkal_info.command_buffers[image_id], vertex_count, 1, 0, 0);
 }
@@ -3604,8 +3613,8 @@ void vkal_draw_indexed2(
     VkViewport viewport = { 0 };
     viewport.x = 0.f;
     viewport.y = 0.f;
-    viewport.width = vkal_info.swapchain_extent.width; // (float)vp_width;
-    viewport.height = vkal_info.swapchain_extent.height; // (float)vp_height;
+    viewport.width = (float)vkal_info.swapchain_extent.width; // (float)vp_width;
+    viewport.height = (float)vkal_info.swapchain_extent.height; // (float)vp_height;
     viewport.minDepth = 0.f;
     viewport.maxDepth = 1.f;
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);
@@ -3617,8 +3626,10 @@ void vkal_draw_indexed2(
     
     vkCmdBindIndexBuffer(command_buffer,
 			 vkal_info.index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
-    uint64_t vertex_buffer_offsets[] = { vertex_buffer_offset };
-    VkBuffer vertex_buffers[] = { vkal_info.vertex_buffer.buffer };
+    uint64_t vertex_buffer_offsets[1];
+    vertex_buffer_offsets[0] = vertex_buffer_offset;
+    VkBuffer vertex_buffers[1];
+    vertex_buffers[0] = vkal_info.vertex_buffer.buffer;
     vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_buffer_offsets);
     vkCmdDrawIndexed(command_buffer, index_count, 1, 0, 0, 0);
 }
@@ -3639,7 +3650,7 @@ uint32_t vkal_get_image()
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 	vkal_info.should_recreate_swapchain = 0;
 	recreate_swapchain();
-	return -1; // TODO: return -1 here. This image is useless when too old. User has to check for this!
+	return 666; // TODO: return -1 here. This image is useless when too old. User has to check for this!
     }
     else {
 	// TODO
@@ -3652,14 +3663,17 @@ void vkal_queue_submit(VkCommandBuffer * command_buffers, uint32_t command_buffe
 {
     VkSubmitInfo submit_info = { 0 };
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    VkSemaphore wait_semaphores[] = { vkal_info.image_available_semaphores[vkal_info.frames_rendered] };
-    VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    VkSemaphore wait_semaphores[1];
+    wait_semaphores[0] = vkal_info.image_available_semaphores[vkal_info.frames_rendered];
+    VkPipelineStageFlags wait_stages[1];
+    wait_stages[0] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     submit_info.waitSemaphoreCount = 1;
     submit_info.pWaitSemaphores = wait_semaphores; // wait until image is available from swapchain ringbuffer
     submit_info.pWaitDstStageMask = wait_stages;
     submit_info.commandBufferCount = command_buffer_count;
     submit_info.pCommandBuffers = command_buffers;
-    VkSemaphore signal_semaphores[] = { vkal_info.render_finished_semaphores[vkal_info.frames_rendered] };
+    VkSemaphore signal_semaphores[1];
+    signal_semaphores[0] = vkal_info.render_finished_semaphores[vkal_info.frames_rendered];
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
     VkResult result = vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info,
@@ -3683,9 +3697,11 @@ void vkal_present(uint32_t image_id)
     VkPresentInfoKHR present_info = { 0 };
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
-    VkSemaphore wait_semaphores[] = { vkal_info.render_finished_semaphores[vkal_info.frames_rendered] };
+    VkSemaphore wait_semaphores[1];
+    wait_semaphores[0] = vkal_info.render_finished_semaphores[vkal_info.frames_rendered];
     present_info.pWaitSemaphores = wait_semaphores;
-    VkSwapchainKHR swap_chains[] = { vkal_info.swapchain };
+    VkSwapchainKHR swap_chains[1];
+    swap_chains[0] = vkal_info.swapchain;
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swap_chains;
     present_info.pImageIndices = &image_id;
@@ -3782,13 +3798,13 @@ void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data)
     memcpy(mapped_uniform_memory, data, uniform_buffer->size);
 //    memcpy(mapped_uniform_memory, data, 64);
 //    memcpy((uint8_t*)mapped_uniform_memory+64, (uint8_t*)data+64, 64);
-    VkMappedMemoryRange flush_range = {
-	VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-	0,
-	vkal_info.device_memory_uniform,
-	uniform_buffer->offset,
-	VK_WHOLE_SIZE // 2*sizeof(float) does not work due to allignment issues. TODO: figure this out. (must be multiple of VkPhysicalDeviceLimits::nonCoherentAtomSize)
-    };
+    VkMappedMemoryRange flush_range;
+    flush_range.sType  = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+    flush_range.pNext  = 0;
+    flush_range.memory = vkal_info.device_memory_uniform;
+    flush_range.offset = uniform_buffer->offset;
+    flush_range.size   = VK_WHOLE_SIZE;
+    
     result = vkFlushMappedMemoryRanges(vkal_info.device, 1, &flush_range);
     DBG_VULKAN_ASSERT(result, "failed to flush mapped memory range(s)!");
     result = vkInvalidateMappedMemoryRanges(vkal_info.device, 1, &flush_range);
@@ -3796,7 +3812,7 @@ void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data)
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_uniform); // invalidated _all_ previously acquired pointers via vkMapMemory
 }
 
-void create_device_memory(uint32_t size, uint32_t mem_type_bits, uint32_t * out_memory_id)
+void create_device_memory(VkDeviceSize size, uint32_t mem_type_bits, uint32_t * out_memory_id)
 {
     uint32_t free_index;
     for (free_index = 0; free_index < VKAL_MAX_VKDEVICEMEMORY; ++free_index) {
@@ -3830,7 +3846,7 @@ uint32_t destroy_device_memory(uint32_t id)
 
 
 static int memory_allocs = 0;
-VkDeviceMemory allocate_memory(uint32_t size, uint32_t mem_type_bits)
+VkDeviceMemory allocate_memory(VkDeviceSize size, uint32_t mem_type_bits)
 {
     memory_allocs++;
     VkDeviceMemory memory;
@@ -3884,14 +3900,13 @@ void create_index_buffer(uint32_t size)
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset)
 {
     memcpy(dst_memory, src_memory, size);
-    VkMappedMemoryRange flush_range =
-	{
-	    VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-	    0,
-	    device_memory,
-	    offset,
-	    VK_WHOLE_SIZE
-	};
+    VkMappedMemoryRange flush_range;
+    flush_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+    flush_range.pNext = 0;
+    flush_range.memory = device_memory;
+    flush_range.offset = offset;
+    flush_range.size = VK_WHOLE_SIZE;
+
     VkResult result = vkFlushMappedMemoryRanges(vkal_info.device, 1, &flush_range);
     DBG_VULKAN_ASSERT(result, "failed to flush mapped memory range(s) for vertex buffer!");
     result = vkInvalidateMappedMemoryRanges(vkal_info.device, 1, &flush_range);
@@ -3979,7 +3994,7 @@ uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkD
 }
 */
 
-uint32_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count)
+uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count)
 {
     uint32_t vertices_in_bytes = vertex_count * vertex_size;
     
@@ -3992,7 +4007,7 @@ uint32_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
     
     // copy vertex buffer data from staging memory (host visible) to device local memory for every command buffer
-    uint32_t offset = vkal_info.vertex_buffer_offset;
+    uint64_t offset = vkal_info.vertex_buffer_offset;
     VkCommandBufferBeginInfo begin_info = { 0 };
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     for (int i = 0; i < 1; ++i) {
@@ -4023,7 +4038,7 @@ uint32_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     return offset;
 }
 
-uint32_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
+uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
 {
     uint32_t indices_in_bytes = index_count * sizeof(uint16_t);
     
@@ -4035,7 +4050,7 @@ uint32_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
     
     // copy vertex index data from staging memory (host visible) to device local memory for every command buffer
-    uint32_t offset = vkal_info.index_buffer_offset;
+    uint64_t offset = vkal_info.index_buffer_offset;
     VkCommandBufferBeginInfo begin_info = { 0 };
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     for (uint32_t i = 0; i < vkal_info.command_buffer_count; ++i) {
@@ -4055,11 +4070,12 @@ uint32_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
     vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
     vkDeviceWaitIdle(vkal_info.device);
     
-    // TODO: this is not COOL!
+    // When mapping memory later again to copy into it (see:fluch_to_memory) we must respect
+    // the devices alignment.
+    // See: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkMappedMemoryRange.html
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
-    uint64_t next_offset = vkal_info.index_buffer_offset + (indices_in_bytes / alignment) * alignment;
-    next_offset += indices_in_bytes % alignment ? alignment : 0;
-    vkal_info.index_buffer_offset = next_offset;
+    uint64_t next_offset = (indices_in_bytes + alignment - 1) & ~(alignment - 1);
+    vkal_info.index_buffer_offset += next_offset;
     
     return offset;
 }

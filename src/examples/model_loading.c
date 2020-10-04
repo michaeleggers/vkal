@@ -192,10 +192,10 @@ int main(int argc, char ** argv)
     };
     VkDescriptorSetLayout descriptor_set_layout_dynamic = vkal_create_descriptor_set_layout(set_layout_dynamic, 1);
     
-    VkDescriptorSetLayout layouts[] = {
-	descriptor_set_layout,
-	descriptor_set_layout_dynamic	
-    };
+    VkDescriptorSetLayout layouts[2];
+    layouts[0] = descriptor_set_layout;
+    layouts[1] = descriptor_set_layout_dynamic;
+    
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
     vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
@@ -248,32 +248,43 @@ int main(int argc, char ** argv)
     /* Entities */
     Entity entities[NUM_ENTITIES];
     for (int i = 0; i < NUM_ENTITIES; ++i) {
-    	vec3 pos   = (vec3){ rand_between(-25.f, 25.f), rand_between(-15.f, 15.f), rand_between(-15.f, 15.f) };
-	vec3 rot   = (vec3){ rand_between(-15.f, 15.f), rand_between(-15.f, 15.f), rand_between(-15.f, 15.f) };
-	float scale_xyz = rand_between(.1f, 3.f);
-	vec3 scale = (vec3){ scale_xyz, scale_xyz, scale_xyz };
+    	vec3 pos   = { 0.f };
+	pos.x = rand_between(-25.f, 25.f);
+	pos.y = rand_between(-15.f, 15.f);
+	pos.z = rand_between(-15.f, 15.f);
+	vec3 rot   = { 0.f };
+	rot.x = rand_between(-15.f, 15.f); rot.y = rand_between(-15.f, 15.f); rot.z = rand_between(-15.f, 15.f);
+	float scale_xyz = rand_between(.01f, 3.f);
+	vec3 scale = { 0.f };
+	scale.x = scale_xyz; scale.y = scale_xyz; scale.z = scale_xyz;
 	uint8_t model_type = (uint8_t)rand_between(0.0f, 1.99f);
 	if (model_type == 0) {
-	    entities[i] = (Entity){ rect_model, pos, rot, scale };
+	    entities[i].model       = rect_model;
+	    entities[i].position    = pos;
+	    entities[i].orientation = rot;
+	    entities[i].scale       = scale;
 	}
 	else {
-	    entities[i] = (Entity){ model, pos, rot, scale };
+	    entities[i].model       = model;
+	    entities[i].position    = pos;
+	    entities[i].orientation = rot;
+	    entities[i].scale       = scale;
 	}
     }
     
     /* View Projection */
     mat4 view = mat4_identity();
     view = translate(view, (vec3){ 0.f, 0.f, -50.f });
-    ViewProjection view_proj_data = {
-	.view = view,
-	.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f )
-    };
+    ViewProjection view_proj_data;
+    view_proj_data.view = view;
+    view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
 
     /* Uniform Buffers */
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
     vkal_update_descriptor_set_uniform(descriptor_sets[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);
-    ViewportData viewport_data = { .dimensions = (vec2){ SCREEN_WIDTH, SCREEN_HEIGHT } };
+    ViewportData viewport_data;
+    viewport_data.dimensions = (vec2){ SCREEN_WIDTH, SCREEN_HEIGHT };
     UniformBuffer viewport_ubo = vkal_create_uniform_buffer(sizeof(ViewportData), 1, 1);
     vkal_update_descriptor_set_uniform(descriptor_sets[0], viewport_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_uniform(&viewport_ubo, &viewport_data);
@@ -301,7 +312,8 @@ int main(int argc, char ** argv)
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
         /* Update Info about screen */
-	viewport_data.dimensions = (vec2){ (float)width, (float)height };
+	viewport_data.dimensions.x = (float)width;
+	viewport_data.dimensions.y = (float)height;
 	vkal_update_uniform(&viewport_ubo, &viewport_data);
 
         /* Update Model Matrices */
@@ -358,8 +370,9 @@ int main(int argc, char ** argv)
 	    vkal_end_renderpass(image_id);
 
 	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
-	    vkal_queue_submit(command_buffers1, 1);
+	    VkCommandBuffer command_buffers[1];
+	    command_buffers[0] = vkal_info->command_buffers[image_id];
+	    vkal_queue_submit(command_buffers, 1);
 
 	    vkal_present(image_id);
 	}

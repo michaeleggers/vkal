@@ -110,7 +110,7 @@ typedef struct RenderImage
 
 typedef struct UniformBuffer
 {
-    uint32_t size;
+    uint64_t size;
     uint64_t offset;
     uint32_t binding;
     uint64_t alignment;
@@ -451,9 +451,9 @@ void create_index_buffer(uint32_t size);
 void create_semaphores();
 void vkal_cleanup();
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset);
-uint32_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count);
+uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count);
 //uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkDeviceSize offset);
-uint32_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count);
+uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count);
 void create_surface();
 UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint32_t binding);
 void vkal_update_descriptor_set_uniform(VkDescriptorSet descriptor_set, UniformBuffer uniform_buffer,
@@ -467,7 +467,7 @@ uint32_t check_memory_type_index(uint32_t const memory_requirement_bits, VkMemor
 void upload_texture(VkImage const image, uint32_t w, uint32_t h, uint32_t n, uint32_t array_layer_count, unsigned char * texture_data);
 void create_staging_buffer(uint32_t size);
 Buffer create_buffer(uint32_t size, VkBufferUsageFlags usage);
-Buffer vkal_create_buffer(uint32_t size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags);
+Buffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags);
 void vkal_dbg_buffer_name(Buffer buffer, char const * name);
 void vkal_dbg_image_name(VkImage image, char const * name);
 VkResult map_memory(Buffer * buffer, VkDeviceSize size, VkDeviceSize offset);
@@ -498,8 +498,8 @@ void create_pipeline_layout(
     uint32_t * out_pipeline_layout);
 void destroy_pipeline_layout(uint32_t id);
 VkPipelineLayout get_pipeline_layout(uint32_t id);
-VkDeviceMemory allocate_memory(uint32_t size, uint32_t mem_type_bits);
-void create_device_memory(uint32_t size, uint32_t mem_type_bits, uint32_t * out_memory_id);
+VkDeviceMemory allocate_memory(VkDeviceSize size, uint32_t mem_type_bits);
+void create_device_memory(VkDeviceSize size, uint32_t mem_type_bits, uint32_t * out_memory_id);
 uint32_t destroy_device_memory(uint32_t id);
 VkDeviceMemory get_device_memory(uint32_t id);
 VkWriteDescriptorSet create_write_descriptor_set_image(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,
