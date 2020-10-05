@@ -248,14 +248,14 @@ int main(int argc, char ** argv)
     /* Entities */
     Entity entities[NUM_ENTITIES];
     for (int i = 0; i < NUM_ENTITIES; ++i) {
-    	vec3 pos   = { 0.f };
+    	vec3 pos   = { 0 };
 	pos.x = rand_between(-25.f, 25.f);
 	pos.y = rand_between(-15.f, 15.f);
 	pos.z = rand_between(-15.f, 15.f);
-	vec3 rot   = { 0.f };
+	vec3 rot   = { 0 };
 	rot.x = rand_between(-15.f, 15.f); rot.y = rand_between(-15.f, 15.f); rot.z = rand_between(-15.f, 15.f);
 	float scale_xyz = rand_between(.01f, 3.f);
-	vec3 scale = { 0.f };
+	vec3 scale = { 0 };
 	scale.x = scale_xyz; scale.y = scale_xyz; scale.z = scale_xyz;
 	uint8_t model_type = (uint8_t)rand_between(0.0f, 1.99f);
 	if (model_type == 0) {

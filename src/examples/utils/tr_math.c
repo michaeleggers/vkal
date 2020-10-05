@@ -16,28 +16,35 @@ float vec3_length(vec3 v)
 vec3 vec3_normalize(vec3 v)
 {
     float length = vec3_length(v);
-    return (vec3){v.x/length, v.y/length, v.z/length};
+    vec3 result;
+    result.x = v.x/length;
+    result.y = v.y/length;
+    result.z = v.z/length;
+    return result;
 }
 
 float vec3_dot(vec3 a, vec3 b)
 {
-    return (float){
-        a.x*b.x + a.y*b.y + a.z*b.z
-    };
+    return a.x*b.x + a.y*b.y + a.z*b.z;
+
 }
 
 vec3 vec3_cross(vec3 a, vec3 b)
 {
-    return (vec3){
-        a.y*b.z - a.z*b.y,
-        a.z*b.x - a.x*b.z,
-	a.x*b.y - a.y*b.x
-    };
+    vec3 result;
+    result.x = a.y*b.z - a.z*b.y;
+    result.y = a.z*b.x - a.x*b.z;
+    result.z = a.x*b.y - a.y*b.x;
+    return result;
 }
 
 vec3 vec3_div(vec3 v, float s)
 {
-    return (vec3){v.x/s, v.y/s, v.z/s};
+    vec3 result;
+    result.x = v.x/s;
+    result.y = v.y/s;
+    result.z = v.z/s; 
+    return result;
 }
 
 float vec4_length(vec4 v)
@@ -51,19 +58,27 @@ float vec4_length(vec4 v)
 vec4 vec4_normalize(vec4 v)
 {
     float length = vec4_length(v);
-    return (vec4){v.x/length, v.y/length, v.z/length, v.w/length};
+    vec4 result;
+    result.x = v.x/length;
+    result.y = v.y/length;
+    result.z = v.z/length;
+    result.w = v.w/length;
+    return result;
 }
 
 float vec4_dot(vec4 a, vec4 b)
 {
-    return (float){
-        a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w
-    };
+    return a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w;
 }
 
 vec4 vec4_div(vec4 v, float s)
 {
-    return (vec4){v.x/s, v.y/s, v.z/s, v.w/s};
+    vec4 result;
+    result.x = v.x/s;
+    result.y = v.y/s;
+    result.z = v.z/s;
+    result.w = v.w/s;
+    return result;
 }
 
 mat4 mat4_x_mat4(mat4 a, mat4 b)
@@ -92,12 +107,12 @@ mat4 mat4_identity()
 
 vec4 mat4_x_vec4(mat4 m, vec4 v)
 {
-    return (vec4) {
-        m.d[0][0]*v.x + m.d[1][0]*v.y + m.d[2][0]*v.z + m.d[3][0]*v.w,
-        m.d[0][1]*v.x + m.d[1][1]*v.y + m.d[2][1]*v.z + m.d[3][1]*v.w,
-        m.d[0][2]*v.x + m.d[1][2]*v.y + m.d[2][2]*v.z + m.d[3][2]*v.w,
-        m.d[0][3]*v.x + m.d[1][3]*v.y + m.d[2][3]*v.z + m.d[3][3]*v.w
-    };
+    vec4 result;
+    result.x = m.d[0][0]*v.x + m.d[1][0]*v.y + m.d[2][0]*v.z + m.d[3][0]*v.w;
+    result.y = m.d[0][1]*v.x + m.d[1][1]*v.y + m.d[2][1]*v.z + m.d[3][1]*v.w;
+    result.z = m.d[0][2]*v.x + m.d[1][2]*v.y + m.d[2][2]*v.z + m.d[3][2]*v.w;
+    result.w = m.d[0][3]*v.x + m.d[1][3]*v.y + m.d[2][3]*v.z + m.d[3][3]*v.w;
+    return result;
 }
 
 mat4 translate(mat4 m, vec3 v)
@@ -120,32 +135,68 @@ mat4 tr_scale(mat4 m, vec3 v)
 
 mat4 rotate_x(float angle)
 {
-    return (mat4) {
-	.d[0]={1, 0, 0, 0},
-        .d[1]={0, cosf(angle), sinf(angle), 0},
-        .d[2]={0, -sinf(angle), cosf(angle), 0},
-        .d[3]={0, 0, 0, 1}
-    };	    
+    mat4 result = { 0 };
+    result.d[0][0] = 1;
+    result.d[0][1] = result.d[0][2] = result.d[0][3] = 0;
+    
+    result.d[1][0] = 0;
+    result.d[1][1] = cosf(angle);
+    result.d[1][2] = sinf(angle);
+    result.d[1][3] = 0;
+    
+    result.d[2][0] = 0;
+    result.d[2][1] = -sinf(angle);
+    result.d[2][2] = cosf(angle);
+    result.d[2][3] = 0;
+    
+    result.d[3][0] = result.d[3][1] = result.d[3][2] = 0;
+    result.d[3][3] = 1;
+    return result;
 }
 
 mat4 rotate_y(float angle)
 {
-    return (mat4) {
-	.d[0]={cosf(angle), 0, -sinf(angle), 0},
-        .d[1]={0, 1, 0, 0},
-        .d[2]={sinf(angle), 0, cosf(angle), 0},
-        .d[3]={0, 0, 0, 1}
-    };	    
+    mat4 result = { 0 };
+    result.d[0][0] = cosf(angle);
+    result.d[0][1] = 0;
+    result.d[0][2] = -sinf(angle);
+    result.d[0][3] = 0;
+    
+    result.d[1][0] = 0;
+    result.d[1][1] = 1;
+    result.d[1][2] = 0;
+    result.d[1][3] = 0;
+    
+    result.d[2][0] = sinf(angle);
+    result.d[2][1] = 0;
+    result.d[2][2] = cosf(angle);
+    result.d[2][3] = 0;
+    
+    result.d[3][0] = result.d[3][1] = result.d[3][2] = 0;
+    result.d[3][3] = 1;
+    return result;
 }
 
 mat4 rotate_z(float angle)
 {
-    return (mat4) {
-	.d[0]={cosf(angle), sinf(angle), 0, 0},
- 	.d[1]={-sinf(angle), cosf(angle), 0, 0},
-	.d[2]={0, 0, 1, 0},
-	.d[3]={0, 0, 0, 1},
-    };    
+    mat4 result = { 0 };
+    result.d[0][0] = cosf(angle);
+    result.d[0][1] = sinf(angle);
+    result.d[0][2] = 0;
+    result.d[0][3] = 0;
+	
+    result.d[1][0] = -sinf(angle);
+    result.d[1][1] = cosf(angle);
+    result.d[1][2] = result.d[1][3] = 0;
+
+    result.d[2][0] = 0;
+    result.d[2][1] = 0;
+    result.d[2][2] = 1;
+    result.d[2][3] = 0;
+	
+    result.d[3][0] = result.d[3][1] = result.d[3][2] =  0;
+    result.d[3][3] = 1;
+    return result;
 }
 
 /* OpenGL friendly: this persp proj. will result in z from [-1,1] after persp. divide. */

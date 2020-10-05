@@ -2706,43 +2706,36 @@ void create_render_pass()
 /* Renderpass uses raytracing output as input attachment */
 void create_rt_renderpass()
 {
-    VkAttachmentDescription attachments[] = {
-	// Color Attachment
-	{
-	    0,
-	    vkal_info.swapchain_image_format,
-	    VK_SAMPLE_COUNT_1_BIT,
-	    VK_ATTACHMENT_LOAD_OP_CLEAR,
-	    VK_ATTACHMENT_STORE_OP_STORE,
-	    VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-	    VK_ATTACHMENT_STORE_OP_DONT_CARE,
-	    VK_IMAGE_LAYOUT_UNDEFINED, // layout before rendering
-	    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR // final layout
-	},
-	// Depth Stencil Attachment
-	{
-	    0,
-	    VK_FORMAT_D32_SFLOAT,
-	    VK_SAMPLE_COUNT_1_BIT,
-	    VK_ATTACHMENT_LOAD_OP_CLEAR,
-	    VK_ATTACHMENT_STORE_OP_STORE,
-	    VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-	    VK_ATTACHMENT_STORE_OP_DONT_CARE,
-	    VK_IMAGE_LAYOUT_UNDEFINED,
-	    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-	},
-	{ /* Input Attachments: output from Raytracer */
-	    0,
-	    vkal_info.swapchain_image_format,
-	    VK_SAMPLE_COUNT_1_BIT,
-	    VK_ATTACHMENT_LOAD_OP_CLEAR,
-	    VK_ATTACHMENT_STORE_OP_STORE,
-	    VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-	    VK_ATTACHMENT_STORE_OP_DONT_CARE,
-	    VK_IMAGE_LAYOUT_UNDEFINED,               // layout before rendering
-	    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL // final layout
-	},
-    };
+    VkAttachmentDescription attachments[3];
+    attachments[0].flags = 0;
+    attachments[0].format = vkal_info.swapchain_image_format;
+    attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+    attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    attachments[1].flags = 0;
+    attachments[1].format = VK_FORMAT_D32_SFLOAT;
+    attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+    attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachments[1].stencilStoreOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    attachments[2].flags = 0;
+    attachments[2].format = vkal_info.swapchain_image_format;
+    attachments[2].samples = VK_SAMPLE_COUNT_1_BIT;
+    attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachments[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachments[2].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkAttachmentReference swapchain_image_ref = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
     VkAttachmentReference depth_ref = { 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
