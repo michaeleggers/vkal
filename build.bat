@@ -29,7 +29,7 @@ pushd build
 REM ### GCC COMPILE ###
 REM gcc %flags_debug%  ..\src\examples\textures_descriptorarray.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_textures_descriptorarray.exe
 REM gcc %flags_debug%  ..\src\examples\rendertexture.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_rendertexture.exe
-gcc %flags_debug%  ..\src\examples\model_loading.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_model_loading.exe
+REM gcc %flags_debug%  ..\src\examples\model_loading.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_model_loading.exe
 REM gcc %flags_release% ..\src\main.c -o gcc_release_main
 
 REM ### CLANG COMPILE ###
@@ -38,11 +38,11 @@ REM clang-cl %clang_flags_debug_easy%  ..\src\examples\textures_descriptorarray.
 REM clang-cl %clang_flags_debug_easy%  ..\src\examples\textures.c ..\src\vkal.c ..\src\platform.c -o clang_dbg_easy_textures.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 REM clang-cl %clang_flags_debug_easy%  ..\src\examples\textures_descriptorarray_push_constant.c ..\src\vkal.c ..\src\platform.c -o clang_dbg_easy_textures_descriptorarray_push_constant.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 REM clang-cl %clang_flags_debug_easy%  ..\src\examples\rendertexture.c ..\src\vkal.c ..\src\platform.c -o rendertexture.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
-REM clang-cl %clang_flags_debug_easy%  ..\src\examples\model_loading.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o clang_dbg_easy_model_loading.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
+clang-cl %clang_flags_debug_easy%  ..\src\examples\model_loading.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o clang_dbg_easy_model_loading.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 REM clang-cl %clang_flags_release% ..\src\main.c ..\src\vkal.c -o clang_rel_main.exe
 
 REM ### MSVC COMPILE ###
-REM cl %msvc_flags_debug%  ..\src\examples\model_loading.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_model_loading.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
+cl %msvc_flags_debug%  ..\src\examples\model_loading.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_model_loading.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 
 REM ### TCC COMPILE - NOTE: gl.h not found at the moment. not sure why it even wants the gl.h file! ###
 REM tcc %tcc_flags_debug%   ..\src\main.c -o tcc_dbg_main.exe

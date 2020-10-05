@@ -207,7 +207,7 @@ void vkal_create_instance(
 
 
 	
-void init_raytracing()
+void init_raytracing(void)
 {
     vkal_info.nv_rt_ctx = (NvRaytracingCtx){0};
     vkal_info.nv_rt_ctx.properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
@@ -392,7 +392,7 @@ void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int fre
 }
 
 /* Setup storage image the ray generation shader will be writing to */
-void create_rt_storage_image()
+void create_rt_storage_image(void)
 {
     // Image
     {
@@ -466,7 +466,7 @@ void create_rt_storage_image()
 }
 
 /* The image we will copy the raytracing storage image to. */
-void create_rt_target_image()
+void create_rt_target_image(void)
 {
     // Image
     {
@@ -814,7 +814,7 @@ VkDeviceSize copy_shader_identifier(uint8_t * data, uint8_t * shader_handle_stor
 }
 
 /* Create shader binding table: That will bind the shader-programs with the TLAS */
-void create_rt_shader_binding_table()
+void create_rt_shader_binding_table(void)
 {
     uint32_t shader_binding_table_size = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize * 6; /* TODO: Use #define MAX_SHADER_TABLE_INDEX instead of '6'! */
     vkal_info.nv_rt_ctx.shader_binding_table_device_memory = vkal_allocate_devicememory(
@@ -1062,7 +1062,7 @@ void create_rt_pipeline(VkDescriptorSetLayout * layouts, uint32_t layout_count)
 	);
 }
 
-void create_rt_command_buffers()
+void create_rt_command_buffers(void)
 {
     vkal_info.nv_rt_ctx.command_buffers = (VkCommandBuffer*)malloc(vkal_info.swapchain_image_count * sizeof(VkCommandBuffer));
     VkCommandBufferAllocateInfo allocate_info = { 0 };
@@ -1078,7 +1078,7 @@ void create_rt_command_buffers()
 }
 
 /* RayTracing Command Buffer generation */
-void build_rt_commandbuffers()
+void build_rt_commandbuffers(void)
 {
     VkCommandBufferBeginInfo cmd_buf_info = (VkCommandBufferBeginInfo){0};
     cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1306,7 +1306,7 @@ void build_rt_acceleration_structure(VkGeometryNV * geometry, uint32_t geometryN
   }
 */
 
-void create_surface()
+void create_surface(void)
 {
 
 #if defined (VKAL_GLFW)
@@ -1411,7 +1411,7 @@ VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR * capabilities)
     }
 }
 
-void cleanup_swapchain()
+void cleanup_swapchain(void)
 {
     for (uint32_t i = 0; i < vkal_info.framebuffer_count; ++i) {
 	vkDestroyFramebuffer(vkal_info.device, vkal_info.framebuffers[i], 0);
@@ -1430,7 +1430,7 @@ void cleanup_swapchain()
     //VKAL_KILL_ARRAY(vkal_info.swapchain_images);
 }
 
-void recreate_swapchain()
+void recreate_swapchain(void)
 {
     vkDeviceWaitIdle(vkal_info.device);
     
@@ -1447,7 +1447,7 @@ void recreate_swapchain()
     create_command_buffers();
 }
 
-void create_swapchain()
+void create_swapchain(void)
 {
     SwapChainSupportDetails swap_chain_support = query_swapchain_support(vkal_info.physical_device);
     
@@ -1503,7 +1503,7 @@ void create_swapchain()
     vkal_info.swapchain_extent = extent;
 }
 
-void create_image_views()
+void create_image_views(void)
 {
 //    VKAL_MAKE_ARRAY(vkal_info.swapchain_image_views, VkImageView, vkal_info.swapchain_image_count);
     
@@ -1988,7 +1988,7 @@ void upload_texture(VkImage const image,
     vkDeviceWaitIdle(vkal_info.device);	
 }
 
-void create_depth_buffer()
+void create_depth_buffer(void)
 {
     {
 	create_image(
@@ -2264,7 +2264,7 @@ void destroy_shader_module(uint32_t id)
     }
 }
 
-void create_descriptor_pool()
+void create_descriptor_pool(void)
 {
     VkDescriptorPoolSize pool_sizes[] =
 	{
@@ -2297,7 +2297,7 @@ void create_descriptor_pool()
     DBG_VULKAN_ASSERT(result, "failed to create descriptor pool!");
 }
 
-void create_offscreen_render_pass()
+void create_offscreen_render_pass(void)
 {
     VkAttachmentDescription attachments[] = 
 	{
@@ -2356,7 +2356,7 @@ void create_offscreen_render_pass()
     VkResult result = vkCreateRenderPass(vkal_info.device, &info, 0, &vkal_info.offscreen_pass.render_pass);
 }
 
-void create_offscreen_framebuffer()
+void create_offscreen_framebuffer(void)
 {
     vkal_info.offscreen_pass.width  = VKAL_SHADOW_MAP_DIMENSION;
     vkal_info.offscreen_pass.height = VKAL_SHADOW_MAP_DIMENSION;
@@ -2498,7 +2498,7 @@ void update_shadow_command_buffer(uint32_t image_id, Model * models, uint32_t mo
 }
 */
 
-void create_render_to_image_render_pass()
+void create_render_to_image_render_pass(void)
 {
     VkAttachmentDescription attachments[2];
     // Color Attachment
@@ -2569,7 +2569,7 @@ void create_render_to_image_render_pass()
     DBG_VULKAN_ASSERT(result, "failed to create render pass!");
 }
 
-void create_render_pass()
+void create_render_pass(void)
 {
     VkAttachmentDescription attachments[2];
     // Color Attachment
@@ -2704,7 +2704,7 @@ void create_render_pass()
 }
 
 /* Renderpass uses raytracing output as input attachment */
-void create_rt_renderpass()
+void create_rt_renderpass(void)
 {
     VkAttachmentDescription attachments[3];
     attachments[0].flags = 0;
@@ -2742,7 +2742,7 @@ void create_rt_renderpass()
     VkAttachmentReference input_image_ref = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 }
 
-void create_framebuffer()
+void create_framebuffer(void)
 {
     VkImageView attachments[2];
     // The order matches the order of the VkAttachmentDescriptions of the Renderpass.
@@ -3190,7 +3190,7 @@ VkWriteDescriptorSet create_write_descriptor_set_buffer2(VkDescriptorSet dst_des
     return write_set;
 }
 
-void create_command_pool()
+void create_command_pool(void)
 {
     VkCommandPoolCreateInfo cmdpool_info = { 0 };
     cmdpool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -3244,7 +3244,7 @@ VkCommandBuffer create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uin
     return command_buffer;
 }
 
-void create_command_buffers()
+void create_command_buffers(void)
 {
     // Regular
     {
@@ -3627,7 +3627,7 @@ void vkal_draw_indexed2(
     vkCmdDrawIndexed(command_buffer, index_count, 1, 0, 0, 0);
 }
 
-uint32_t vkal_get_image()
+uint32_t vkal_get_image(void)
 {
     vkWaitForFences(vkal_info.device, 1, &vkal_info.in_flight_fences[vkal_info.frames_rendered], VK_TRUE, UINT64_MAX);
     vkResetFences(vkal_info.device, 1, &vkal_info.in_flight_fences[vkal_info.frames_rendered]);
@@ -3713,7 +3713,7 @@ void vkal_present(uint32_t image_id)
 //    vkQueueWaitIdle(vkal_info.graphics_queue);
 }
 
-void create_semaphores()
+void create_semaphores(void)
 {
     for (int i = 0; i < VKAL_MAX_IMAGES_IN_FLIGHT; ++i) {
 	VkFenceCreateInfo fenceInfo;
@@ -3732,7 +3732,7 @@ void create_semaphores()
     //memset(vkal_info.image_in_flight_fences, VK_NULL_HANDLE, vkal_info.swapchain_image_count * sizeof(VkFence));
 }
 
-void allocate_device_memory_uniform()
+void allocate_device_memory_uniform(void)
 {
     VkMemoryRequirements buffer_memory_requirements;
     vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.uniform_buffer.buffer, &buffer_memory_requirements);
@@ -3745,7 +3745,7 @@ void allocate_device_memory_uniform()
     DBG_VULKAN_ASSERT(result, "failed to bind uniform buffer to device memory!");
 }
 
-void allocate_device_memory_vertex()
+void allocate_device_memory_vertex(void)
 {
     VkMemoryRequirements buffer_memory_requirements;
     vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.vertex_buffer.buffer, &buffer_memory_requirements);
@@ -3757,7 +3757,7 @@ void allocate_device_memory_vertex()
     
 }
 
-void allocate_device_memory_index()
+void allocate_device_memory_index(void)
 {
     VkMemoryRequirements buffer_memory_requirements;
     vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.index_buffer.buffer, &buffer_memory_requirements);
@@ -4073,7 +4073,7 @@ uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
     return offset;
 }
 
-void vkal_cleanup() {
+void vkal_cleanup(void) {
 
     static int memory_destroyed = 0;
     vkQueueWaitIdle(vkal_info.graphics_queue);
