@@ -228,8 +228,8 @@ int main(int argc, char ** argv)
     };
     uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
   
-    uint32_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
-    uint32_t offset_indices  = vkal_index_buffer_add(rect_indices, index_count);
+    uint64_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
+    uint64_t offset_indices  = vkal_index_buffer_add(rect_indices, index_count);
     Model rect_model = { 0 };
     rect_model.is_indexed = 1;
     rect_model.vertex_buffer_offset = offset_vertices;
@@ -346,12 +346,12 @@ int main(int argc, char ** argv)
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
 	    vkal_viewport(vkal_info->command_buffers[image_id],
 			  0, 0,
-			  width, height);
+			  (float)width, (float)height);
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
-			 width, height);
+			 (float)width, (float)height);
 	    for (int i = 0; i < NUM_ENTITIES; ++i) {
-		uint32_t dynamic_offset = i*model_ubo.alignment;
+		uint64_t dynamic_offset = i*model_ubo.alignment;
 		vkal_bind_descriptor_sets(image_id, descriptor_sets, descriptor_set_layout_count,
 					  &dynamic_offset, 1,
 					  pipeline_layout);

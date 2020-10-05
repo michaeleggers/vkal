@@ -19,7 +19,7 @@ set clang_flags_release= /TC /O2 /W4 /MD /DVKAL_GLFW -Qunused-arguments -Wno-unu
 
 set msvc_flags_debug= /TC /Z7 /DDEBUG /DVKAL_GLFW /W4 /MDd
 
-set tcc_flags_debug= -Wall -g
+set tcc_flags_debug= -Wall -g -DVKAL_GLFW -DDEBUG -m64
 set tcc_flags_release= -Wall
 
 pushd "%~dp0"
@@ -44,8 +44,9 @@ REM clang-cl %clang_flags_release% ..\src\main.c ..\src\vkal.c -o clang_rel_main
 REM ### MSVC COMPILE ###
 cl %msvc_flags_debug%  ..\src\examples\model_loading.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_model_loading.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 
-REM ### TCC COMPILE ###
+REM ### TCC COMPILE - NOTE: gl.h not found at the moment. not sure why it even wants the gl.h file! ###
 REM tcc %tcc_flags_debug%   ..\src\main.c -o tcc_dbg_main.exe
+REM tcc %tcc_flags_debug%   ..\src\examples\model_loading.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o tcc_dbg_model_loading.exe -I%vulkan_include% -I%glfw_include% -l%vulkan_lib_64%\vulkan-1.lib -l%glfw_lib_64%\glfw3dll.lib
 REM tcc %tcc_flags_release% ..\src\main.c -o tcc_rel_main.exe
 
 
