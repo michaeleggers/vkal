@@ -351,7 +351,7 @@ int main(int argc, char ** argv)
 			 0, 0,
 			 (float)width, (float)height);
 	    for (int i = 0; i < NUM_ENTITIES; ++i) {
-		uint64_t dynamic_offset = i*model_ubo.alignment;
+		uint32_t dynamic_offset = (uint32_t)(i*model_ubo.alignment);
 		vkal_bind_descriptor_sets(image_id, descriptor_sets, descriptor_set_layout_count,
 					  &dynamic_offset, 1,
 					  pipeline_layout);

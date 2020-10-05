@@ -204,12 +204,22 @@ mat4 perspective_gl(float fov, float aspect, float z_near, float z_far)
 {
     float g = 1.0f / tanf(fov*0.5f);
     float k = 1.0f / (z_near-z_far);
-    return (mat4) {
-	.d[0]={g/aspect, 0, 0, 0},
-        .d[1]={0, g, 0, 0},
-        .d[2]={0, 0, (z_near+z_far)*k, -1.0f},
-        .d[3]={0, 0, 2*z_near*z_far*k, 0}
-    };
+    mat4 result = { 0 };
+    result.d[0][0] = g/aspect;
+    result.d[0][1] = result.d[0][2] = result.d[0][3] = 0;
+
+    result.d[1][0] = 0;
+    result.d[1][1] = g;
+    result.d[1][2] = result.d[1][3] = 0;
+	
+    result.d[2][0] = result.d[2][1] = 0;
+    result.d[2][2] = (z_near+z_far)*k;
+    result.d[2][3] = -1.0f;
+	
+    result.d[3][0] = result.d[3][1] = 0;
+    result.d[3][2] = 2*z_near*z_far*k;
+    result.d[3][3] = 0;
+    return result;
 }
 
 /* Vulkan friendly: this persp proj. will result in z from [0,1] after persp. divide. */
@@ -217,13 +227,22 @@ mat4 perspective_vk(float fov, float aspect, float z_near, float z_far)
 {
     float g = 1.0f / tanf(fov*0.5f);
     float k = 1.0f / (z_far-z_near);
-    return (mat4)
-    {
-	.d[0]={g/aspect, 0, 0, 0},
-	.d[1]={0, g, 0, 0},
-	.d[2]={0, 0, -z_far*k, -1.0f},
-	.d[3]={0, 0, -(z_near*z_far)*k, 0}
-    };
+    mat4 result = { 0 };
+    result.d[0][0] = g/aspect;
+    result.d[0][1] = result.d[0][2] = result.d[0][3] = 0;
+	
+    result.d[1][0] = 0;
+    result.d[1][1] = g;
+    result.d[1][2] = result.d[1][3] = 0;
+	
+    result.d[2][0] = result.d[2][1] = 0;
+    result.d[2][2] = -z_far*k;
+    result.d[2][3] = -1.0f;
+	
+    result.d[3][0] = result.d[3][1] = 0;
+    result.d[3][2] = -(z_near*z_far)*k;
+    result.d[3][3] = 0;
+    return result;
 }
 
 float tr_radians(float deg)
