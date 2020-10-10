@@ -15,3 +15,6 @@
 
 %VULKAN_SDK%/bin/glslc model_loading.vert -o model_loading_vert.spv
 %VULKAN_SDK%/bin/glslc model_loading.frag -o model_loading_frag.spv
+
+%VULKAN_SDK%/bin/glslc model_loading_md.vert -o model_loading_md_vert.spv
+%VULKAN_SDK%/bin/glslc model_loading_md.frag -o model_loading_md_frag.spv
