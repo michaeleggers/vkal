@@ -75,6 +75,13 @@ typedef struct MdMeshHeader
 } MdMeshHeader;
 //#pragma pack(pop)
 
+#define MAX_BONE_NAME_LENGTH 64
+typedef struct Bone
+{
+    char name[MAX_BONE_NAME_LENGTH];
+    mat4 offset_matrix;
+} Bone;
+
 typedef struct MdMesh
 {
     Vertex * vertices;
@@ -84,7 +91,7 @@ typedef struct MdMesh
     uint32_t index_count;
     uint64_t index_buffer_offset;
     uint32_t bone_count;
-    mat4 *   bone_matrices;
+    Bone *   bones;
 } MdMesh;
 
 static GLFWwindow * window;
@@ -116,13 +123,13 @@ MdMesh load_md_mesh(char * filename)
     
     result.vertices      = (Vertex*)malloc(result.vertex_count * sizeof(Vertex));
     result.indices       = (uint16_t*)malloc(result.index_count * sizeof(uint16_t));
-    result.bone_matrices = (mat4*)malloc(result.bone_count * sizeof(mat4));
+    result.bones         = (Bone*)malloc(result.bone_count * sizeof(Bone));
     Vertex * vertex_data = (Vertex*)((MdMeshHeader*)file_data + 1);
     memcpy(result.vertices, vertex_data, result.vertex_count * sizeof(Vertex));
     uint16_t * index_data = (uint16_t*)(vertex_data + result.vertex_count);
     memcpy(result.indices, index_data, result.index_count * sizeof(uint16_t));
-    mat4 * bone_matrix_data = (mat4*)(index_data + result.index_count);
-    memcpy(result.bone_matrices, bone_matrix_data, result.bone_count * sizeof(mat4));
+    Bone * bones = (Bone*)(index_data + result.index_count);
+    memcpy(result.bones, bones, result.bone_count * sizeof(Bone));
     
     return result;
 }
@@ -407,7 +414,10 @@ int main(int argc, char ** argv)
 					       &storage_buffer_mem,
 					       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     map_memory(&storage_buffer, md_mesh.bone_count * sizeof(mat4), 0);
-    memcpy(storage_buffer.mapped, md_mesh.bone_matrices, md_mesh.bone_count * sizeof(mat4));
+    for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
+	printf("%s\n", md_mesh.bones[i].name);
+	memcpy( (void*)&((mat4*)storage_buffer.mapped)[i], (void*)&(md_mesh.bones[i].offset_matrix), sizeof(mat4) );
+    }
     unmap_memory(&storage_buffer);	
     vkal_update_descriptor_set_bufferarray(descriptor_sets[2], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, 0, storage_buffer);
     
@@ -420,7 +430,7 @@ int main(int argc, char ** argv)
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
 	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
-	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
+
 
         /* Update Info about screen */
 	viewport_data.dimensions.x = (float)width;
@@ -428,10 +438,10 @@ int main(int argc, char ** argv)
 	vkal_update_uniform(&viewport_ubo, &viewport_data);
 
         /* Update Model Matrices */
+	static float d = 30.f;
+	static float r = .001f;
 	for (int i = 0; i < NUM_ENTITIES; ++i) {
 	    mat4 model_mat = mat4_identity();
-	    static float d = 1.f;
-	    static float r = .001f;
 	    d += 0.00001f;
 //	    entities[i].position.x += sinf(d);
 	    entities[i].orientation.x += r;
@@ -448,6 +458,11 @@ int main(int argc, char ** argv)
 	    ((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
 	}
 	vkal_update_uniform(&model_ubo, model_data);	
+
+	static vec3 camera_dolly = {0};
+	camera_dolly.z = -100 + d;	
+	view_proj_data.view = translate(view_proj_data.view, camera_dolly);
+	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 	
 	{
 	    uint32_t image_id = vkal_get_image();

@@ -22,5 +22,5 @@ void main()
     float dy = gl_FragCoord.y/dimensions.y;
     
     vec3 normal_color = 0.5*normalize(in_normal)+0.5;
-    outColor = vec4(normal_color, 1.0);
+    outColor = vec4(in_color, 1.0);
 }

@@ -30,16 +30,16 @@ layout (set = 2, binding = 0) readonly buffer InvBoneMatrices
 
 void main()
 {
-    out_color = color;
+    out_color = vec3(bone_weights[0], bone_weights[1], (bone_weights[2] + bone_weights[3])/2.0);
     out_normal = (u_view_proj.proj * u_view_proj.view * u_model_data.model_mat * vec4(normal, 0.0)).xyz;
     
     mat4 skin_mat = 
-        bone_weights[0] * inverse(inv_bone_matrices.m[bone_indices[0]]) +
-        bone_weights[1] * inverse(inv_bone_matrices.m[bone_indices[1]]) +
-        bone_weights[2] * inverse(inv_bone_matrices.m[bone_indices[2]]) +
-        bone_weights[3] * inverse(inv_bone_matrices.m[bone_indices[3]]);
+        bone_weights[0] * (inv_bone_matrices.m[bone_indices[0]]) +
+        bone_weights[1] * (inv_bone_matrices.m[bone_indices[1]]) +
+        bone_weights[2] * (inv_bone_matrices.m[bone_indices[2]]) +
+        bone_weights[3] * (inv_bone_matrices.m[bone_indices[3]]);
     vec4 pos_clipspace = u_view_proj.proj * u_view_proj.view * 
-                         u_model_data.model_mat * skin_mat * vec4(position, 1.0);
+                         u_model_data.model_mat * skin_mat * inverse(skin_mat) * vec4(position, 1.0);
 	gl_Position = pos_clipspace;
     //gl_Position.y = -gl_Position.y; // Hack: vulkan's y is down
 }
