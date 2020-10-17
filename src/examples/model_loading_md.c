@@ -361,37 +361,20 @@ int main(int argc, char ** argv)
     md_model.index_buffer_offset = md_mesh.index_buffer_offset;
     md_model.index_count = md_mesh.index_count;
     
-#define NUM_ENTITIES 500
+#define NUM_ENTITIES 1
     /* Entities */
     Entity entities[NUM_ENTITIES];
-    for (int i = 0; i < NUM_ENTITIES; ++i) {
-    	vec3 pos   = { 0 };
-	pos.x = rand_between(-25.f, 25.f);
-	pos.y = rand_between(-15.f, 15.f);
-	pos.z = rand_between(-15.f, 15.f);
-	vec3 rot   = { 0 };
-	rot.x = rand_between(-15.f, 15.f); rot.y = rand_between(-15.f, 15.f); rot.z = rand_between(-15.f, 15.f);
-	float scale_xyz = rand_between(.01f, 3.f);
-	vec3 scale = { 0 };
-	scale.x = scale_xyz; scale.y = scale_xyz; scale.z = scale_xyz;
-	uint8_t model_type = (uint8_t)rand_between(0.0f, 1.99f);
-	if (model_type == 0) {
-	    entities[i].model       = md_model;
-	    entities[i].position    = pos;
-	    entities[i].orientation = rot;
-	    entities[i].scale       = scale;
-	}
-	else {
-	    entities[i].model       = md_model;
-	    entities[i].position    = pos;
-	    entities[i].orientation = rot;
-	    entities[i].scale       = scale;
-	}
-    }
+    vec3 pos = { 0.f, .5f, 0.f };
+    vec3 rot = { tr_radians(-90.f), 0.f, 0.f };
+    vec3 scale = (vec3){ 1, 1, 1 };
+    entities[0].model       = md_model;
+    entities[0].position    = pos;
+    entities[0].orientation = rot;
+    entities[0].scale       = scale;
     
     /* View Projection */
     mat4 view = mat4_identity();
-    view = translate(view, (vec3){ 0.f, 0.f, -50.f });
+    view = translate(view, (vec3){ 0.f, 0.f, -2.5f });
     ViewProjection view_proj_data;
     view_proj_data.view = view;
     view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
@@ -408,12 +391,10 @@ int main(int argc, char ** argv)
 
     /* Dynamic Uniform Buffers */
     UniformBuffer model_ubo = vkal_create_uniform_buffer(sizeof(ModelData), NUM_ENTITIES, 0);
-    ModelData * model_data = (ModelData*)malloc(NUM_ENTITIES*model_ubo.alignment);
-    for (int i = 0; i < NUM_ENTITIES; ++i) {
-	mat4 model_mat = mat4_identity();
-	model_mat = translate(model_mat, entities[i].position);
-	((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
-    }
+    ModelData model_data[1];
+    mat4 model_mat = mat4_identity();
+    model_mat = translate(model_mat, entities[0].position);
+    ((ModelData*)((uint8_t*)model_data + 0*model_ubo.alignment))->model_mat = model_mat;
     vkal_update_descriptor_set_uniform(descriptor_sets[1], model_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
     vkal_update_uniform(&model_ubo, model_data);
 
@@ -442,7 +423,7 @@ int main(int argc, char ** argv)
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
 	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
-
+	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
         /* Update Info about screen */
 	viewport_data.dimensions.x = (float)width;
@@ -456,10 +437,9 @@ int main(int argc, char ** argv)
 	    mat4 model_mat = mat4_identity();
 	    d += 0.00001f;
 //	    entities[i].position.x += sinf(d);
-	    entities[i].orientation.x += r;
-	    entities[i].orientation.y += r;
-	    entities[i].orientation.z += r;
-	    model_mat = translate(model_mat, entities[i].position);
+//	    entities[i].orientation.x += r;
+//	    entities[i].orientation.y += r;
+//	    entities[i].orientation.z += r;
 	    model_mat = tr_scale(model_mat, entities[i].scale);
 	    mat4 rot_x = rotate_x( entities[i].orientation.x );
 	    mat4 rot_y = rotate_y( entities[i].orientation.y );
@@ -467,14 +447,10 @@ int main(int argc, char ** argv)
 	    model_mat = mat4_x_mat4(model_mat, rot_x);
 	    model_mat = mat4_x_mat4(model_mat, rot_y);
 	    model_mat = mat4_x_mat4(model_mat, rot_z);
+	    model_mat = translate(model_mat, entities[i].position);
 	    ((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
 	}
 	vkal_update_uniform(&model_ubo, model_data);	
-
-	static vec3 camera_dolly = {0};
-	camera_dolly.z = -100 + d;	
-	view_proj_data.view = translate(view_proj_data.view, camera_dolly);
-	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 	
 	{
 	    uint32_t image_id = vkal_get_image();
