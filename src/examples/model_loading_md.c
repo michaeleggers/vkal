@@ -62,8 +62,8 @@ typedef struct Vertex
     vec3     pos;
     vec3     normal;
     vec3     color;
-    uint32_t     bone_indices[4];
-    float     bone_weights[4];
+    uint32_t bone_indices[4];
+    float    bone_weights[4];
 } Vertex;
 
 typedef struct MdMeshHeader
@@ -72,6 +72,7 @@ typedef struct MdMeshHeader
     uint32_t vertex_count;
     uint32_t index_count;
     uint32_t bone_count;
+    
 } MdMeshHeader;
 //#pragma pack(pop)
 
@@ -81,6 +82,13 @@ typedef struct Bone
     char name[MAX_BONE_NAME_LENGTH];
     mat4 offset_matrix;
 } Bone;
+
+typedef struct Node
+{
+    uint32_t bone_index;
+    int      parent_index;
+    char     name[MAX_BONE_NAME_LENGTH];
+} Node;
 
 typedef struct MdMesh
 {
@@ -92,6 +100,7 @@ typedef struct MdMesh
     uint64_t index_buffer_offset;
     uint32_t bone_count;
     Bone *   bones;
+    Node *   skeleton_nodes;
 } MdMesh;
 
 static GLFWwindow * window;
@@ -121,15 +130,18 @@ MdMesh load_md_mesh(char * filename)
     result.index_count  = header->index_count;
     result.bone_count   = header->bone_count;
     
-    result.vertices      = (Vertex*)malloc(result.vertex_count * sizeof(Vertex));
-    result.indices       = (uint16_t*)malloc(result.index_count * sizeof(uint16_t));
-    result.bones         = (Bone*)malloc(result.bone_count * sizeof(Bone));
+    result.vertices       = (Vertex*)malloc(result.vertex_count * sizeof(Vertex));
+    result.indices        = (uint16_t*)malloc(result.index_count * sizeof(uint16_t));
+    result.bones          = (Bone*)malloc(result.bone_count * sizeof(Bone));
+    result.skeleton_nodes = (Node*)malloc(result.bone_count * sizeof(Node));
     Vertex * vertex_data = (Vertex*)((MdMeshHeader*)file_data + 1);
     memcpy(result.vertices, vertex_data, result.vertex_count * sizeof(Vertex));
     uint16_t * index_data = (uint16_t*)(vertex_data + result.vertex_count);
     memcpy(result.indices, index_data, result.index_count * sizeof(uint16_t));
     Bone * bones = (Bone*)(index_data + result.index_count);
     memcpy(result.bones, bones, result.bone_count * sizeof(Bone));
+    Node * skeleton_nodes = (Node*)(bones + result.bone_count);
+    memcpy(result.skeleton_nodes, skeleton_nodes, result.bone_count * sizeof(Node));
     
     return result;
 }
