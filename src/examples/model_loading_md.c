@@ -365,7 +365,7 @@ int main(int argc, char ** argv)
     /* Entities */
     Entity entities[NUM_ENTITIES];
     vec3 pos = { 0.f, .5f, 0.f };
-    vec3 rot = { tr_radians(-90.f), 0.f, 0.f };
+    vec3 rot = { tr_radians(-80.f), 0.f, 0.f };
     vec3 scale = (vec3){ 1, 1, 1 };
     entities[0].model       = md_model;
     entities[0].position    = pos;
@@ -438,16 +438,16 @@ int main(int argc, char ** argv)
 	    d += 0.00001f;
 //	    entities[i].position.x += sinf(d);
 //	    entities[i].orientation.x += r;
-//	    entities[i].orientation.y += r;
+	    entities[i].orientation.y += r;
 //	    entities[i].orientation.z += r;
-	    model_mat = tr_scale(model_mat, entities[i].scale);
-	    mat4 rot_x = rotate_x( entities[i].orientation.x );
-	    mat4 rot_y = rotate_y( entities[i].orientation.y );
-	    mat4 rot_z = rotate_z( entities[i].orientation.z );
-	    model_mat = mat4_x_mat4(model_mat, rot_x);
-	    model_mat = mat4_x_mat4(model_mat, rot_y);
-	    model_mat = mat4_x_mat4(model_mat, rot_z);
 	    model_mat = translate(model_mat, entities[i].position);
+	    mat4 rot_z = rotate_z( entities[i].orientation.z );
+	    mat4 rot_y = rotate_y( entities[i].orientation.y );
+	    mat4 rot_x = rotate_x( entities[i].orientation.x );
+	    model_mat = mat4_x_mat4(model_mat, rot_z);
+	    model_mat = mat4_x_mat4(model_mat, rot_y);
+	    model_mat = mat4_x_mat4(model_mat, rot_x);
+	    model_mat = tr_scale(model_mat, entities[i].scale);
 	    ((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
 	}
 	vkal_update_uniform(&model_ubo, model_data);	
