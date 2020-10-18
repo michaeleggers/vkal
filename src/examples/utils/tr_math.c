@@ -9,8 +9,8 @@
 float vec3_length(vec3 v)
 {
     return sqrtf(v.x*v.x +
-                v.y*v.y +
-                v.z*v.z);
+		 v.y*v.y +
+		 v.z*v.z);
 }
 
 vec3 vec3_normalize(vec3 v)
@@ -44,6 +44,24 @@ vec3 vec3_div(vec3 v, float s)
     result.x = v.x/s;
     result.y = v.y/s;
     result.z = v.z/s; 
+    return result;
+}
+
+vec3  vec3_sub(vec3 a, vec3 b)
+{
+    vec3 result;
+    result.x = a.x - b.x;
+    result.y = a.y - b.y;
+    result.z = a.z - b.z;
+    return result;
+}
+
+vec3  vec3_mul(float s, vec3 v)
+{
+    vec3 result;
+    result.x = s*v.x;
+    result.y = s*v.y;
+    result.z = s*v.z;
     return result;
 }
 
@@ -226,7 +244,7 @@ mat4 perspective_gl(float fov, float aspect, float z_near, float z_far)
 mat4 perspective_vk(float fov, float aspect, float z_near, float z_far)
 {
     float g = 1.0f / tanf(fov*0.5f);
-    float k = 1.0f / (z_far-z_near);
+    
     mat4 result = { 0 };
     result.d[0][0] = g/aspect;
     result.d[0][1] = result.d[0][2] = result.d[0][3] = 0;
@@ -236,12 +254,35 @@ mat4 perspective_vk(float fov, float aspect, float z_near, float z_far)
     result.d[1][2] = result.d[1][3] = 0;
 	
     result.d[2][0] = result.d[2][1] = 0;
-    result.d[2][2] = -z_far*k;
+    result.d[2][2] = z_far / (z_near - z_far);
     result.d[2][3] = -1.0f;
 	
     result.d[3][0] = result.d[3][1] = 0;
-    result.d[3][2] = -(z_near*z_far)*k;
+    result.d[3][2] = -(z_far * z_near) / (z_far - z_near);
     result.d[3][3] = 0;
+    return result;
+}
+
+mat4  look_at(vec3 eye, vec3 center, vec3 up)
+{
+    vec3 f = vec3_normalize( vec3_sub(center, eye) );
+    vec3 s = vec3_normalize( vec3_cross(f, up) );
+    vec3 u = vec3_cross(s, f);
+
+    mat4 result = mat4_identity();
+    result.d[0][0] = s.x;
+    result.d[1][0] = s.y;
+    result.d[2][0] = s.z;
+    result.d[0][1] = u.x;
+    result.d[1][1] = u.y;
+    result.d[2][1] = u.z;
+    result.d[0][2] =-f.x;
+    result.d[1][2] =-f.y;
+    result.d[2][2] =-f.z;
+    result.d[3][0] =-vec3_dot(s, eye);
+    result.d[3][1] =-vec3_dot(u, eye);
+    result.d[3][2] = vec3_dot(f, eye);
+
     return result;
 }
 
@@ -252,7 +293,7 @@ float tr_radians(float deg)
 
 float rand_between(float min, float max)
 {
-	float range = max - min;
-	float step = range / RAND_MAX;
-	return (step * rand()) + min;
+    float range = max - min;
+    float step = range / RAND_MAX;
+    return (step * rand()) + min;
 }

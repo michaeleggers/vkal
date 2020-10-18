@@ -26,6 +26,8 @@ vec3  vec3_normalize(vec3 v);
 float vec3_dot(vec3 a, vec3 b);
 vec3  vec3_cross(vec3 a, vec3 b);
 vec3  vec3_div(vec3 v, float s);
+vec3  vec3_sub(vec3 a, vec3 b);
+vec3  vec3_mul(float s, vec3 v);
 
 float vec4_length(vec4 v);
 vec4  vec4_normalize(vec4 v);
@@ -42,6 +44,7 @@ mat4  rotate_y(float angle);
 mat4  rotate_z(float angle);
 mat4  perspective_gl(float fov, float aspect, float z_near, float z_far);
 mat4  perspective_vk(float fov, float aspect, float z_near, float z_far);
+mat4  look_at(vec3 eye_pos, vec3 center, vec3 up);
 float tr_radians(float deg);
 float rand_between(float min, float max);
 

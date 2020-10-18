@@ -26,6 +26,14 @@
 #define SCREEN_WIDTH  800
 #define SCREEN_HEIGHT 800
 
+typedef struct Camera
+{
+	vec3 pos;
+	vec3 center;
+	vec3 up;
+	vec3 right;
+} Camera;
+
 typedef struct Image
 {
     uint32_t width, height, channels;
@@ -314,9 +322,9 @@ int main(int argc, char ** argv)
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-	VK_FRONT_FACE_CLOCKWISE,
+	VK_FRONT_FACE_COUNTER_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
@@ -361,22 +369,28 @@ int main(int argc, char ** argv)
     md_model.index_buffer_offset = md_mesh.index_buffer_offset;
     md_model.index_count = md_mesh.index_count;
     
-#define NUM_ENTITIES 1
+#define NUM_ENTITIES 2
     /* Entities */
     Entity entities[NUM_ENTITIES];
-    vec3 pos = { 0.f, .5f, 0.f };
-    vec3 rot = { tr_radians(-80.f), 0.f, 0.f };
+    vec3 pos = { 0, 0, 0.f };
+    vec3 rot = { tr_radians(-90.f), 0.f, 0.f };
     vec3 scale = (vec3){ 1, 1, 1 };
     entities[0].model       = md_model;
     entities[0].position    = pos;
     entities[0].orientation = rot;
     entities[0].scale       = scale;
-    
+    entities[1].model       = md_model;
+    entities[1].position    = (vec3){ 0.f, 0.f, 3.f };
+    entities[1].orientation = (vec3){ tr_radians(-90.f), 0.f, 0.f };
+    entities[1].scale       = (vec3){ 1, 1, 1 };
+        
     /* View Projection */
-    mat4 view = mat4_identity();
-    view = translate(view, (vec3){ 0.f, 0.f, -2.5f });
+    Camera camera;
+    camera.pos = (vec3){ 0, 5, 10 };
+    camera.center = (vec3){ 0 };
+    camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
-    view_proj_data.view = view;
+    view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
     view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
 
     /* Uniform Buffers */
@@ -391,10 +405,12 @@ int main(int argc, char ** argv)
 
     /* Dynamic Uniform Buffers */
     UniformBuffer model_ubo = vkal_create_uniform_buffer(sizeof(ModelData), NUM_ENTITIES, 0);
-    ModelData model_data[1];
+    ModelData model_data[NUM_ENTITIES];
     mat4 model_mat = mat4_identity();
     model_mat = translate(model_mat, entities[0].position);
-    ((ModelData*)((uint8_t*)model_data + 0*model_ubo.alignment))->model_mat = model_mat;
+    for (uint32_t i = 0; i < NUM_ENTITIES; ++i) {
+	((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
+    }
     vkal_update_descriptor_set_uniform(descriptor_sets[1], model_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
     vkal_update_uniform(&model_ubo, model_data);
 
@@ -441,13 +457,13 @@ int main(int argc, char ** argv)
 	    entities[i].orientation.y += r;
 //	    entities[i].orientation.z += r;
 	    model_mat = translate(model_mat, entities[i].position);
+	    model_mat = tr_scale(model_mat, entities[i].scale);
 	    mat4 rot_z = rotate_z( entities[i].orientation.z );
 	    mat4 rot_y = rotate_y( entities[i].orientation.y );
 	    mat4 rot_x = rotate_x( entities[i].orientation.x );
 	    model_mat = mat4_x_mat4(model_mat, rot_z);
 	    model_mat = mat4_x_mat4(model_mat, rot_y);
 	    model_mat = mat4_x_mat4(model_mat, rot_x);
-	    model_mat = tr_scale(model_mat, entities[i].scale);
 	    ((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
 	}
 	vkal_update_uniform(&model_ubo, model_data);	

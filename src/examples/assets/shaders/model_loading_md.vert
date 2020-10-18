@@ -41,5 +41,5 @@ void main()
     vec4 pos_clipspace = u_view_proj.proj * u_view_proj.view * 
                          u_model_data.model_mat * skin_mat * inverse(skin_mat) * vec4(position, 1.0);
 	gl_Position = pos_clipspace;
-    //gl_Position.y = -gl_Position.y; // Hack: vulkan's y is down
+    gl_Position.y = -gl_Position.y; // Hack: vulkan's y is down
 }
