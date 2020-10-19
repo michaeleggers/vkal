@@ -80,6 +80,7 @@ typedef struct MdMeshHeader
     uint32_t vertex_count;
     uint32_t index_count;
     uint32_t bone_count;
+    uint32_t node_count;
     
 } MdMeshHeader;
 //#pragma pack(pop)
@@ -89,6 +90,7 @@ typedef struct Bone
 {
     char name[MAX_BONE_NAME_LENGTH];
     mat4 offset_matrix;
+    uint32_t num_weights;
 } Bone;
 
 typedef struct Node
@@ -106,9 +108,10 @@ typedef struct MdMesh
     uint16_t * indices;
     uint32_t index_count;
     uint64_t index_buffer_offset;
-    uint32_t bone_count;
     Bone *   bones;
+    uint32_t bone_count;
     Node *   skeleton_nodes;
+    uint32_t node_count;
 } MdMesh;
 
 static GLFWwindow * window;
@@ -137,11 +140,12 @@ MdMesh load_md_mesh(char * filename)
     result.vertex_count = header->vertex_count;
     result.index_count  = header->index_count;
     result.bone_count   = header->bone_count;
+    result.node_count   = header->node_count;
     
     result.vertices       = (Vertex*)malloc(result.vertex_count * sizeof(Vertex));
     result.indices        = (uint16_t*)malloc(result.index_count * sizeof(uint16_t));
     result.bones          = (Bone*)malloc(result.bone_count * sizeof(Bone));
-    result.skeleton_nodes = (Node*)malloc(result.bone_count * sizeof(Node));
+    result.skeleton_nodes = (Node*)malloc(result.node_count * sizeof(Node));
     Vertex * vertex_data = (Vertex*)((MdMeshHeader*)file_data + 1);
     memcpy(result.vertices, vertex_data, result.vertex_count * sizeof(Vertex));
     uint16_t * index_data = (uint16_t*)(vertex_data + result.vertex_count);
@@ -149,7 +153,7 @@ MdMesh load_md_mesh(char * filename)
     Bone * bones = (Bone*)(index_data + result.index_count);
     memcpy(result.bones, bones, result.bone_count * sizeof(Bone));
     Node * skeleton_nodes = (Node*)(bones + result.bone_count);
-    memcpy(result.skeleton_nodes, skeleton_nodes, result.bone_count * sizeof(Node));
+    memcpy(result.skeleton_nodes, skeleton_nodes, result.node_count * sizeof(Node));
     
     return result;
 }
@@ -306,10 +310,11 @@ int main(int argc, char ** argv)
     };
     VkDescriptorSetLayout descriptor_set_layout_storage = vkal_create_descriptor_set_layout(set_layout_storage, 1);
     
-    VkDescriptorSetLayout layouts[3];
+    VkDescriptorSetLayout layouts[4];
     layouts[0] = descriptor_set_layout;
     layouts[1] = descriptor_set_layout_dynamic;
     layouts[2] = descriptor_set_layout_storage;
+    layouts[3] = descriptor_set_layout_storage;
     
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
@@ -386,7 +391,7 @@ int main(int argc, char ** argv)
         
     /* View Projection */
     Camera camera;
-    camera.pos = (vec3){ 0, 5, 10 };
+    camera.pos = (vec3){ 0, 2, 10 };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
@@ -415,20 +420,37 @@ int main(int argc, char ** argv)
     vkal_update_uniform(&model_ubo, model_data);
 
     /* Storage Buffer for bone-matrices */
-    DeviceMemory storage_buffer_mem = vkal_allocate_devicememory(10*1024*1024,
+    DeviceMemory offset_matrices_mem = vkal_allocate_devicememory(10*1024*1024,
 								 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 								 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 								 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    Buffer storage_buffer = vkal_create_buffer(md_mesh.bone_count * sizeof(mat4),
-					       &storage_buffer_mem,
+    Buffer storage_buffer_bone_matrices = vkal_create_buffer(md_mesh.bone_count * sizeof(mat4),
+					       &offset_matrices_mem,
 					       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    map_memory(&storage_buffer, md_mesh.bone_count * sizeof(mat4), 0);
+    map_memory(&storage_buffer_bone_matrices, md_mesh.bone_count * sizeof(mat4), 0);
     for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
 	printf("%s\n", md_mesh.bones[i].name);
-	memcpy( (void*)&((mat4*)storage_buffer.mapped)[i], (void*)&(md_mesh.bones[i].offset_matrix), sizeof(mat4) );
+	memcpy( (void*)&((mat4*)storage_buffer_bone_matrices.mapped)[i], (void*)&(md_mesh.bones[i].offset_matrix), sizeof(mat4) );
     }
-    unmap_memory(&storage_buffer);	
-    vkal_update_descriptor_set_bufferarray(descriptor_sets[2], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, 0, storage_buffer);
+    unmap_memory(&storage_buffer_bone_matrices);	
+    vkal_update_descriptor_set_bufferarray(descriptor_sets[2], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, 0, storage_buffer_bone_matrices);
+    /* Storage Buffer Skeleton (for now just the offset-matrices. Later on will use channels from key-frame animation) */
+    DeviceMemory skeleton_matrices_mem = vkal_allocate_devicememory(10*1024*1024,
+								    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+								    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+								    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    Buffer storage_buffer_skeleton_matrices = vkal_create_buffer(md_mesh.bone_count * sizeof(mat4),
+								 &skeleton_matrices_mem,
+								 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    map_memory(&storage_buffer_skeleton_matrices, md_mesh.bone_count * sizeof(mat4), 0);
+    for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
+	memcpy( (void*)&((mat4*)storage_buffer_skeleton_matrices.mapped)[i], (void*)&(md_mesh.bones[i].offset_matrix), sizeof(mat4) );
+    }
+    // keep this storage's buffers memory mapped because we need to update the matrices in it every(?) frame.
+    vkal_update_descriptor_set_bufferarray(descriptor_sets[3], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, 0, storage_buffer_skeleton_matrices);
+
+    float arm_r_rot_x = 0.0f;
+
     
     // Main Loop
     while (!glfwWindowShouldClose(window))
@@ -447,7 +469,8 @@ int main(int argc, char ** argv)
 	vkal_update_uniform(&viewport_ubo, &viewport_data);
 
         /* Update Model Matrices */
-	static float d = 30.f;
+	static float d = .001f;
+	d += .0005f;
 	static float r = .001f;
 	for (int i = 0; i < NUM_ENTITIES; ++i) {
 	    mat4 model_mat = mat4_identity();
@@ -466,7 +489,14 @@ int main(int argc, char ** argv)
 	    model_mat = mat4_x_mat4(model_mat, rot_x);
 	    ((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
 	}
-	vkal_update_uniform(&model_ubo, model_data);	
+	vkal_update_uniform(&model_ubo, model_data);
+
+	/* update skeleton */	
+	arm_r_rot_x += 0.001f;
+	mat4 up_arm_r_rotation = mat4_identity();
+	mat4 up_arm_r_rotation_x = rotate_x( arm_r_rot_x );
+	up_arm_r_rotation = mat4_x_mat4(up_arm_r_rotation, up_arm_r_rotation_x);
+	memcpy( &((mat4*)storage_buffer_skeleton_matrices.mapped)[14], &(up_arm_r_rotation), sizeof(mat4) );
 	
 	{
 	    uint32_t image_id = vkal_get_image();

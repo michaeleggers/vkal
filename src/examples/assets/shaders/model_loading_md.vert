@@ -23,10 +23,15 @@ layout (set = 1, binding = 0) uniform u_model_data_t
     mat4 model_mat;
 } u_model_data;
 
-layout (set = 2, binding = 0) readonly buffer InvBoneMatrices 
+layout (set = 2, binding = 0) readonly buffer OffsetMatrices 
 { 
     mat4 m[];
-} inv_bone_matrices; 
+} offset_matrices; 
+
+layout (set = 3, binding = 0) readonly buffer SkeletonMatrices 
+{ 
+    mat4 m[];
+} skeleton_matrices;
 
 void main()
 {
@@ -34,10 +39,10 @@ void main()
     out_normal = (u_view_proj.proj * u_view_proj.view * u_model_data.model_mat * vec4(normal, 0.0)).xyz;
     
     mat4 skin_mat = 
-        bone_weights[0] * (inv_bone_matrices.m[bone_indices[0]]) +
-        bone_weights[1] * (inv_bone_matrices.m[bone_indices[1]]) +
-        bone_weights[2] * (inv_bone_matrices.m[bone_indices[2]]) +
-        bone_weights[3] * (inv_bone_matrices.m[bone_indices[3]]);
+        bone_weights[0] * offset_matrices.m[bone_indices[0]] * skeleton_matrices.m[bone_indices[0]] +
+        bone_weights[1] * offset_matrices.m[bone_indices[1]] * skeleton_matrices.m[bone_indices[1]] +
+        bone_weights[2] * offset_matrices.m[bone_indices[2]] * skeleton_matrices.m[bone_indices[2]] +
+        bone_weights[3] * offset_matrices.m[bone_indices[3]] * skeleton_matrices.m[bone_indices[3]];
     vec4 pos_clipspace = u_view_proj.proj * u_view_proj.view * 
                          u_model_data.model_mat * skin_mat * inverse(skin_mat) * vec4(position, 1.0);
 	gl_Position = pos_clipspace;
