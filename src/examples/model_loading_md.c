@@ -391,7 +391,7 @@ int main(int argc, char ** argv)
         
     /* View Projection */
     Camera camera;
-    camera.pos = (vec3){ 0, 2, 10 };
+    camera.pos = (vec3){ -.2, 1.8, 3.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
@@ -472,12 +472,12 @@ int main(int argc, char ** argv)
 	static float d = .001f;
 	d += .0005f;
 	static float r = .001f;
-	for (int i = 0; i < NUM_ENTITIES; ++i) {
+	for (int i = 0; i < NUM_ENTITIES - 1; ++i) {
 	    mat4 model_mat = mat4_identity();
 	    d += 0.00001f;
 //	    entities[i].position.x += sinf(d);
 //	    entities[i].orientation.x += r;
-	    entities[i].orientation.y += r;
+//	    entities[i].orientation.y += r;
 //	    entities[i].orientation.z += r;
 	    model_mat = translate(model_mat, entities[i].position);
 	    model_mat = tr_scale(model_mat, entities[i].scale);
@@ -491,11 +491,11 @@ int main(int argc, char ** argv)
 	}
 	vkal_update_uniform(&model_ubo, model_data);
 
-	/* update skeleton */	
+	/* update skeleton's upper right arm (Lego Model Index 14) */	
 	arm_r_rot_x += 0.001f;
-	mat4 up_arm_r_rotation = mat4_identity();
-	mat4 up_arm_r_rotation_x = rotate_x( arm_r_rot_x );
-	up_arm_r_rotation = mat4_x_mat4(up_arm_r_rotation, up_arm_r_rotation_x);
+	mat4 up_arm_r_rotation = rotate_x( arm_r_rot_x );
+	mat4 original_up_arm_r = md_mesh.bones[14].offset_matrix;
+//	up_arm_r_rotation = mat4_x_mat4(original_up_arm_r, up_arm_r_rotation);
 	memcpy( &((mat4*)storage_buffer_skeleton_matrices.mapped)[14], &(up_arm_r_rotation), sizeof(mat4) );
 	
 	{
@@ -510,7 +510,7 @@ int main(int argc, char ** argv)
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
 			 (float)width, (float)height);
-	    for (int i = 0; i < NUM_ENTITIES; ++i) {
+	    for (int i = 0; i < NUM_ENTITIES - 1; ++i) {
 		uint32_t dynamic_offset = (uint32_t)(i*model_ubo.alignment);
 		vkal_bind_descriptor_sets(image_id, descriptor_sets, descriptor_set_layout_count,
 					  &dynamic_offset, 1,

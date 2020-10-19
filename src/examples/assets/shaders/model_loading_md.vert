@@ -39,12 +39,12 @@ void main()
     out_normal = (u_view_proj.proj * u_view_proj.view * u_model_data.model_mat * vec4(normal, 0.0)).xyz;
     
     mat4 skin_mat = 
-        bone_weights[0] * offset_matrices.m[bone_indices[0]] * skeleton_matrices.m[bone_indices[0]] +
-        bone_weights[1] * offset_matrices.m[bone_indices[1]] * skeleton_matrices.m[bone_indices[1]] +
-        bone_weights[2] * offset_matrices.m[bone_indices[2]] * skeleton_matrices.m[bone_indices[2]] +
-        bone_weights[3] * offset_matrices.m[bone_indices[3]] * skeleton_matrices.m[bone_indices[3]];
+        bone_weights[0] * inverse(offset_matrices.m[bone_indices[0]]) * (skeleton_matrices.m[bone_indices[0]]) * (offset_matrices.m[bone_indices[0]]) +
+        bone_weights[1] * inverse(offset_matrices.m[bone_indices[1]]) * (skeleton_matrices.m[bone_indices[1]]) * (offset_matrices.m[bone_indices[1]]) +
+        bone_weights[2] * inverse(offset_matrices.m[bone_indices[2]]) * (skeleton_matrices.m[bone_indices[2]]) * (offset_matrices.m[bone_indices[2]]) +
+        bone_weights[3] * inverse(offset_matrices.m[bone_indices[3]]) * (skeleton_matrices.m[bone_indices[3]]) * (offset_matrices.m[bone_indices[3]]);
     vec4 pos_clipspace = u_view_proj.proj * u_view_proj.view * 
-                         u_model_data.model_mat * skin_mat * inverse(skin_mat) * vec4(position, 1.0);
+                         u_model_data.model_mat * skin_mat * vec4(position, 1.0);
 	gl_Position = pos_clipspace;
     gl_Position.y = -gl_Position.y; // Hack: vulkan's y is down
 }
