@@ -111,6 +111,7 @@ typedef struct MdMesh
     Bone *   bones;
     uint32_t bone_count;
     mat4 *   animation_matrices;
+    mat4 *   tmp_matrices;
     Node *   skeleton_nodes;
     uint32_t node_count;
 } MdMesh;
@@ -147,6 +148,7 @@ MdMesh load_md_mesh(char * filename)
     result.indices            = (uint16_t*)malloc(result.index_count * sizeof(uint16_t));
     result.bones              = (Bone*)malloc(result.bone_count * sizeof(Bone));
     result.animation_matrices = (mat4*)malloc(result.bone_count * sizeof(mat4));
+    result.tmp_matrices       = (mat4*)malloc(result.bone_count * sizeof(mat4));
     result.skeleton_nodes     = (Node*)malloc(result.node_count * sizeof(Node));
     Vertex * vertex_data = (Vertex*)((MdMeshHeader*)file_data + 1);
     memcpy(result.vertices, vertex_data, result.vertex_count * sizeof(Vertex));
@@ -156,6 +158,7 @@ MdMesh load_md_mesh(char * filename)
     memcpy(result.bones, bones, result.bone_count * sizeof(Bone));
     for (uint32_t i = 0; i < result.bone_count; ++i) {
 	result.animation_matrices[i] = mat4_identity();
+	result.tmp_matrices[i] = mat4_identity();
     }
     Node * skeleton_nodes = (Node*)(bones + result.bone_count);
     memcpy(result.skeleton_nodes, skeleton_nodes, result.node_count * sizeof(Node));
@@ -169,7 +172,15 @@ void update_skeleton(MdMesh * mesh)
     uint32_t node_count = mesh->node_count;
     for (uint32_t i = 0; i < node_count; ++i) {
 	Node * node = &(skeleton_nodes[i]);
-	uint32_t parent_node = node->parent_index;
+	int parent_index = node->parent_index;
+	if (parent_index >= 0) {
+	    uint32_t bone_index = node->bone_index;
+	    uint32_t parent_bone_index = skeleton_nodes[parent_index].bone_index;
+	    mat4 parent_mat = mesh->tmp_matrices[parent_bone_index];
+	    mat4 offset_mat = mesh->bones[bone_index].offset_matrix;
+	    mat4 parent_offset_mat = mesh->bones[parent_index].offset_matrix;
+	    mesh->tmp_matrices[bone_index] = mat4_x_mat4( parent_mat, mesh->animation_matrices[bone_index] );
+	}
     }
 }
 
@@ -406,7 +417,7 @@ int main(int argc, char ** argv)
         
     /* View Projection */
     Camera camera;
-    camera.pos = (vec3){ -.2, 1.8, 3.f };
+    camera.pos = (vec3){ -.2, 0, 3.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
@@ -511,8 +522,9 @@ int main(int argc, char ** argv)
 	mat4 up_arm_r_rotation = rotate_x( arm_r_rot_x );
 	mat4 original_up_arm_r = md_mesh.bones[14].offset_matrix;
 //	up_arm_r_rotation = mat4_x_mat4(original_up_arm_r, up_arm_r_rotation);
+	md_mesh.animation_matrices[14] = up_arm_r_rotation;
 	update_skeleton( &md_mesh );
-	memcpy( &((mat4*)storage_buffer_skeleton_matrices.mapped)[14], &(up_arm_r_rotation), sizeof(mat4) );
+	memcpy( storage_buffer_skeleton_matrices.mapped, md_mesh.tmp_matrices, md_mesh.bone_count * sizeof(mat4) );
 	
 	{
 	    uint32_t image_id = vkal_get_image();
