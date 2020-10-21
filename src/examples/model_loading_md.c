@@ -513,16 +513,23 @@ int main(int argc, char ** argv)
 	    model_mat = mat4_x_mat4(model_mat, rot_z);
 	    model_mat = mat4_x_mat4(model_mat, rot_y);
 	    model_mat = mat4_x_mat4(model_mat, rot_x);
+
+	    mat4 inv = mat4_inverse(model_mat);
+	    mat4 iden = mat4_x_mat4(inv, model_mat);
+	    mat4 iden2 = mat4_x_mat4(model_mat, inv);
+	    
 	    ((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
 	}
 	vkal_update_uniform(&model_ubo, model_data);
 
 	/* update skeleton's upper right arm (Lego Model Index 14) */	
 	arm_r_rot_x += 0.001f;
-	mat4 up_arm_r_rotation = rotate_x( arm_r_rot_x );
-	mat4 original_up_arm_r = md_mesh.bones[14].offset_matrix;
-//	up_arm_r_rotation = mat4_x_mat4(original_up_arm_r, up_arm_r_rotation);
-	md_mesh.animation_matrices[14] = up_arm_r_rotation;
+	mat4 arm_rot = rotate_x( arm_r_rot_x );
+	mat4 arm_offset = md_mesh.bones[14].offset_matrix;
+	mat4 trans = mat4_identity();
+	trans = translate(trans, (vec3){0, 0, 0 });
+	trans = mat4_x_mat4(trans, arm_rot);
+	md_mesh.animation_matrices[14] = mat4_x_mat4( mat4_inverse(arm_offset), mat4_x_mat4(arm_rot, arm_offset) );
 	update_skeleton( &md_mesh );
 	memcpy( storage_buffer_skeleton_matrices.mapped, md_mesh.tmp_matrices, md_mesh.bone_count * sizeof(mat4) );
 	

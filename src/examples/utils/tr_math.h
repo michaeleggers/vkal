@@ -35,6 +35,7 @@ float vec4_dot(vec4 a, vec4 b);
 vec4  vec4_div(vec4 v, float s);
 
 mat4  mat4_identity(void);
+mat4  mat4_inverse(mat4 m);
 mat4  mat4_x_mat4(mat4 a, mat4 b);
 vec4  mat4_x_vec4(mat4 m, vec4 v);
 mat4  translate(mat4 m, vec3 v);

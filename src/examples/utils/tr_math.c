@@ -47,6 +47,15 @@ vec3 vec3_div(vec3 v, float s)
     return result;
 }
 
+vec3  vec3_add(vec3 a, vec3 b)
+{
+    vec3 result;
+    result.x = a.x + b.x;
+    result.y = a.y + b.y;
+    result.z = a.z + b.z;
+    return result;
+}
+
 vec3  vec3_sub(vec3 a, vec3 b)
 {
     vec3 result;
@@ -121,6 +130,63 @@ mat4 mat4_identity()
         .d[2]={0, 0, 1, 0},
         .d[3]={0, 0, 0, 1}
     };
+}
+
+/* Computation from Eric Lengyel's FGED, Vol1 - Mathematics */
+mat4 mat4_inverse(mat4 m)
+{
+    vec3  a = *((vec3*)&m.d[0]);
+    vec3  b = *((vec3*)&m.d[1]);
+    vec3  c = *((vec3*)&m.d[2]);
+    vec3  d = *((vec3*)&m.d[3]);
+
+    float x = m.d[3][0];
+    float y = m.d[3][1];
+    float z = m.d[3][2];
+    float w = m.d[3][3];
+
+    vec3 s = vec3_cross(a, b);
+    vec3 t = vec3_cross(c, d);
+    vec3 u1 = vec3_mul(y, a);
+    vec3 u2 = vec3_mul(x, b);
+    vec3 u = vec3_sub(u1, u2);
+    vec3 v1 = vec3_mul(w, c);
+    vec3 v2 = vec3_mul(z, d);
+    vec3 v = vec3_sub(v1, v2);
+
+    float inv_det = 1.0f / (vec3_dot(s,v) + vec3_dot(t, u));
+    s = vec3_mul(inv_det, s);
+    t = vec3_mul(inv_det, t);
+    u = vec3_mul(inv_det, u);
+    v = vec3_mul(inv_det, v);
+
+    vec3 r0 = vec3_add( vec3_cross(b, v), vec3_mul(y, t) );
+    vec3 r1 = vec3_sub( vec3_cross(v, a), vec3_mul(x, t) );
+    vec3 r2 = vec3_add( vec3_cross(d, u), vec3_mul(w, s) );
+    vec3 r3 = vec3_sub( vec3_cross(u, c), vec3_mul(z, s) );
+
+    mat4 result;
+    result.d[0][0] = r0.x;
+    result.d[0][1] = r1.x;
+    result.d[0][2] = r2.x;
+    result.d[0][3] = r3.x;
+
+    result.d[1][0] = r0.y;
+    result.d[1][1] = r1.y;
+    result.d[1][2] = r2.y;
+    result.d[1][3] = r3.y;
+
+    result.d[2][0] = r0.z;
+    result.d[2][1] = r1.z;
+    result.d[2][2] = r2.z;
+    result.d[2][3] = r3.z;
+
+    result.d[3][0] = -vec3_dot(b, t);
+    result.d[3][1] =  vec3_dot(a, t);
+    result.d[3][2] = -vec3_dot(d, s);
+    result.d[3][3] =  vec3_dot(c, s);
+
+    return result;
 }
 
 vec4 mat4_x_vec4(mat4 m, vec4 v)
