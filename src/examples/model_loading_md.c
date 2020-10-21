@@ -405,7 +405,7 @@ int main(int argc, char ** argv)
     Entity entities[NUM_ENTITIES];
     vec3 pos = { 0, 0, 0.f };
     vec3 rot = { tr_radians(-90.f), 0.f, 0.f };
-    vec3 scale = (vec3){ 1, 1, 1 };
+    vec3 scale = (vec3){ 2, 2, 2 };
     entities[0].model       = md_model;
     entities[0].position    = pos;
     entities[0].orientation = rot;
@@ -417,7 +417,7 @@ int main(int argc, char ** argv)
         
     /* View Projection */
     Camera camera;
-    camera.pos = (vec3){ -.2, 0, 3.f };
+    camera.pos = (vec3){ 0, 10.f, 5.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
@@ -524,12 +524,20 @@ int main(int argc, char ** argv)
 
 	/* update skeleton's upper right arm (Lego Model Index 14) */	
 	arm_r_rot_x += 0.001f;
-	mat4 arm_rot = rotate_x( arm_r_rot_x );
+	static float dings = 0.0f;
+	dings += 0.0001f;
+	mat4 arm_rot_x = rotate_x (arm_r_rot_x );
+	mat4 arm_rot_y = rotate_y (arm_r_rot_x );
+	mat4 arm_rot_z = rotate_z (arm_r_rot_x );
+	mat4 arm_rot = mat4_identity();
+//	arm_rot = mat4_x_mat4( arm_rot, arm_rot_z );
+	arm_rot = mat4_x_mat4( arm_rot, arm_rot_y );
+//	arm_rot = mat4_x_mat4( arm_rot, arm_rot_x );
 	mat4 arm_offset = md_mesh.bones[14].offset_matrix;
 	mat4 trans = mat4_identity();
-	trans = translate(trans, (vec3){0, 0, 0 });
+	trans = translate(trans, (vec3){0, fabs( sinf(dings) ), 0 });
 	trans = mat4_x_mat4(trans, arm_rot);
-	md_mesh.animation_matrices[14] = mat4_x_mat4( mat4_inverse(arm_offset), mat4_x_mat4(arm_rot, arm_offset) );
+	md_mesh.animation_matrices[14] = mat4_x_mat4( mat4_inverse(arm_offset), mat4_x_mat4(trans, arm_offset) );
 	update_skeleton( &md_mesh );
 	memcpy( storage_buffer_skeleton_matrices.mapped, md_mesh.tmp_matrices, md_mesh.bone_count * sizeof(mat4) );
 	
