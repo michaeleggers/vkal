@@ -27,6 +27,10 @@ Otherwise, VKAL does depend on the C Standard Library.
 
 ## Using VKAL
 
+### Building
+Either MSVC, CLANG or GCC are fine. It is important to define `VKAL_GLFW` through a command line parameter
+so VKAL will you GLFW3 for window-creation.
+
 ### Initialization
 
 ```c
@@ -80,7 +84,7 @@ VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
 
 ### Creating a Graphics Pipeline
 
-The graphics pipeline is central to any Vulkan application that should draw something
+The graphics pipeline is central to any Vulkan application that draws something
 onto the screen.
 The creation of a VkPipeline object is divided into the following steps in VKAL:
 
@@ -115,7 +119,7 @@ VkVertexInputAttributeDescription vertex_attributes[] =
 };
 uint32_t vertex_attribute_count = sizeof(vertex_attributes)/sizeof(*vertex_attributes);
 ```
-As you can see, this is nothing special. This is bare Vulkan code. both arrays will be
+As you can see, this is nothing special. This is bare Vulkan code. Both arrays will be
 needed for creating the pipeline later...
 
 #### 3. Create Descriptor Sets and Push Constants
@@ -139,7 +143,7 @@ VkDescriptorSetLayoutBinding set_layout[] = {
 	}
 };
 
-VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 1);
+VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 2);
 
 VkDescriptorSetLayout layouts[] = {
 	descriptor_set_layout
@@ -283,7 +287,9 @@ is returned via `vkal_get_image()`. This id is being used throughout the followi
 both Scissor and Viewport states are set to dynamic implicitly during pipeline-creation they must be
 updated. The descriptor set, which was initialized above is being bound and a draw-call is issued. 
 VKAL drawing commands come in two flavors: `vkal_draw` and `vkal_draw_indexed` for un-indexed and indexed
-vertex-data respectively.
+vertex-data respectively. Remember the offsets we got returned from the calls to `vkal_vertex(index)_buffer_add(...)`?
+We use those offsets to tell the draw command where the vertex- and indexdata is to be found in both the Vertex-
+and Indexbuffers.
 All calls are encapsulated by both a begin/end pair of both command-buffer and renderpass-calls.
 The defautl renderpass and command-buffers are used which are created during VKAL initialization.
 
@@ -301,10 +307,21 @@ properly:
 glfwDestroyWindow(window);
 glfwTerminate();
 ```
-The full example code for the example presented here can be found [here](https://github.com/michaeleggers/vkal/blob/master/src/examples/textures.c)
+The full code for this example presented can be found [here](https://github.com/michaeleggers/vkal/blob/master/src/examples/texture.c)
 
 ## Building the examples
+The following libraries are used:
 
+* [stb_image](https://github.com/nothings/stb) for loading image-data (PNG, JPG, ...)
+* [tinyobjloader-c](https://github.com/syoyo/tinyobjloader-c) for loading OBJ model files
+* [GLFW3](https://www.glfw.org/) for input handling and window-creation
+
+Thanks to the authors of those libs, creating the examples was much easier. Thank you!
+
+Since the examples use some win32 specific code to load files from disk the examples will
+not build on any other platform at the moment. Sorry!
+
+The root directory contains a `build.bat` that can build the examples.
 
 
 
