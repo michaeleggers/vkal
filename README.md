@@ -6,7 +6,7 @@ MSVC, CLANG and GCC.
 
 ## The reason for VKAL
 
-Despite its name, VKAL does not abstract away the Vulkan API. It rather is a set of functions that wrap
+Despite its name, VKAL does not completely abstract away the Vulkan API. It rather is a set of functions that wrap
 many Vulkan-calls in order to make the developer's life easier. It does not prevent the user
 to mix in Vulkan calls directly. In fact, VKAL expects the user to do this. If you need a
 renderering API that is completely API-agnostic, VKAL is not for you. Have a look at
@@ -245,6 +245,47 @@ Then, the corresponding Descriptor has to be updated:
 vkal_update_descriptor_set_texture(descriptor_set[0], texture);	
 ```
 ### Renderloop
+```c
+while (!glfwWindowShouldClose(window))
+{
+    glfwPollEvents();
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
+    vkal_update_uniform(&view_proj_ubo, &view_proj_data);
+
+    {
+        uint32_t image_id = vkal_get_image();
+
+        vkal_begin_command_buffer(image_id);
+        vkal_begin_render_pass(image_id, vkal_info->render_pass);
+        vkal_viewport(vkal_info->command_buffers[image_id],
+	              0, 0,
+		      width, height);
+        vkal_scissor(vkal_info->command_buffers[image_id],
+		     0, 0,
+		     width, height);
+        vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
+        vkal_draw_indexed(image_id, graphics_pipeline,
+		          offset_indices, index_count,
+		          offset_vertices);
+        vkal_end_renderpass(image_id);
+        vkal_end_command_buffer(image_id);
+        VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
+        vkal_queue_submit(command_buffers1, 1);
+
+        vkal_present(image_id);
+    }
+}
+```
+After updating the projection matrix based on the framebuffer dimensions a swapchain's image-index
+is returned via `vkal_get_image()`. This id is being used throughout the following calls. Since
+both Scissor and Viewport states are set to dynamic implicitly during pipeline-creation they must be
+updated. The descriptor set, which was initialized above is being bound and a draw-call is issued. 
+VKAL drawing commands come in two flavors: `vkal_draw` and `vkal_draw_indexed` for un-indexed and indexed
+vertex-data respectively.
+All calls are encapsulated by both a begin/end pair of both command-buffer and renderpass-calls.
+The defautl renderpass and command-buffers are used which are created during VKAL initialization.
 
 ### Cleanup
 When creating buffers, pipelines, descriptor sets, image views and so on using the functions above, VKAL will
@@ -260,6 +301,8 @@ properly:
 glfwDestroyWindow(window);
 glfwTerminate();
 ```
+The full example code for the example presented here can be found [here](https://github.com/michaeleggers/vkal/blob/master/src/examples/textures.c)
+
 ## Building the examples
 
 
