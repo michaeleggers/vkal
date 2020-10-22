@@ -15,7 +15,7 @@ does not require you to learn a specific graphics API such as DX11/12, OpenGL or
 [Sokol-Headers](https://github.com/floooh/sokol) created by Andre Weissflog.
 
 If you're starting to learn Vulkan and you do want to take a more top-down approach in order to
-boost your learning experience, then Vulkan  might be worth a look at. That being said, VKAL
+boost your learning experience, then VKAL  might be worth a look at. That being said, VKAL
 is being developed simply because I want to get more familiar with the Vulkan-API myself.
 
 ## Dependencies
@@ -77,4 +77,27 @@ vkal_select_physical_device(&devices[0]);
 /* Finally, initialize VKAL itself. All state will be accessible through vkal_info */
 VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
 ```
+
+### Creating a Graphics Pipeline
+
+Since the graphics pipeline is central to any Vulkan graphical application.
+The creation of a VkPipeline object is divided into the following steps in VKAL:
+
+1. Create Vertex- and Fragment shaders.
+2. Define the layout for Vertex Input Assembly.
+3. Create Descriptor Sets and Push Constants.
+4. Create the (Graphics-)Pipeline using the resources created in previous steps.
+
+For each of these steps VKAL provides a few helper-functions:
+
+```c
+ShaderStageSetup shader_setup = vkal_create_shaders(
+	vertex_byte_code, vertex_code_size, 
+	fragment_byte_code, fragment_code_size);
+```
+where `vertex_byte_code` holds the binary vertex-shader SPIR-V data of `vertex_code_size` bytes.
+The same applies to the fragment shader using the 2nd and 3rd arguments (start counting at 0 ;) ).
+
+
+
 
