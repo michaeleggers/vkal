@@ -217,7 +217,22 @@ vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 ```
 
 ### Textures
+To create a texture which can be sampled from:
+```c
+Texture texture = vkal_create_texture(
+			0,                                                      /* binding */
+			image.data, image.width, image.height, image.channels,  
+			0,                                                      /* VkImageCreateFlags */  
+			VK_IMAGE_VIEW_TYPE_2D, 
+			0, 1,                                                   /* base mip-level, mip-level count */
+			0, 1,                                                   /* base array-layer, array-layer count */
+			VK_FILTER_LINEAR, VK_FILTER_LINEAR);                    
 
+```
+Then, the corresponding Descriptor has to be updated:
+```c
+vkal_update_descriptor_set_texture(descriptor_set[0], texture);	
+```
 ### Renderloop
 
 ### Cleanup
