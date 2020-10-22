@@ -83,13 +83,14 @@ VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
 Since the graphics pipeline is central to any Vulkan graphical application.
 The creation of a VkPipeline object is divided into the following steps in VKAL:
 
-1. Create Vertex- and Fragment shaders.
+1. Create Vertex- and Fragment Shader Stage Setup.
 2. Define the layout for Vertex Input Assembly.
 3. Create Descriptor Sets and Push Constants.
 4. Create the (Graphics-)Pipeline using the resources created in previous steps.
 
 For each of these steps VKAL provides a few helper-functions:
 
+#### 1. Shader Stage Setup
 ```c
 ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
@@ -98,6 +99,47 @@ ShaderStageSetup shader_setup = vkal_create_shaders(
 where `vertex_byte_code` holds the binary vertex-shader SPIR-V data of `vertex_code_size` bytes.
 The same applies to the fragment shader using the 2nd and 3rd arguments (start counting at 0 ;) ).
 
+#### 2. Vertex Input Assembly Layout
+```c
+VkVertexInputBindingDescription vertex_input_bindings[] =
+{
+    { 0, 2*sizeof(vec3) + sizeof(vec2), VK_VERTEX_INPUT_RATE_VERTEX }
+};
 
+VkVertexInputAttributeDescription vertex_attributes[] =
+{
+    { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },               // pos
+    { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(vec3) },    // color
+    { 2, 0, VK_FORMAT_R32G32_SFLOAT,    2*sizeof(vec3) },  // UV 
+};
+uint32_t vertex_attribute_count = sizeof(vertex_attributes)/sizeof(*vertex_attributes);
+```
+As you can see, this is nothing special. This is bare Vulkan code. both arrays will be
+needed for creating the pipeline later...
+
+#### 3. Create Descriptor Sets and Push Constants
+While both of them actually are optional, every meaningful application will
+probably at least use a Descriptor Set to pass some data to shaders:
+```c
+VkDescriptorSetLayoutBinding set_layout[] = {
+	{
+	    0,
+	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	    VKAL_MAX_TEXTURES, /* Texture Array-Count: How many Textures do we need? */
+	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    0
+	}
+};
+
+VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 1);
+
+VkDescriptorSetLayout layouts[] = {
+	descriptor_set_layout
+};
+uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
+
+VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
+vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_sets);
+```
 
 
