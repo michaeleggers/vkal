@@ -27,10 +27,12 @@ Otherwise, VKAL does depend on the C Standard Library.
 
 ## Example
 
+### Initialization
+
 ```c
 char * device_extensions[] = {
-  VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	VK_KHR_MAINTENANCE3_EXTENSION_NAME
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+  	VK_KHR_MAINTENANCE3_EXTENSION_NAME
 };
 uint32_t device_extension_count = sizeof(device_extensions) / sizeof(*device_extensions);
 
@@ -51,10 +53,12 @@ uint32_t instance_layer_count = 0;
     instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);    
 #endif
    
+/* Create the Vulkan instance */
 vkal_create_instance(window,
    instance_extensions, instance_extension_count,
    instance_layers, instance_layer_count);
     
+/* Check if a suitable physical device (GPU) exists for the demanded extensions */
 VkalPhysicalDevice * devices = 0;
 uint32_t device_count;
 vkal_find_suitable_devices(device_extensions, device_extension_count,
@@ -64,7 +68,13 @@ printf("Suitable Devices:\n");
 for (uint32_t i = 0; i < device_count; ++i) {
   printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
 }
+
+/* The user may select a physical device at this point. We just take
+   the first one available in the list.
+*/
 vkal_select_physical_device(&devices[0]);
+
+/* Finally, initialize VKAL itself. All state will be accessible through vkal_info */
 VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
 ```
 
