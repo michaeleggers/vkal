@@ -54,7 +54,7 @@ uint32_t instance_layer_count = 0;
 #endif
    
 /* Create the Vulkan instance */
-vkal_create_instance(window,
+vkal_create_instance(window, /* Created through GLFW3 */
    instance_extensions, instance_extension_count,
    instance_layers, instance_layer_count);
     
@@ -200,6 +200,19 @@ with respecting alignment required by the Vulkan implementation:
 
 ![alt text](https://github.com/michaeleggers/vkal/blob/master/readme_figures/uniform_buffer_alignment.png "Uniform Buffers")
 
+Use
+```c
+    UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
+    vkal_update_descriptor_set_uniform(descriptor_sets[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+```
+to create a uniform buffer and update the correct descriptor set with data in `view_proj_data`, which is simply
+a struct containing data about view and projection matrices.
+
+To update the content of a uniform buffer use
+```c
+vkal_update_uniform(&view_proj_ubo, &view_proj_data);	
+```
+
 ### Textures
 
 ### Renderloop
@@ -208,8 +221,6 @@ with respecting alignment required by the Vulkan implementation:
 
 ## Building the examples
 
-## Issues
-* One should be able to create the amount of device memory for Vertex- Index- and Uniformbuffers based on
-the capability of the GPU and not by a `#define`.
+
 
 
