@@ -198,6 +198,8 @@ will be reused.
 Like Vertex- and Indexbuffers, uniform buffers are put next to each other in memory sharing the same `VkDeviceMemory`
 with respecting alignment required by the Vulkan implementation:
 
+![alt text](https://github.com/michaeleggers/vkal/blob/master/readme_figures/uniform_buffer_alignment.png "Uniform Buffers")
+
 ### Textures
 
 ### Renderloop
