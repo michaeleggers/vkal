@@ -1,12 +1,7 @@
 /* Michael Eggers, 9/20/2020
 
-   This example uses vkal_bind_descriptor_set_dynamic to send the texture index to
-   the fragment shader. These Dynamic Descriptor Sets are explained well here:
-   https://github.com/SaschaWillems/Vulkan/tree/master/examples/dynamicuniformbuffer
-   
-   This way the index which is used to lookup the correct texture in the
-   descriptor-array for samplers can be passed through a single descriptor.
-   when binding, the offset within the buffer is provided.
+   Push Constant is used to index into the sampler2D Descriptor-Array to look up
+   the correct texture.
 */
 
 

@@ -1960,9 +1960,9 @@ void upload_texture(VkImage const image,
 	copy_info.bufferImageHeight = 0;
 	copy_info.bufferRowLength = 0;
 	copy_info.imageOffset = (VkOffset3D){ 0, 0, 0 };
-	copy_info.imageExtent.width = w;
-	copy_info.imageExtent.width = h;
-	copy_info.imageExtent.width = 1;
+	copy_info.imageExtent.width  = w;
+	copy_info.imageExtent.height = h;
+	copy_info.imageExtent.depth  = 1;
 	vkCmdCopyBufferToImage(vkal_info.command_buffers[i], vkal_info.staging_buffer.buffer, image,
                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
         

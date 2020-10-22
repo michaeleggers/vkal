@@ -26,6 +26,7 @@ vec3  vec3_normalize(vec3 v);
 float vec3_dot(vec3 a, vec3 b);
 vec3  vec3_cross(vec3 a, vec3 b);
 vec3  vec3_div(vec3 v, float s);
+vec3  vec3_add(vec3 a, vec3 b);
 vec3  vec3_sub(vec3 a, vec3 b);
 vec3  vec3_mul(float s, vec3 v);
 

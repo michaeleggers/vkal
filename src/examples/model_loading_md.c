@@ -173,14 +173,27 @@ void update_skeleton(MdMesh * mesh)
     for (uint32_t i = 0; i < node_count; ++i) {
 	Node * node = &(skeleton_nodes[i]);
 	int parent_index = node->parent_index;
+	uint32_t bone_index = node->bone_index;
 	if (parent_index >= 0) {
-	    uint32_t bone_index = node->bone_index;
 	    uint32_t parent_bone_index = skeleton_nodes[parent_index].bone_index;
 	    mat4 parent_mat = mesh->tmp_matrices[parent_bone_index];
 	    mat4 offset_mat = mesh->bones[bone_index].offset_matrix;
 	    mat4 parent_offset_mat = mesh->bones[parent_index].offset_matrix;
 	    mesh->tmp_matrices[bone_index] = mat4_x_mat4( parent_mat, mesh->animation_matrices[bone_index] );
 	}
+	else {
+	    mesh->tmp_matrices[bone_index] = mat4_x_mat4( mat4_identity(), mesh->animation_matrices[bone_index] );
+	}
+    }
+
+    for (uint32_t i = 0; i < node_count; ++i) {
+	Node * node = &(skeleton_nodes[i]);
+	int parent_index = node->parent_index;
+//	if (parent_index >= 0) {
+	    uint32_t bone_index = node->bone_index;
+	    mat4 offset_mat = mesh->bones[bone_index].offset_matrix;
+//	    mesh->tmp_matrices[bone_index] = mat4_x_mat4( mat4_inverse(offset_mat), mat4_x_mat4( mesh->tmp_matrices[bone_index], offset_mat ) );
+//	}
     }
 }
 
@@ -417,7 +430,7 @@ int main(int argc, char ** argv)
         
     /* View Projection */
     Camera camera;
-    camera.pos = (vec3){ 0, 10.f, 5.f };
+    camera.pos = (vec3){ 0, 0.f, 5.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
@@ -535,9 +548,9 @@ int main(int argc, char ** argv)
 //	arm_rot = mat4_x_mat4( arm_rot, arm_rot_x );
 	mat4 arm_offset = md_mesh.bones[14].offset_matrix;
 	mat4 trans = mat4_identity();
-	trans = translate(trans, (vec3){0, fabs( sinf(dings) ), 0 });
+	trans = translate(trans, (vec3){0, 0.5f*fabs( sinf(dings) ), 0 });
 	trans = mat4_x_mat4(trans, arm_rot);
-	md_mesh.animation_matrices[14] = mat4_x_mat4( mat4_inverse(arm_offset), mat4_x_mat4(trans, arm_offset) );
+	md_mesh.animation_matrices[14] = trans; //mat4_x_mat4(mat4_inverse(arm_offset), mat4_x_mat4(trans, arm_offset) );
 	update_skeleton( &md_mesh );
 	memcpy( storage_buffer_skeleton_matrices.mapped, md_mesh.tmp_matrices, md_mesh.bone_count * sizeof(mat4) );
 	

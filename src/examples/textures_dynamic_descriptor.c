@@ -3,9 +3,10 @@
    This example uses vkal_bind_descriptor_set_dynamic to send the texture index to
    the fragment shader. These Dynamic Descriptor Sets are explained well here:
    https://github.com/SaschaWillems/Vulkan/tree/master/examples/dynamicuniformbuffer
-   
+
    This way the index which is used to lookup the correct texture in the
-   descriptor-array for samplers can be passed through a single descriptor.
+   descriptor-array (this is not a texture-array, but it feels like an array of textures...)
+   for samplers can be passed through a single descriptor set.
    when binding, the offset within the buffer is provided.
 */
 
@@ -119,10 +120,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.rfb("../src/examples/assets/shaders/textures_descriptorarray_vert.spv", &vertex_byte_code, &vertex_code_size);
+    p.rfb("../src/examples/assets/shaders/textures_dynamic_descriptor_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.rfb("../src/examples/assets/shaders/textures_descriptorarray_frag.spv", &fragment_byte_code, &fragment_code_size);
+    p.rfb("../src/examples/assets/shaders/textures_dynamic_descriptor_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
