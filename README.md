@@ -141,5 +141,25 @@ uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
 VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
 vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_sets);
 ```
+`vkal_create_descriptor_set_layout` creates - as its name implies - a `VkDescriptorSetLayout`. Those are
+placed in the `layouts` array. Remember that the order of layouts in the array defines the Set's index.
+In this example there is only one layout, so its index is 0.
+Then `descriptor_set_layout_count` `VkDescriptorSet`s are created. They need to be allocated
+from a descriptor pool. A default descriptor pool is created when calling `vkal_init(...)`. We refer
+to this pool through `vkal_info`. If the pool does not serve your needs then you can change
+the amount of resources to be available for allocation in `vkal.c` in the function `create_descriptor_pool(void)`.
 
+#### 4. Creating the Graphics Pipeline
+```c
+VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
+	layouts, descriptor_set_layout_count, 
+	NULL, 0);
+VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
+	vertex_input_bindings, 1,
+	vertex_attributes, vertex_attribute_count,
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+	VK_FRONT_FACE_CLOCKWISE,
+	vkal_info->render_pass, pipeline_layout);
+```
 
