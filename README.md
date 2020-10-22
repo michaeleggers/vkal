@@ -194,6 +194,9 @@ used back vertex- and indexbuffers with actual memory are also created during st
 than creating (and allocating) new `VkDeviceMemory` objects for each new mesh to be rendered the same buffer
 will be reused.
 
+This way of using device memory is not only recommended by the official Vulkan Guide but also
+by Nvidia, as described in further detail here: [Nvidia Vulkan Memory Management](https://developer.nvidia.com/vulkan-memory-management)
+
 ### Uniform Buffers
 Like Vertex- and Indexbuffers, uniform buffers are put next to each other in memory sharing the same `VkDeviceMemory`
 with respecting alignment required by the Vulkan implementation:
