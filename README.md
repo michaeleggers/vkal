@@ -25,7 +25,7 @@ VKAL only supports GLFW3 to do this. GLFW3 can be found here: [GLFW3](https://ww
 
 Otherwise, VKAL does depend on the C Standard Library.
 
-## Example
+## Using VKAL
 
 ### Initialization
 
@@ -150,10 +150,11 @@ to this pool through `vkal_info`. If the pool does not serve your needs then you
 the amount of resources to be available for allocation in `vkal.c` in the function `create_descriptor_pool(void)`.
 
 #### 4. Creating the Graphics Pipeline
+Finally, all the created resources in previous steps are now needed for creating the graphics pipeline:
 ```c
 VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
 	layouts, descriptor_set_layout_count, 
-	NULL, 0);
+	NULL, 0); /* No push constants for now. */
 VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
@@ -162,4 +163,17 @@ VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
 ```
+
+### Vertex- and Indexbuffers
+
+### Creating Textures
+
+### Renderloop
+
+### Cleanup
+
+## Building the examples
+
+## Issues
+
 
