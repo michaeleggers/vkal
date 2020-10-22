@@ -167,34 +167,36 @@ VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 ### Vertex- and Indexbuffers
 Creating a rectangle out of two triangles using indexed mesh-data:
 ```c
-float cube_vertices[] = {
+float rect_vertices[] = {
 	// Pos            // Color        // UV
 	-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
 	 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
 	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
 	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  1.0, 1.0
 };
-uint32_t vertex_count = sizeof(cube_vertices)/sizeof(*cube_vertices);
+uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
 
-uint16_t cube_indices[] = {
+uint16_t rect_indices[] = {
 	0, 1, 2,
 	2, 1, 3
 };
-uint32_t index_count = sizeof(cube_indices)/sizeof(*cube_indices);
+uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
 
-uint32_t offset_vertices = vkal_vertex_buffer_add(cube_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
-uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
+uint32_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
+uint32_t offset_indices  = vkal_index_buffer_add(rect_indices, index_count);
 ```
 Firstly, data for vertex attributes and their indices are defined. Now, both `vkal_vertex_buffer_add` and
 `vkal_index_buffer_add` put the data into buffers that are device local. The functions take care of transferring
 the data via a staging buffer to GPU local memory. Both functions return an `uint32_t` describing the offset
-into the buffers describing where the data is to be found. Both Vertex- and Indexbuffers used by
+into the buffers where the data is to be found. Both Vertex- and Indexbuffers used by
 those functions are created during vkal initialization. The `VkDeviceMemory` objects which are
 used back vertex- and indexbuffers with actual memory are also created during startup. That means rather
 than creating (and allocating) new `VkDeviceMemory` objects for each new mesh to be rendered the same buffer
 will be reused.
 
 ### Uniform Buffers
+Like Vertex- and Indexbuffers, uniform buffers are put next to each other in memory sharing the same `VkDeviceMemory`
+with respecting alignment required by the Vulkan implementation:
 
 ### Textures
 
