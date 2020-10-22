@@ -1,13 +1,7 @@
-/* Michael Eggers, 9/20/2020
-
-   This example uses distinct descriptor-sets to change the texture being used in the
-   shader. This means, however, that for every different texture we need to have
-   another descriptor set (as a descriptor set cannot be updated while a command
-   buffer is in flight). Those sets essentially are the same in that they have
-   all the same layout. With many textures this results in many descriptor-sets
-   just for the textures. This problem can be solved through dynamic uniform buffers
-   and descriptor-arrays for the textures. This is shown in textures_descriptorarray.c.
-   COOL!
+/* Michael Eggers, 10/22/2020
+   
+   Simple example showing how to draw a rect (two triangles) and mapping
+   a texture on it.
 */
 
 
@@ -26,8 +20,8 @@
 #define TRM_NDC_ZERO_TO_ONE
 #include "utils/tr_math.h"
 
-#define SCREEN_WIDTH  800
-#define SCREEN_HEIGHT 800
+#define SCREEN_WIDTH  1280
+#define SCREEN_HEIGHT 768
 
 static GLFWwindow * window;
 static Platform p;
@@ -40,8 +34,9 @@ typedef struct Image
 
 typedef struct ViewProjection
 {
-    mat4 view;
-    mat4 proj;
+    mat4  view;
+    mat4  proj;
+    float image_aspect;
 } ViewProjection;
 
 typedef struct Camera
@@ -66,7 +61,7 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Vulkan", 0, 0);
+    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: texture.c", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
 }
 
@@ -222,12 +217,13 @@ int main(int argc, char ** argv)
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);
     
     /* Texture Data */
-    Image image = load_image_file("../src/examples/assets/textures/indy.png");
+    Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
     Texture texture = vkal_create_texture(1, image.data, image.width, image.height, image.channels, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image.data);
     vkal_update_descriptor_set_texture(descriptor_set[0], texture);
-
+    view_proj_data.image_aspect = (float)texture.width/(float)texture.height;
+    
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {

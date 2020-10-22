@@ -14,8 +14,9 @@ layout (location = 2) out vec2 out_uv;
 
 layout (set = 0, binding = 0) uniform ViewProj_t
 {
-    mat4 view;
-    mat4 proj;
+    mat4  view;
+    mat4  proj;
+    float image_aspect;
 } u_view_proj;
 
 void main()
@@ -24,5 +25,6 @@ void main()
     out_color = color;
     out_uv = uv;
 	gl_Position = u_view_proj.proj * u_view_proj.view * vec4(position, 1.0);
+    gl_Position.x *= u_view_proj.image_aspect;
     gl_Position.y = -gl_Position.y; // Hack: vulkan's y is down
 }
