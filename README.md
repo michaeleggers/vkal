@@ -80,7 +80,8 @@ VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
 
 ### Creating a Graphics Pipeline
 
-Since the graphics pipeline is central to any Vulkan graphical application.
+The graphics pipeline is central to any Vulkan application that should draw something
+onto the screen.
 The creation of a VkPipeline object is divided into the following steps in VKAL:
 
 1. Create Vertex- and Fragment Shader Stage Setup.
@@ -124,8 +125,15 @@ probably at least use a Descriptor Set to pass some data to shaders:
 VkDescriptorSetLayoutBinding set_layout[] = {
 	{
 	    0,
+	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	    1,
+	    VK_SHADER_STAGE_VERTEX_BIT,
+	    0
+	},
+	{
+	    1,
 	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	    VKAL_MAX_TEXTURES, /* Texture Array-Count: How many Textures do we need? */
+	    1,
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
 	}
@@ -138,8 +146,8 @@ VkDescriptorSetLayout layouts[] = {
 };
 uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
 
-VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
-vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_sets);
+VkDescriptorSet * descriptor_set = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
+vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_set);
 ```
 `vkal_create_descriptor_set_layout` creates - as its name implies - a `VkDescriptorSetLayout`. Those are
 placed in the `layouts` array. Remember that the order of layouts in the array defines the Set's index.
@@ -205,8 +213,11 @@ with respecting alignment required by the Vulkan implementation:
 
 Use
 ```c
-    UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
-    vkal_update_descriptor_set_uniform(descriptor_sets[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(
+    					sizeof(view_proj_data), 
+					1,  /* element count */ 
+					0); /* binding */
+    vkal_update_descriptor_set_uniform(descriptor_set[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 ```
 to create a uniform buffer and update the correct descriptor set with data in `view_proj_data`, which is simply
 a struct containing data about view and projection matrices.
@@ -220,7 +231,7 @@ vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 To create a texture which can be sampled from:
 ```c
 Texture texture = vkal_create_texture(
-			0,                                                      /* binding */
+			1,                                                      /* binding */
 			image.data, image.width, image.height, image.channels,  
 			0,                                                      /* VkImageCreateFlags */  
 			VK_IMAGE_VIEW_TYPE_2D, 
@@ -236,7 +247,19 @@ vkal_update_descriptor_set_texture(descriptor_set[0], texture);
 ### Renderloop
 
 ### Cleanup
-
+When creating buffers, pipelines, descriptor sets, image views and so on using the functions above, VKAL will
+keep track of the resources. This is being done through a simple arrays where each resource is associated with
+an id that is used to look up the Vulkan handle for the resource in an array. Thus, in the end, VKAL just
+iterates through these arrays and destroys all Vulkan resources. The function to call is:
+```c
+vkal_cleanup();
+```
+Since VKAL needs the window handle through GLFW3 or SDL2 (not yet implemented) you should also shut down GLFW3 (or SDL2)
+properly:
+```c
+glfwDestroyWindow(window);
+glfwTerminate();
+```
 ## Building the examples
 
 
