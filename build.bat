@@ -25,11 +25,14 @@ mkdir build
 pushd build
 
 REM ### GCC COMPILE ###
-REM gcc %flags_debug%  ..\src\examples\textures_descriptorarray.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_textures_descriptorarray.exe
-gcc %flags_debug%  ..\src\examples\texture.c ..\src\vkal.c ..\src\platform.c ..\src\examples\utils\tr_math.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_dbg_texture.exe
-REM gcc %flags_debug%  ..\src\examples\rendertexture.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_rendertexture.exe
-REM gcc %flags_debug%  ..\src\examples\model_loading.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_model_loading.exe
-REM gcc %flags_release% ..\src\main.c -o gcc_release_main
+REM gcc %flags_debug%  ..\src\examples\textures_dynamic_descriptor.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_dbg_dynamic_descriptor.exe
+REM gcc %flags_debug%  ..\src\examples\texture.c ..\src\vkal.c ..\src\platform.c ..\src\examples\utils\tr_math.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_dbg_texture.exe
+REM gcc %flags_debug%  ..\src\examples\textures.c ..\src\vkal.c ..\src\platform.c ..\src\examples\utils\tr_math.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_dbg_textures.exe
+REM gcc %flags_debug%  ..\src\examples\textures_descriptorarray_push_constant.c ..\src\vkal.c ..\src\platform.c ..\src\examples\utils\tr_math.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_dbg_textures_descriptorarray_push_constant.exe
+REM gcc %flags_debug%  ..\src\examples\rendertexture.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_dbg_rendertexture.exe
+REM gcc %flags_debug%  ..\src\examples\model_loading.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_dbg_model_loading.exe
+REM gcc %flags_debug%  ..\src\examples\model_loading_md.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -L%vulkan_lib_64%\ -L%glfw_lib_64%\ -l:vulkan-1.lib -l:glfw3dll.lib -o gcc_dbg_model_loading_md.exe
+
 
 REM ### CLANG COMPILE ###
 REM clang-cl %clang_flags_debug_easy%  ..\src\examples\textures_dynamic_descriptor.c ..\src\vkal.c ..\src\platform.c -o clang_dbg_textures_dynamic_descriptor.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
@@ -41,6 +44,11 @@ REM clang-cl %clang_flags_debug_easy%  ..\src\examples\model_loading.c ..\src\ex
 REM clang-cl %clang_flags_debug_easy%  ..\src\examples\model_loading_md.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o clang_dbg_model_loading_md.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 
 REM ### MSVC COMPILE ###
+cl %msvc_flags_debug%  ..\src\examples\textures_dynamic_descriptor.c ..\src\examples\utils\tr_math.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_textures_dynamic_descriptor.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
+REM cl %msvc_flags_debug%  ..\src\examples\texture.c ..\src\examples\utils\tr_math.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_texture.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
+REM cl %msvc_flags_debug%  ..\src\examples\textures.c ..\src\examples\utils\tr_math.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_textures.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
+REM cl %msvc_flags_debug%  ..\src\examples\textures_descriptorarray_push_constant.c ..\src\examples\utils\tr_math.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_textures_descriptorarray_push_constant.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
+REM cl %msvc_flags_debug%  ..\src\examples\rendertexture.c ..\src\examples\utils\tr_math.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_rendertexture.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 REM cl %msvc_flags_debug%  ..\src\examples\model_loading.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_model_loading.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 REM cl %msvc_flags_debug%  ..\src\examples\model_loading_md.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_model_loading_md.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 

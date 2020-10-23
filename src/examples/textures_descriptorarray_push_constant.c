@@ -197,24 +197,23 @@ int main(int argc, char ** argv)
 	vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
-    float cube_vertices[] = {
+    float rect_vertices[] = {
 	// Pos            // Color        // UV
 	-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
 	 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
 	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
     	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  1.0, 1.0
     };
-    uint32_t vertex_count = sizeof(cube_vertices)/sizeof(*cube_vertices);
+    uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
     
-    uint16_t cube_indices[] = {
-	// front
+    uint16_t rect_indices[] = {
  	0, 1, 2,
 	2, 1, 3
     };
-    uint32_t index_count = sizeof(cube_indices)/sizeof(*cube_indices);
+    uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
   
-    uint32_t offset_vertices = vkal_vertex_buffer_add(cube_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
-    uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
+    uint32_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
+    uint32_t offset_indices  = vkal_index_buffer_add(rect_indices, index_count);
 
     /* Texture Data */
     Image image2 = load_image_file("../src/examples/assets/textures/mario.jpg");

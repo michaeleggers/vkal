@@ -11,11 +11,20 @@ layout (location = 2) in vec2 uv;
 layout (location = 0) out vec3 out_position;
 layout (location = 1) out vec3 out_color;
 layout (location = 2) out vec2 out_uv;
+
+layout (set = 0, binding = 1) uniform MaterialData_t
+{
+    vec3 position;
+    float aspect;
+    uint index;
+} u_material_data;
+
 void main()
 {
     out_position = 0.5*position + 0.5;
     out_color = color;
     out_uv = uv;
-	gl_Position = vec4(position, 1.0);
+    gl_Position = vec4(u_material_data.position + position, 1.0);
+    gl_Position.x *= u_material_data.aspect;
     gl_Position.y = -gl_Position.y; // Hack: vulkan's y is down
 }

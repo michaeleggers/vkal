@@ -30,14 +30,29 @@ typedef struct Image
     unsigned char * data;
 } Image;
 
-typedef struct MaterialUniform
+typedef struct ViewProjection
 {
-    uint32_t * index;
-} MaterialUniform;
+    mat4  view;
+    mat4  proj;
+} ViewProjection;
+
+typedef struct Camera
+{
+	vec3 pos;
+	vec3 center;
+	vec3 up;
+	vec3 right;
+} Camera;
+
+typedef struct MaterialData
+{
+    vec3 position;
+    float aspect;
+    uint32_t index;
+} MaterialData;
 
 static GLFWwindow * window;
 static Platform p;
-static MaterialUniform material_data;
 
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
@@ -154,21 +169,21 @@ int main(int argc, char ** argv)
 	{
 	    1,
 	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-	    1, /* Texture Array-Count: How many Textures do we need? */
-	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    1, 
+	    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
 	},
 	{
 	    2,
 	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	    1, /* Texture Array-Count: How many Textures do we need? */
+	    1, 
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
 	},
 	{
 	    3,
 	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	    1, /* Texture Array-Count: How many Textures do we need? */
+	    1, 
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
 	}
@@ -250,15 +265,19 @@ int main(int argc, char ** argv)
 	mario_texture);
 
     /* Material Uniform using Dynamic Descriptors */
-    UniformBuffer material_ubo = vkal_create_uniform_buffer(sizeof(uint32_t), 2, 1);
+    UniformBuffer material_ubo = vkal_create_uniform_buffer(sizeof(MaterialData), 2, 1);
     /* NOTE: Wasting a bit of memory here. The alignment will be 64bytes (probably) but we are filling
        those two 64 byte-chunks with only 4 bytes each (for uint32_t).
     */
-    material_data.index = (uint32_t*)malloc(2*sizeof(material_ubo.alignment));
-    *material_data.index = 0;
-    *(uint32_t*)((uint8_t*)material_data.index + material_ubo.alignment) = 1;
+    MaterialData * material_data = (MaterialData*)malloc(2*sizeof(material_ubo.alignment));
+    material_data[0].index = 0;
+    material_data[0].aspect = (float)image.width/(float)image.height;
+    material_data[0].position = (vec3){ -1, 0, 0 };
+    ((MaterialData*)((uint8_t*)material_data + material_ubo.alignment))->index = 1;
+    ((MaterialData*)((uint8_t*)material_data + material_ubo.alignment))->aspect = (float)image2.width/(float)image2.height;
+    ((MaterialData*)((uint8_t*)material_data + material_ubo.alignment))->position = (vec3){ 1, 0, 0 }; 
     vkal_update_descriptor_set_uniform(descriptor_sets[0], material_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
-    vkal_update_uniform(&material_ubo, material_data.index);
+    vkal_update_uniform(&material_ubo, material_data);
 
     UniformBuffer dummy_ubo = vkal_create_uniform_buffer(sizeof(uint64_t), 1, 2);
     UniformBuffer dummy_ubo_large = vkal_create_uniform_buffer(100, 1, 3);
