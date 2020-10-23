@@ -21,7 +21,7 @@
 
 #define MB                  (1024 * 1024)
 #define STAGING_BUFFER_SIZE (64 * MB)
-#define UNIFORM_BUFFER_SIZE (10 * MB)
+#define UNIFORM_BUFFER_SIZE (64 * MB)
 #define VERTEX_BUFFER_SIZE  (64 * MB)
 #define INDEX_BUFFER_SIZE   (64 * MB)
 

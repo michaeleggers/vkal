@@ -244,7 +244,7 @@ int main(int argc, char ** argv)
     model.vertex_buffer_offset = vkal_vertex_buffer_add(model.vertices, 9*sizeof(float), model.vertex_count);
     clear_model(&model);
 
-#define NUM_ENTITIES 100
+#define NUM_ENTITIES 50
     /* Entities */
     Entity entities[NUM_ENTITIES];
     for (int i = 0; i < NUM_ENTITIES; ++i) {
@@ -297,6 +297,11 @@ int main(int argc, char ** argv)
 	model_mat = translate(model_mat, entities[i].position);
 	((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
     }
+    /* If NUM_ENTITIES is large the maxUniformBufferRange limit of the physical device properties may be
+       violated when updating the descriptor set! To be sure that the requirements are always met 
+       do not updated ranges larger than 16384 bytes.
+       See: https://vulkan.lunarg.com/doc/view/1.2.148.1/windows/chunked_spec/chap40.html#limits-minmax
+    */
     vkal_update_descriptor_set_uniform(descriptor_sets[1], model_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
     vkal_update_uniform(&model_ubo, model_data);
     
