@@ -83,6 +83,7 @@ typedef struct DeviceMemory
     VkDeviceSize   size;
     VkDeviceSize   alignment;
     VkDeviceSize   free;
+    uint32_t       mem_type_index;
 } DeviceMemory;
 
 typedef struct Buffer

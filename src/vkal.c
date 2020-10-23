@@ -1818,6 +1818,7 @@ DeviceMemory vkal_allocate_devicememory(uint32_t size, VkBufferUsageFlags buffer
     device_memory.size = buffer_memory_requirements.size;
     device_memory.alignment = buffer_memory_requirements.alignment;
     device_memory.free = 0;
+    device_memory.mem_type_index = mem_type_bits;
     return device_memory;
 }
 

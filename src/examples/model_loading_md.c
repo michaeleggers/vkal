@@ -466,6 +466,7 @@ int main(int argc, char ** argv)
     Buffer storage_buffer_bone_matrices = vkal_create_buffer(md_mesh.bone_count * sizeof(mat4),
 					       &offset_matrices_mem,
 					       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    vkal_dbg_buffer_name(storage_buffer_bone_matrices, "Storage Buffer Offset Matrices");
     map_memory(&storage_buffer_bone_matrices, md_mesh.bone_count * sizeof(mat4), 0);
     for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
 	printf("%s\n", md_mesh.bones[i].name);
@@ -481,6 +482,7 @@ int main(int argc, char ** argv)
     Buffer storage_buffer_skeleton_matrices = vkal_create_buffer(md_mesh.bone_count * sizeof(mat4),
 								 &skeleton_matrices_mem,
 								 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    vkal_dbg_buffer_name(storage_buffer_skeleton_matrices, "Storage Buffer Skeleton Matrices");
     map_memory(&storage_buffer_skeleton_matrices, md_mesh.bone_count * sizeof(mat4), 0);
     for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
 	memcpy( (void*)&((mat4*)storage_buffer_skeleton_matrices.mapped)[i], (void*)&(md_mesh.animation_matrices[i]), sizeof(mat4) );
