@@ -24,6 +24,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stb_image.h"
 
+#define SCREEN_WIDTH  1280
+#define SCREEN_HEIGHT 768
+
 typedef struct Image
 {
     uint32_t width, height, channels;
@@ -68,7 +71,7 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(800, 800, "Vulkan", 0, 0);
+    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Vulkan", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
     //glfwSetMouseButtonCallback(window, glfw_mouse_button_callback);
     //glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
@@ -177,18 +180,11 @@ int main(int argc, char ** argv)
 	    2,
 	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 	    1, 
-	    VK_SHADER_STAGE_FRAGMENT_BIT,
-	    0
-	},
-	{
-	    3,
-	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	    1, 
-	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
 	}
     };
-    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 4);
+    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 3);
     
     VkDescriptorSetLayout layouts[] = {
 	descriptor_set_layout
@@ -244,10 +240,10 @@ int main(int argc, char ** argv)
     uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
 
     /* Texture Data */
-    Image image2 = load_image_file("../src/examples/assets/textures/mario.jpg");
+    Image image2 = load_image_file("../src/examples/assets/textures/hk.jpg");
     Texture mario_texture = vkal_create_texture(0, image2.data, image2.width, image2.height, image2.channels, 0,
 					   VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
-    Image image = load_image_file("../src/examples/assets/textures/indy1.jpg");
+    Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
     Texture indy_texture = vkal_create_texture(0, image.data, image.width, image.height, image.channels, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image.data);
@@ -266,9 +262,6 @@ int main(int argc, char ** argv)
 
     /* Material Uniform using Dynamic Descriptors */
     UniformBuffer material_ubo = vkal_create_uniform_buffer(sizeof(MaterialData), 2, 1);
-    /* NOTE: Wasting a bit of memory here. The alignment will be 64bytes (probably) but we are filling
-       those two 64 byte-chunks with only 4 bytes each (for uint32_t).
-    */
     MaterialData * material_data = (MaterialData*)malloc(2*sizeof(material_ubo.alignment));
     material_data[0].index = 0;
     material_data[0].aspect = (float)image.width/(float)image.height;
@@ -279,14 +272,16 @@ int main(int argc, char ** argv)
     vkal_update_descriptor_set_uniform(descriptor_sets[0], material_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
     vkal_update_uniform(&material_ubo, material_data);
 
-    UniformBuffer dummy_ubo = vkal_create_uniform_buffer(sizeof(uint64_t), 1, 2);
-    UniformBuffer dummy_ubo_large = vkal_create_uniform_buffer(100, 1, 3);
-    vkal_update_descriptor_set_uniform(descriptor_sets[0], dummy_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    vkal_update_descriptor_set_uniform(descriptor_sets[0], dummy_ubo_large, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    uint32_t dummy_data[2] = { 998, 999 };
-    vkal_update_uniform(&dummy_ubo, dummy_data);
-    uint32_t dummy_data_large[4] = { 42, 1811, 666, 3008 };
-    vkal_update_uniform(&dummy_ubo_large, dummy_data_large);
+    /* View Projection Uniform */
+    Camera camera;
+    camera.pos = (vec3){ 0, 0.f, 5.f };
+    camera.center = (vec3){ 0 };
+    camera.up = (vec3){ 0, 1, 0 };
+    ViewProjection view_proj_data;
+    view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
+    view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
+    UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(ViewProjection), 1, 2);
+    vkal_update_descriptor_set_uniform(descriptor_sets[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     
     // Main Loop
     while (!glfwWindowShouldClose(window))
@@ -295,6 +290,8 @@ int main(int argc, char ** argv)
 	
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
+	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
+	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
 	{
 	    uint32_t image_id = vkal_get_image();

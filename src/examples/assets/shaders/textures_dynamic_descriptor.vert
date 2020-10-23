@@ -19,12 +19,18 @@ layout (set = 0, binding = 1) uniform MaterialData_t
     uint index;
 } u_material_data;
 
+layout (set = 0, binding = 2) uniform ViewProjection_t
+{
+    mat4 view;
+    mat4 proj;
+} u_view_proj;
+
 void main()
 {
     out_position = 0.5*position + 0.5;
     out_color = color;
     out_uv = uv;
-    gl_Position = vec4(u_material_data.position + position, 1.0);
+    gl_Position = u_view_proj.proj * u_view_proj.view * vec4(u_material_data.position + position, 1.0);
     gl_Position.x *= u_material_data.aspect;
     gl_Position.y = -gl_Position.y; // Hack: vulkan's y is down
 }

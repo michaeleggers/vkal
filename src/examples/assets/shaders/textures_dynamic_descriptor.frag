@@ -18,26 +18,8 @@ layout (set = 0, binding = 1) uniform MaterialData_t
     uint index;
 } u_material_data;
 
-layout(set = 0, binding = 2) uniform u_dummy_t
-{
-    uint a;
-    uint b;
-} u_dummy;
-
-layout(set = 0, binding = 3) uniform u_dummy_large_t
-{
-    uint a;
-    uint b;
-    uint c;
-    uint d;
-} u_dummy_large;
-
 void main() 
 {
     vec4 texel = texture(textures[u_material_data.index], in_uv);
-    
-    if (u_dummy.a == 998 && u_dummy_large.b == 1811)
-        outColor = vec4(texel.rgb, 1.0);
-    else
-        outColor = vec4(0, 0, 1, 1);
+    outColor = vec4(texel.rgb, 1.0);
 }
