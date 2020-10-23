@@ -18,12 +18,6 @@ static VkalInfo vkal_info;
 static Texture g_texture;
 
 
-#define MB                  (1024 * 1024)
-#define STAGING_BUFFER_SIZE (128 * MB)
-#define UNIFORM_BUFFER_SIZE (10 * MB)
-#define VERTEX_BUFFER_SIZE  (128 * MB)
-#define INDEX_BUFFER_SIZE   (128 * MB)
-
 /* To make the NV extensions visible globally we must go through an indirection (_DEF). Otherwise the compiler will complain
 about redefinition of the NV function! We have to load them during load time since vulkan.lib does not expose those
 extensions to the linker!
@@ -3909,6 +3903,7 @@ void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src
 void vkal_update_descriptor_set_uniform(VkDescriptorSet descriptor_set, UniformBuffer uniform_buffer,
 					VkDescriptorType descriptor_type)
 {
+    assert (uniform_buffer.size < vkal_info.physical_device_properties.limits.maxUniformBufferRange);
     VkDescriptorBufferInfo buffer_infos[1];
     buffer_infos[0].buffer = vkal_info.uniform_buffer.buffer;
     buffer_infos[0].range = uniform_buffer.size;

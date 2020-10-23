@@ -18,6 +18,13 @@
 #define VKAL_RT_SIZE_X     1920
 #define VKAL_RT_SIZE_Y     1080
 
+
+#define MB                  (1024 * 1024)
+#define STAGING_BUFFER_SIZE (64 * MB)
+#define UNIFORM_BUFFER_SIZE (10 * MB)
+#define VERTEX_BUFFER_SIZE  (64 * MB)
+#define INDEX_BUFFER_SIZE   (64 * MB)
+
 #define VKAL_MAX_IMAGES_IN_FLIGHT		2
 #define VKAL_MAX_SWAPCHAIN_IMAGES               4
 #define VKAL_MAX_DESCRIPTOR_SETS		10

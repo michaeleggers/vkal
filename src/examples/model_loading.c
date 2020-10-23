@@ -244,7 +244,7 @@ int main(int argc, char ** argv)
     model.vertex_buffer_offset = vkal_vertex_buffer_add(model.vertices, 9*sizeof(float), model.vertex_count);
     clear_model(&model);
 
-#define NUM_ENTITIES 500
+#define NUM_ENTITIES 100
     /* Entities */
     Entity entities[NUM_ENTITIES];
     for (int i = 0; i < NUM_ENTITIES; ++i) {
