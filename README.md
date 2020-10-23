@@ -293,6 +293,9 @@ and Indexbuffers.
 All calls are encapsulated by both a begin/end pair of both command-buffer and renderpass-calls.
 The defautl renderpass and command-buffers are used which are created during VKAL initialization.
 
+The result of this example:
+![alt text](https://github.com/michaeleggers/vkal/blob/master/readme_figures/texture_example_result.png "textures.c result")
+
 ### Cleanup
 When creating buffers, pipelines, descriptor sets, image views and so on using the functions above, VKAL will
 keep track of the resources. This is being done through a simple arrays where each resource is associated with
