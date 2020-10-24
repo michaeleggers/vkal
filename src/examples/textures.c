@@ -8,6 +8,9 @@
    just for the textures. This problem can be solved through dynamic uniform buffers
    and descriptor-arrays for the textures. This is shown in textures_descriptorarray.c.
    COOL!
+   Actually, a push constant is used here to transmit the model's position where the texture
+   will be mapped on. Also, the textures aspect ratio is transmitted via this push constant
+   to scale it correctly in the vertex-shader.
 */
 
 
@@ -23,6 +26,29 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stb_image.h"
+
+#define SCREEN_WIDTH  1280
+#define SCREEN_HEIGHT 768
+
+typedef struct ViewProjection
+{
+    mat4  view;
+    mat4  proj;
+} ViewProjection;
+
+typedef struct ModelData
+{
+    vec3  position;
+    float image_aspect;
+} ModelData;
+
+typedef struct Camera
+{
+	vec3 pos;
+	vec3 center;
+	vec3 up;
+	vec3 right;
+} Camera;
 
 static GLFWwindow * window;
 static Platform p;
@@ -47,7 +73,7 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(1920, 1080, "Vulkan", 0, 0);
+    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Vulkan", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
     //glfwSetMouseButtonCallback(window, glfw_mouse_button_callback);
     //glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
@@ -144,9 +170,16 @@ int main(int argc, char ** argv)
 	    1, /* Texture Array-Count: How many Textures do we need? */
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
+	},
+	{
+	    1,
+	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	    1, 
+	    VK_SHADER_STAGE_VERTEX_BIT,
+	    0
 	}
     };
-    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 1);
+    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 2);
     
     VkDescriptorSetLayout layouts[] = {
 	descriptor_set_layout
@@ -157,11 +190,22 @@ int main(int argc, char ** argv)
     VkDescriptorSet * descriptor_set_tex_2 = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
     vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_set_tex_1);
     vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_set_tex_2);
-	
+
+    /* Push Constants */	
+    VkPushConstantRange push_constant_ranges[] =
+	{
+	    { 
+		VK_SHADER_STAGE_VERTEX_BIT,
+		0, 
+		sizeof(ModelData)
+	    }
+	};
+    uint32_t push_constant_range_count = sizeof(push_constant_ranges) / sizeof(*push_constant_ranges);
+    
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
 	layouts, descriptor_set_layout_count, 
-	NULL, 0);
+	push_constant_ranges, push_constant_range_count);
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
@@ -171,38 +215,58 @@ int main(int argc, char ** argv)
 	vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
-    float cube_vertices[] = {
+    float rect_vertices[] = {
 	// Pos            // Color        // UV
 	-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
 	 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
 	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
     	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  1.0, 1.0
     };
-    uint32_t vertex_count = sizeof(cube_vertices)/sizeof(*cube_vertices);
+    uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
     
-    uint16_t cube_indices[] = {
+    uint16_t rect_indices[] = {
 	// front
  	0, 1, 2,
 	2, 1, 3
     };
-    uint32_t index_count = sizeof(cube_indices)/sizeof(*cube_indices);
+    uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
   
-    uint32_t offset_vertices = vkal_vertex_buffer_add(cube_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
-    uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
+    uint32_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
+    uint32_t offset_indices  = vkal_index_buffer_add(rect_indices, index_count);
 
     /* Texture Data */
-    Image image2 = load_image_file("../src/examples/assets/textures/mario.jpg");
-    Texture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, image2.channels, 0,
-					   VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
-    Image image = load_image_file("../src/examples/assets/textures/indy.png");
+    Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
     Texture texture = vkal_create_texture(0, image.data, image.width, image.height, image.channels, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+    Image image2 = load_image_file("../src/examples/assets/textures/hk.jpg");
+    Texture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, image2.channels, 0,
+					   VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image.data);
     free(image2.data);
+
+    /* Position and aspect ratio for textures */
+    ModelData model_data_tex_1;
+    model_data_tex_1.position = (vec3){ -1, 0, 0 };
+    model_data_tex_1.image_aspect = (float)image.width/(float)image.height;
+    ModelData model_data_tex_2;
+    model_data_tex_2.position = (vec3){ 1, 0, 0 };
+    model_data_tex_2.image_aspect = (float)image2.width/(float)image2.height;
     
     vkal_update_descriptor_set_texture(descriptor_set_tex_1[0], texture);
     vkal_update_descriptor_set_texture(descriptor_set_tex_2[0], texture2);				       
 
+    /* View Projection Uniform */
+    Camera camera;
+    camera.pos = (vec3){ 0, 0.f, 10.f };
+    camera.center = (vec3){ 0 };
+    camera.up = (vec3){ 0, 1, 0 };
+    ViewProjection view_proj_data;
+    view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
+    view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
+    UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(ViewProjection), 1, 1);
+    vkal_update_descriptor_set_uniform(descriptor_set_tex_1[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    vkal_update_descriptor_set_uniform(descriptor_set_tex_2[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -210,6 +274,8 @@ int main(int argc, char ** argv)
 
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
+	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
+	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
 	{
 	    uint32_t image_id = vkal_get_image();
@@ -223,10 +289,14 @@ int main(int argc, char ** argv)
 			 0, 0,
 			 width, height);
 	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_1[0], pipeline_layout);
+	    vkCmdPushConstants(vkal_info->command_buffers[image_id], pipeline_layout,
+			       VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ModelData), (void*)&model_data_tex_1);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
 	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_2[0], pipeline_layout);
+	    vkCmdPushConstants(vkal_info->command_buffers[image_id], pipeline_layout,
+			       VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ModelData), (void*)&model_data_tex_2);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);

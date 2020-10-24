@@ -272,7 +272,7 @@ int main(int argc, char ** argv)
     for (uint32_t i = 0; i < device_count; ++i) {
 	printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
-    vkal_select_physical_device(&devices[1]);
+    vkal_select_physical_device(&devices[0]);
     VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
     
     /* Shader Setup */
