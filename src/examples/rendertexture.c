@@ -238,11 +238,11 @@ int main(int argc, char ** argv)
     uint32_t offset_indices  = vkal_index_buffer_add(rectindices, index_count);
 
     /* Texture Data */
-    Image image = load_image_file("../src/examples/assets/textures/yakult.png");
+    Image image = load_image_file("../src/examples/assets/textures/hk.jpg");
     Texture texture = vkal_create_texture(0, image.data, image.width, image.height, image.channels, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image.data);
-    Image image2 = load_image_file("../src/examples/assets/textures/indy1.jpg");
+    Image image2 = load_image_file("../src/examples/assets/textures/brucelee.jpg");
     Texture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, image2.channels, 0,
 					   VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image2.data);    
