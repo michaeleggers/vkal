@@ -1805,6 +1805,7 @@ DeviceMemory vkal_allocate_devicememory(uint32_t size, VkBufferUsageFlags buffer
     VkMemoryRequirements buffer_memory_requirements = { 0 };
     vkGetBufferMemoryRequirements(vkal_info.device, buffer, &buffer_memory_requirements);
     uint32_t mem_type_bits = check_memory_type_index(buffer_memory_requirements.memoryTypeBits, memory_property_flags);
+    vkDestroyBuffer(vkal_info.device, buffer, NULL);
 
     VkDeviceMemory memory;
     VkMemoryAllocateInfo memory_info = { 0 };

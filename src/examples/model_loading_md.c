@@ -423,11 +423,13 @@ int main(int argc, char ** argv)
     entities[0].position    = pos;
     entities[0].orientation = rot;
     entities[0].scale       = scale;
+#if 1
     entities[1].model       = md_model;
     entities[1].position    = (vec3){ 0.f, 0.f, 3.f };
     entities[1].orientation = (vec3){ tr_radians(-90.f), 0.f, 0.f };
     entities[1].scale       = (vec3){ 1, 1, 1 };
-        
+#endif
+    
     /* View Projection */
     Camera camera;
     camera.pos = (vec3){ 0, 0.f, 5.f };
@@ -474,6 +476,7 @@ int main(int argc, char ** argv)
     }
     unmap_memory(&storage_buffer_bone_matrices);	
     vkal_update_descriptor_set_bufferarray(descriptor_sets[2], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, 0, storage_buffer_bone_matrices);
+
     /* Storage Buffer Skeleton (for now just the offset-matrices. Later on will use channels from key-frame animation) */
     DeviceMemory skeleton_matrices_mem = vkal_allocate_devicememory(10*1024*1024,
 								    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
@@ -596,6 +599,16 @@ int main(int argc, char ** argv)
 	}
     }
     
+    vkDeviceWaitIdle(vkal_info->device);
+    
+#if 1
+    vkDestroyBuffer(vkal_info->device, storage_buffer_skeleton_matrices.buffer, NULL);
+    vkFreeMemory(vkal_info->device, skeleton_matrices_mem.vk_device_memory, NULL);
+#endif
+    
+    vkDestroyBuffer(vkal_info->device, storage_buffer_bone_matrices.buffer, NULL);
+    vkFreeMemory(vkal_info->device, offset_matrices_mem.vk_device_memory, NULL);
+
     vkal_cleanup();
 
     glfwDestroyWindow(window);
