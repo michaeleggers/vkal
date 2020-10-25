@@ -174,15 +174,15 @@ void update_skeleton(MdMesh * mesh)
 	Node * node = &(skeleton_nodes[i]);
 	int parent_index = node->parent_index;
 	uint32_t bone_index = node->bone_index;
+	mat4 local_transform = mesh->animation_matrices[bone_index];
+	mat4 offset_mat = mesh->bones[bone_index].offset_matrix;
 	if (parent_index >= 0) {
 	    uint32_t parent_bone_index = skeleton_nodes[parent_index].bone_index;
 	    mat4 parent_mat = mesh->tmp_matrices[parent_bone_index];
-	    mat4 offset_mat = mesh->bones[bone_index].offset_matrix;
-	    mat4 parent_offset_mat = mesh->bones[parent_index].offset_matrix;
-	    mesh->tmp_matrices[bone_index] = mat4_x_mat4( parent_mat, mesh->animation_matrices[bone_index] );
+	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(parent_mat, local_transform);
 	}
 	else {
-	    mesh->tmp_matrices[bone_index] = mat4_x_mat4( mat4_identity(), mesh->animation_matrices[bone_index] );
+	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(mat4_identity(), local_transform);
 	}
     }
 
@@ -192,7 +192,7 @@ void update_skeleton(MdMesh * mesh)
 //	if (parent_index >= 0) {
 	    uint32_t bone_index = node->bone_index;
 	    mat4 offset_mat = mesh->bones[bone_index].offset_matrix;
-//	    mesh->tmp_matrices[bone_index] = mat4_x_mat4( mat4_inverse(offset_mat), mat4_x_mat4( mesh->tmp_matrices[bone_index], offset_mat ) );
+//	    mesh->tmp_matrices[bone_index] = mat4_x_mat4( mat4_inverse(offset_mat), mesh->tmp_matrices[bone_index] );
 //	}
     }
 }
