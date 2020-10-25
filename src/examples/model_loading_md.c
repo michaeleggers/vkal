@@ -185,7 +185,7 @@ void update_skeleton(MdMesh * mesh)
 	}
 	else {
 	    // mesh->tmp_matrices[bone_index] = mat4_x_mat4(local_transformation, offset_mat);
-	    mesh->tmp_matrices[bone_index] = local_transform;
+	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(offset_mat, local_transform);
 	}
     }
 
@@ -429,7 +429,7 @@ int main(int argc, char ** argv)
     
     /* View Projection */
     Camera camera;
-    camera.pos = (vec3){ 0, -5.f, 1.f };
+    camera.pos = (vec3){ 0, 1.f, 2.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
@@ -533,8 +533,8 @@ int main(int argc, char ** argv)
 	mat4 arm_rot_z = rotate_z (arm_r_rot_x );
 	mat4 arm_rot = mat4_identity();
 //	arm_rot = mat4_x_mat4( arm_rot, arm_rot_z );
-//	arm_rot = mat4_x_mat4( arm_rot, arm_rot_y );
-	arm_rot = mat4_x_mat4( arm_rot, arm_rot_x );
+	arm_rot = mat4_x_mat4( arm_rot, arm_rot_y );
+//	arm_rot = mat4_x_mat4( arm_rot, arm_rot_x );
 	mat4 arm_offset = md_mesh.bones[14].offset_matrix;
 	mat4 neck_offset = md_mesh.bones[3].offset_matrix;
 	mat4 root_offset = md_mesh.bones[0].offset_matrix;
@@ -545,9 +545,14 @@ int main(int argc, char ** argv)
 	//md_mesh.animation_matrices[3] = mat4_x_mat4( neck_offset, mat4_x_mat4(trans, mat4_inverse(neck_offset)));
 
 //	md_mesh.animation_matrices[3] = mat4_x_mat4( mat4_inverse(root_offset), trans );
-	
-	md_mesh.animation_matrices[14] = trans;
-	md_mesh.animation_matrices[3] = trans;
+        
+	for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
+	    mat4 offset_mat = md_mesh.bones[i].offset_matrix;
+	    md_mesh.animation_matrices[i] = mat4_x_mat4(mat4_inverse(offset_mat), mat4_x_mat4(
+							    mat4_identity(), offset_mat));
+	}
+	md_mesh.animation_matrices[14] = mat4_x_mat4(mat4_inverse(arm_offset), mat4_x_mat4(trans, arm_offset));
+	md_mesh.animation_matrices[3] = mat4_x_mat4(mat4_inverse(neck_offset), mat4_x_mat4(trans, neck_offset));
 	
 	update_skeleton( &md_mesh );
 	
