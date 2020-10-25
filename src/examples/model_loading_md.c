@@ -179,10 +179,11 @@ void update_skeleton(MdMesh * mesh)
 	if (parent_index >= 0) {
 	    uint32_t parent_bone_index = skeleton_nodes[parent_index].bone_index;
 	    mat4 parent_mat = mesh->tmp_matrices[parent_bone_index];
-	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(parent_mat, local_transform);
+	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(local_transform,
+							 parent_mat);
 	}
 	else {
-	    mesh->tmp_matrices[bone_index] = local_transform;
+	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(local_transform, offset_mat); // mat4_x_mat4( mat4_inverse(offset_mat), local_transform );
 	}
     }
 
@@ -413,26 +414,20 @@ int main(int argc, char ** argv)
     md_model.index_buffer_offset = md_mesh.index_buffer_offset;
     md_model.index_count = md_mesh.index_count;
     
-#define NUM_ENTITIES 2
+#define NUM_ENTITIES 1
     /* Entities */
     Entity entities[NUM_ENTITIES];
     vec3 pos = { 0, 0, 0.f };
-    vec3 rot = { tr_radians(-90.f), 0.f, 0.f };
-    vec3 scale = (vec3){ 2, 2, 2 };
+    vec3 rot = { tr_radians(45.f), tr_radians(45.f), 0.f };
+    vec3 scale = (vec3){ 1, 1, 1 };
     entities[0].model       = md_model;
     entities[0].position    = pos;
     entities[0].orientation = rot;
     entities[0].scale       = scale;
-#if 1
-    entities[1].model       = md_model;
-    entities[1].position    = (vec3){ 0.f, 0.f, 3.f };
-    entities[1].orientation = (vec3){ tr_radians(-90.f), 0.f, 0.f };
-    entities[1].scale       = (vec3){ 1, 1, 1 };
-#endif
     
     /* View Projection */
     Camera camera;
-    camera.pos = (vec3){ -5, 0.f, 0.f };
+    camera.pos = (vec3){ 5, 0.f, 0.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
@@ -513,16 +508,8 @@ int main(int argc, char ** argv)
 	vkal_update_uniform(&viewport_ubo, &viewport_data);
 
         /* Update Model Matrices */
-	static float d = .001f;
-	d += .0005f;
-	static float r = .001f;
 	for (int i = 0; i < NUM_ENTITIES - 1; ++i) {
 	    mat4 model_mat = mat4_identity();
-	    d += 0.00001f;
-//	    entities[i].position.x += sinf(d);
-//	    entities[i].orientation.x += r;
-//	    entities[i].orientation.y += r;
-//	    entities[i].orientation.z += r;
 	    model_mat = translate(model_mat, entities[i].position);
 	    model_mat = tr_scale(model_mat, entities[i].scale);
 	    mat4 rot_z = rotate_z( entities[i].orientation.z );
@@ -530,12 +517,7 @@ int main(int argc, char ** argv)
 	    mat4 rot_x = rotate_x( entities[i].orientation.x );
 	    model_mat = mat4_x_mat4(model_mat, rot_z);
 	    model_mat = mat4_x_mat4(model_mat, rot_y);
-	    model_mat = mat4_x_mat4(model_mat, rot_x);
-
-	    mat4 inv = mat4_inverse(model_mat);
-	    mat4 iden = mat4_x_mat4(inv, model_mat);
-	    mat4 iden2 = mat4_x_mat4(model_mat, inv);
-	    
+	    model_mat = mat4_x_mat4(model_mat, rot_x);	   
 	    ((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
 	}
 	vkal_update_uniform(&model_ubo, model_data);
@@ -551,12 +533,16 @@ int main(int argc, char ** argv)
 //	arm_rot = mat4_x_mat4( arm_rot, arm_rot_z );
 	arm_rot = mat4_x_mat4( arm_rot, arm_rot_y );
 //	arm_rot = mat4_x_mat4( arm_rot, arm_rot_x );
-	mat4 arm_offset = md_mesh.bones[14].offset_matrix;
+	mat4 arm_offset = md_mesh.bones[3].offset_matrix;
 	mat4 trans = mat4_identity();
-	trans = translate(trans, (vec3){0, 0.5f*fabs( sinf(dings) ), 0 });
+	trans = translate(trans, (vec3){0, 2.f*fabs( sinf(dings) ), 0 });
 	trans = mat4_x_mat4(trans, arm_rot);
-	md_mesh.animation_matrices[14] = mat4_x_mat4(trans, arm_offset);
+//	md_mesh.animation_matrices[3] = mat4_x_mat4(mat4_inverse(arm_offset), mat4_x_mat4( trans, arm_offset ));
+//	md_mesh.animation_matrices[3] = mat4_x_mat4( trans, arm_offset );
+	md_mesh.animation_matrices[3] = trans;
 	update_skeleton( &md_mesh );
+	mat4 inv = mat4_inverse(arm_offset);
+	mat4 check = mat4_x_mat4(arm_offset, inv);
 	memcpy( storage_buffer_skeleton_matrices.mapped, md_mesh.tmp_matrices, md_mesh.bone_count * sizeof(mat4) );
 	
 	{
@@ -571,7 +557,7 @@ int main(int argc, char ** argv)
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
 			 (float)width, (float)height);
-	    for (int i = 0; i < NUM_ENTITIES - 1; ++i) {
+	    for (int i = 0; i < NUM_ENTITIES; ++i) {
 		uint32_t dynamic_offset = (uint32_t)(i*model_ubo.alignment);
 		vkal_bind_descriptor_sets(image_id, descriptor_sets, descriptor_set_layout_count,
 					  &dynamic_offset, 1,
