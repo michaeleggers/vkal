@@ -182,7 +182,7 @@ void update_skeleton(MdMesh * mesh)
 	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(parent_mat, local_transform);
 	}
 	else {
-	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(mat4_identity(), local_transform);
+	    mesh->tmp_matrices[bone_index] = local_transform;
 	}
     }
 
@@ -432,7 +432,7 @@ int main(int argc, char ** argv)
     
     /* View Projection */
     Camera camera;
-    camera.pos = (vec3){ 0, 0.f, 5.f };
+    camera.pos = (vec3){ -5, 0.f, 0.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
@@ -555,7 +555,7 @@ int main(int argc, char ** argv)
 	mat4 trans = mat4_identity();
 	trans = translate(trans, (vec3){0, 0.5f*fabs( sinf(dings) ), 0 });
 	trans = mat4_x_mat4(trans, arm_rot);
-	md_mesh.animation_matrices[14] = trans; //mat4_x_mat4(mat4_inverse(arm_offset), mat4_x_mat4(trans, arm_offset) );
+	md_mesh.animation_matrices[14] = mat4_x_mat4(trans, arm_offset);
 	update_skeleton( &md_mesh );
 	memcpy( storage_buffer_skeleton_matrices.mapped, md_mesh.tmp_matrices, md_mesh.bone_count * sizeof(mat4) );
 	
