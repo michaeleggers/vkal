@@ -539,21 +539,22 @@ int main(int argc, char ** argv)
 	mat4 neck_offset = md_mesh.bones[3].offset_matrix;
 	mat4 root_offset = md_mesh.bones[0].offset_matrix;
 	mat4 trans = mat4_identity();
-//	trans = translate(trans, (vec3){0, 10.f*fabs( sinf(dings) ), 0 });
+	trans = translate(trans, (vec3){ -.5f, 0, 0 });
 	trans = mat4_x_mat4(trans, arm_rot);
-//	md_mesh.animation_matrices[14] = mat4_x_mat4( arm_offset, mat4_x_mat4(trans, mat4_inverse(arm_offset)));
-	//md_mesh.animation_matrices[3] = mat4_x_mat4( neck_offset, mat4_x_mat4(trans, mat4_inverse(neck_offset)));
 
-//	md_mesh.animation_matrices[3] = mat4_x_mat4( mat4_inverse(root_offset), trans );
-        
+#if 0
 	for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
 	    mat4 offset_mat = md_mesh.bones[i].offset_matrix;
-	    md_mesh.animation_matrices[i] = mat4_x_mat4(mat4_inverse(offset_mat), mat4_x_mat4(
-							    mat4_identity(), offset_mat));
+	    md_mesh.tmp_matrices[i] = mat4_x_mat4(offset_mat, mat4_x_mat4(trans, mat4_inverse(offset_mat)));
 	}
+#endif
+//	md_mesh.animation_matrices[14] = trans;
+//	md_mesh.animation_matrices[14] = mat4_x_mat4(trans, arm_offset);
 	md_mesh.animation_matrices[14] = mat4_x_mat4(mat4_inverse(arm_offset), mat4_x_mat4(trans, arm_offset));
-	md_mesh.animation_matrices[3] = mat4_x_mat4(mat4_inverse(neck_offset), mat4_x_mat4(trans, neck_offset));
-	
+
+//	md_mesh.animation_matrices[3] = mat4_x_mat4(mat4_inverse(neck_offset), mat4_x_mat4(trans, neck_offset));
+//	md_mesh.animation_matrices[0] = mat4_x_mat4(mat4_inverse(neck_offset), mat4_x_mat4(trans, neck_offset));
+
 	update_skeleton( &md_mesh );
 	
 	memcpy( storage_buffer_skeleton_matrices.mapped, md_mesh.tmp_matrices, md_mesh.bone_count * sizeof(mat4) );
