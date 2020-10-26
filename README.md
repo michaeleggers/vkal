@@ -334,7 +334,7 @@ The root directory contains a `build.bat` that can build the examples.
 | [texture.c](https://github.com/michaeleggers/vkal/blob/readme-update/src/examples/texture.c) | Load an image from disk and map it onto a rectangle (two triangles). |
 | [textures.c](https://github.com/michaeleggers/vkal/blob/readme-update/src/examples/textures.c)      | Two different images are loaded and displayed by using distinct descriptors. |
 | [textures_dynamic_descriptor.c](https://github.com/michaeleggers/vkal/blob/readme-update/src/examples/textures_dynamic_descriptor.c) | Using a dynamic descriptor-set only one descriptor-set has to be created for multiple textures. |
-| [textures_descriptorarray_push_constant.c(https://github.com/michaeleggers/vkal/blob/readme-update/src/examples/textures_descriptorarray_push_constant.c)] | Using a descriptor-array each texture gets its own index into the array. The indices get transmitted via a push constant during command-buffer recording. |
+| [textures_descriptorarray_push_constant.c](https://github.com/michaeleggers/vkal/blob/readme-update/src/examples/textures_descriptorarray_push_constant.c)] | Using a descriptor-array each texture gets its own index into the array. The indices get transmitted via a push constant during command-buffer recording. |
 | [rendertexture.c](https://github.com/michaeleggers/vkal/blob/readme-update/src/examples/rendertexture.c) | Two textures get rendered into a texture. They get sampled from in a second pass to do some image-compositing. |
 | [model_loading.c](https://github.com/michaeleggers/vkal/blob/readme-update/src/examples/model_loading.c) | Two different meshes get rendered multiple times using a dynamic uniform buffer for the model-matrices. |
 
