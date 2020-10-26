@@ -312,8 +312,11 @@ glfwTerminate();
 ```
 The full code for this example presented can be found [here](https://github.com/michaeleggers/vkal/blob/master/src/examples/texture.c)
 
-## Building the examples
-The following libraries are used:
+### Examples
+
+## Building
+
+The following libraries are required:
 
 * [stb_image](https://github.com/nothings/stb) for loading image-data (PNG, JPG, ...)
 * [tinyobjloader-c](https://github.com/syoyo/tinyobjloader-c) for loading OBJ model files
@@ -325,6 +328,15 @@ Since the examples use some win32 specific code to load files from disk the exam
 not build on any other platform at the moment. Sorry!
 
 The root directory contains a `build.bat` that can build the examples.
+
+| Example        | What it does |
+| ------------- |:-------------:|
+| texture.c      | Load an image from disk and map it onto a rectangle (two triangles). |
+| textures.c      | Two different images are loaded and displayed by using distinct descriptors. |
+| textures_dynamic_descriptor.c | Using a dynamic descriptor-set only one descriptor-set has to be created for multiple textures. |
+| textures_descriptorarray_push_constant.c | Using a descriptor-array each texture gets its own index into the array. The indices get transmitted via a push constant during command-buffer recording. |
+| rendertexture.c | Two textures get rendered into a texture. They get sampled from in a second pass to do some image-compositing. |
+| model_loading.c | Two different meshes get rendered multiple times using a dynamic uniform buffer for the model-matrices. |
 
 
 
