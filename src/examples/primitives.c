@@ -155,22 +155,28 @@ int main(int argc, char ** argv)
 	vertex_attributes, vertex_attribute_count,
 	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-	VK_FRONT_FACE_CLOCKWISE,
+	VK_FRONT_FACE_COUNTER_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
     float rect_vertices[] = {
 	// Pos            // Color        // UV
+	/*
 	0.0+100,  SCREEN_HEIGHT, -1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
 	 SCREEN_WIDTH,  SCREEN_HEIGHT, -1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
+	0.0+100, 0.0+10, -1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
+	SCREEN_WIDTH, 0.0+10, -1.0,  1.0, 1.0, 0.0,  1.0, 1.0
+	*/
+	0.0+100,  SCREEN_HEIGHT, -1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
+	SCREEN_WIDTH,  SCREEN_HEIGHT, -1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
 	0.0+100, 0.0+10, -1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
 	SCREEN_WIDTH, 0.0+10, -1.0,  1.0, 1.0, 0.0,  1.0, 1.0
     };
     uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
     
     uint16_t rect_indices[] = {
- 	0, 1, 2,
-	2, 1, 3
+ 	0, 2, 1,
+	1, 2, 3
     };
     uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
   
@@ -179,7 +185,7 @@ int main(int argc, char ** argv)
 
     /* Uniform Buffer for view projection matrices */
     Camera camera;
-    camera.pos = (vec3){ 0, 0.f, 5.f };
+    camera.pos = (vec3){ 0, 0.f, 0.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
