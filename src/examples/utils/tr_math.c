@@ -329,6 +329,18 @@ mat4 perspective_vk(float fov, float aspect, float z_near, float z_far)
     return result;
 }
 
+mat4 ortho(float left, float right, float bottom, float top, float z_near, float z_far)
+{
+    mat4 result = mat4_identity();
+    result.d[0][0] = (2.f) / (right - left);
+    result.d[1][1] = (2.f) / (top - bottom);
+    result.d[2][2] = -1.f / (z_far - z_near);
+    result.d[3][0] = - (right + left) / (right - left);
+    result.d[3][1] = - (top + bottom) / (top - bottom);
+    result.d[3][2] = -z_near / (z_far - z_near);
+    return result;
+}
+
 mat4  look_at(vec3 eye, vec3 center, vec3 up)
 {
     vec3 f = vec3_normalize( vec3_sub(center, eye) );

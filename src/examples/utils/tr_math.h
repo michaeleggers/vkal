@@ -46,6 +46,7 @@ mat4  rotate_y(float angle);
 mat4  rotate_z(float angle);
 mat4  perspective_gl(float fov, float aspect, float z_near, float z_far);
 mat4  perspective_vk(float fov, float aspect, float z_near, float z_far);
+mat4  ortho(float left, float right, float bottom, float top, float z_near, float z_far);
 mat4  look_at(vec3 eye_pos, vec3 center, vec3 up);
 float tr_radians(float deg);
 float rand_between(float min, float max);
