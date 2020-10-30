@@ -40,6 +40,22 @@ typedef struct Camera
 	vec3 right;
 } Camera;
 
+typedef struct Vertex
+{
+    vec3 pos;
+    vec3 color;
+    vec2 uv;
+} Vertex;
+
+typedef struct Batch
+{
+    Vertex * vertices;
+    uint32_t vertex_count;
+    uint16_t * indices;
+    uint32_t index_count;
+    uint32_t rect_count;
+} Batch;
+
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
 {
@@ -56,6 +72,36 @@ void init_window()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: primitives.c", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
+}
+
+void fill_rect(Batch * batch, float x, float y, float width, float height)
+{
+    Vertex tl;
+    Vertex bl;
+    Vertex tr;
+    Vertex br;
+
+    tl.pos = (vec3){x,y,-1};
+    bl.pos = (vec3){x, y+height,-1};
+    tr.pos = (vec3){x+width, y, -1};
+    br.pos = (vec3){x+width, y+height, -1};
+    tl.color = (vec3){1,0,0};
+    bl.color = (vec3){0,1,0};
+    tr.color = (vec3){0,0,1};
+    br.color = (vec3){1,1,0};
+    
+    batch->vertices[batch->vertex_count++] = tl;
+    batch->vertices[batch->vertex_count++] = bl;
+    batch->vertices[batch->vertex_count++] = tr;
+    batch->vertices[batch->vertex_count++] = br;
+
+    batch->indices[batch->index_count++] = 0 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 2 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 1 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 1 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 2 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 3 + 4*batch->rect_count;
+    batch->rect_count++;
 }
 
 int main(int argc, char ** argv)
@@ -150,27 +196,28 @@ int main(int argc, char ** argv)
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
 	layouts, descriptor_set_layout_count, 
 	NULL, 0);
+    /* Vertices are defined CCW, but we flip y-axis in vertex-shader, so the
+       winding of the polys appear CW after vertex-shader has run. That is
+       why this graphics pipeline defines front-faces as CW, not CCW.
+
+       Maybe, for primitive rendering we do not want to cull polys at all,
+       but not sure yet...
+    */
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
 	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-	VK_FRONT_FACE_COUNTER_CLOCKWISE,
+	VK_FRONT_FACE_CLOCKWISE, 
 	vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
     float rect_vertices[] = {
-	// Pos            // Color        // UV
-	/*
-	0.0+100,  SCREEN_HEIGHT, -1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
-	 SCREEN_WIDTH,  SCREEN_HEIGHT, -1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
-	0.0+100, 0.0+10, -1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
-	SCREEN_WIDTH, 0.0+10, -1.0,  1.0, 1.0, 0.0,  1.0, 1.0
-	*/
-	0.0+100,  SCREEN_HEIGHT, -1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
-	SCREEN_WIDTH,  SCREEN_HEIGHT, -1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
-	0.0+100, 0.0+10, -1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
-	SCREEN_WIDTH, 0.0+10, -1.0,  1.0, 1.0, 0.0,  1.0, 1.0
+	// Pos                              // Color        // UV
+	100,  100.f, -1.0,                  1.0, 0.0, 0.0,  0.0, 0.0,
+	100,  SCREEN_HEIGHT, -1.0,          0.0, 1.0, 0.0,  1.0, 0.0,
+	SCREEN_WIDTH, 100.f, -1.0,          0.0, 0.0, 1.0,  0.0, 1.0,
+	SCREEN_WIDTH, SCREEN_HEIGHT, -1.0,  1.0, 1.0, 0.0,  1.0, 1.0
     };
     uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
     
@@ -179,10 +226,21 @@ int main(int argc, char ** argv)
 	1, 2, 3
     };
     uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
-  
+
+    Batch batch = { 0 };
+    batch.vertices = (Vertex*)malloc(40000 * sizeof(Vertex));
+    batch.indices = (uint16_t*)malloc(60000 * sizeof(uint16_t));
+    for (uint32_t i = 0; i < 1000; ++i) {
+	fill_rect(&batch, rand_between(0, SCREEN_WIDTH), rand_between(0, SCREEN_HEIGHT),
+		  rand_between(100, 200), rand_between(100, 200));
+    }
+    uint32_t offset_vertices = vkal_vertex_buffer_add(batch.vertices, 2*sizeof(vec3) + sizeof(vec2),
+						      batch.vertex_count);
+    uint32_t offset_indices  = vkal_index_buffer_add(batch.indices, batch.index_count);
+/*
     uint32_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
     uint32_t offset_indices  = vkal_index_buffer_add(rect_indices, index_count);
-
+*/
     /* Uniform Buffer for view projection matrices */
     Camera camera;
     camera.pos = (vec3){ 0, 0.f, 0.f };
@@ -218,7 +276,7 @@ int main(int argc, char ** argv)
 			 width, height);
 	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, index_count,
+			      offset_indices, batch.index_count,
 			      offset_vertices);
 	    vkal_end_renderpass(image_id);
 	    vkal_end_command_buffer(image_id);
