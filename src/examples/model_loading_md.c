@@ -179,13 +179,11 @@ void update_skeleton(MdMesh * mesh)
 	if (parent_index >= 0) {
 	    uint32_t parent_bone_index = skeleton_nodes[parent_index].bone_index;
 	    mat4 parent_mat = mesh->tmp_matrices[parent_bone_index];
-//	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(local_transform, parent_mat);
 	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(parent_mat,
 							 local_transform);
 	}
 	else {
-	    // mesh->tmp_matrices[bone_index] = mat4_x_mat4(local_transformation, offset_mat);
-	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(offset_mat, local_transform);
+	    mesh->tmp_matrices[bone_index] = local_transform;
 	}
     }
 
@@ -398,13 +396,6 @@ int main(int argc, char ** argv)
     rect_model.vertex_count = vertex_count;
     rect_model.index_buffer_offset = offset_indices;
     rect_model.index_count = index_count;
-    
-    Model model = {0};
-    model.is_indexed = 0;
-    float bmin[3], bmax[3];
-    load_obj(bmin, bmax, "../src/examples/assets/models/lego.obj", &model);
-    model.vertex_buffer_offset = vkal_vertex_buffer_add(model.vertices, 9*sizeof(float), model.vertex_count);
-    clear_model(&model);
 
     MdMesh md_mesh = load_md_mesh("../src/examples/assets/models/modeldata.md"); 
     md_mesh.vertex_buffer_offset = vkal_vertex_buffer_add(md_mesh.vertices, sizeof(Vertex), md_mesh.vertex_count);
@@ -419,7 +410,7 @@ int main(int argc, char ** argv)
 #define NUM_ENTITIES 1
     /* Entities */
     Entity entities[NUM_ENTITIES];
-    vec3 pos = { 0, 0, 0.f };
+    vec3 pos = { 0, -1, 0.f };
     vec3 rot = { 0, 0, 0.f };
     vec3 scale = (vec3){ 1, 1, 1 };
     entities[0].model       = md_model;
@@ -429,7 +420,7 @@ int main(int argc, char ** argv)
     
     /* View Projection */
     Camera camera;
-    camera.pos = (vec3){ 0, 1.f, 2.f };
+    camera.pos = (vec3){ 0, 1.f, 3.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
@@ -539,24 +530,26 @@ int main(int argc, char ** argv)
 	mat4 neck_offset = md_mesh.bones[3].offset_matrix;
 	mat4 root_offset = md_mesh.bones[0].offset_matrix;
 	mat4 trans = mat4_identity();
-	trans = translate(trans, (vec3){ -.5f, 0, 0 });
-	trans = mat4_x_mat4(trans, arm_rot);
+	trans = translate(trans, (vec3){ 0, 0, 0 });
+	trans = mat4_x_mat4(arm_rot, trans);
 
 #if 0
 	for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
 	    mat4 offset_mat = md_mesh.bones[i].offset_matrix;
-	    md_mesh.tmp_matrices[i] = mat4_x_mat4(offset_mat, mat4_x_mat4(trans, mat4_inverse(offset_mat)));
+//	    md_mesh.tmp_matrices[i] = mat4_x_mat4(offset_mat, mat4_x_mat4(trans, mat4_inverse(offset_mat)));
+	    md_mesh.tmp_matrices[i] = trans;
 	}
 #endif
+	
 //	md_mesh.animation_matrices[14] = trans;
 //	md_mesh.animation_matrices[14] = mat4_x_mat4(trans, arm_offset);
 	md_mesh.animation_matrices[14] = mat4_x_mat4(mat4_inverse(arm_offset), mat4_x_mat4(trans, arm_offset));
+//	md_mesh.animation_matrices[14] = arm_offset;
 
 //	md_mesh.animation_matrices[3] = mat4_x_mat4(mat4_inverse(neck_offset), mat4_x_mat4(trans, neck_offset));
 //	md_mesh.animation_matrices[0] = mat4_x_mat4(mat4_inverse(neck_offset), mat4_x_mat4(trans, neck_offset));
 
 	update_skeleton( &md_mesh );
-	
 	memcpy( storage_buffer_skeleton_matrices.mapped, md_mesh.tmp_matrices, md_mesh.bone_count * sizeof(mat4) );
 	
 	{
