@@ -25,6 +25,7 @@
 
 static GLFWwindow * window;
 static Platform p;
+static int width, height; /* current framebuffer width/height */
 
 typedef struct ViewProjection
 {
@@ -72,6 +73,8 @@ void init_window()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: primitives.c", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
+    width = SCREEN_WIDTH;
+    height = SCREEN_HEIGHT;
 }
 
 void fill_rect(Batch * batch, float x, float y, float width, float height)
@@ -89,6 +92,41 @@ void fill_rect(Batch * batch, float x, float y, float width, float height)
     bl.color = (vec3){0,1,0};
     tr.color = (vec3){0,0,1};
     br.color = (vec3){1,1,0};
+    
+    batch->vertices[batch->vertex_count++] = tl;
+    batch->vertices[batch->vertex_count++] = bl;
+    batch->vertices[batch->vertex_count++] = tr;
+    batch->vertices[batch->vertex_count++] = br;
+
+    batch->indices[batch->index_count++] = 0 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 2 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 1 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 1 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 2 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 3 + 4*batch->rect_count;
+    batch->rect_count++;
+}
+
+void line(Batch * batch, float x0, float y0, float x1, float y1)
+{
+    Vertex tl;
+    Vertex bl;
+    Vertex tr;
+    Vertex br;
+
+    float pixel_width = 1.f;//10.f/(float)width;
+    float pixel_height = 1.f;//10.f/(float)height;
+    float w = x1 - x0;
+    float h = y1 - y0;
+    
+    tl.pos = (vec3){x0,y0,-1};
+    bl.pos = (vec3){x0, y0+pixel_height,-1};
+    tr.pos = (vec3){x1, y1, -1};
+    br.pos = (vec3){x1, y1+pixel_height, -1};
+    tl.color = (vec3){1,0,0};
+    bl.color = (vec3){1,0,0};
+    tr.color = (vec3){1,0,0};
+    br.color = (vec3){1,0,0};
     
     batch->vertices[batch->vertex_count++] = tl;
     batch->vertices[batch->vertex_count++] = bl;
@@ -202,11 +240,15 @@ int main(int argc, char ** argv)
 
        Maybe, for primitive rendering we do not want to cull polys at all,
        but not sure yet...
+
+       -> Update: Changed to CULL_MODE_NONE because that way line-drawing
+       becomes easier. If drawn from eg bottom right to top left the
+       winding is changed -> line would be culled!
     */
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE, 
 	vkal_info->render_pass, pipeline_layout);
@@ -230,9 +272,12 @@ int main(int argc, char ** argv)
     Batch batch = { 0 };
     batch.vertices = (Vertex*)malloc(40000 * sizeof(Vertex));
     batch.indices = (uint16_t*)malloc(60000 * sizeof(uint16_t));
-    for (uint32_t i = 0; i < 1000; ++i) {
-	fill_rect(&batch, rand_between(0, SCREEN_WIDTH), rand_between(0, SCREEN_HEIGHT),
-		  rand_between(100, 200), rand_between(100, 200));
+    for (uint32_t i = 0; i < 1; ++i) {
+//	line(&batch, rand_between(0, width), rand_between(0, height),
+//	     rand_between(0, width), rand_between(0, height));
+	line(&batch, 200, 0, 200, 1000);
+//	fill_rect(&batch, rand_between(0, SCREEN_WIDTH), rand_between(0, SCREEN_HEIGHT),
+//		  rand_between(100, 200), rand_between(100, 200));
     }
     uint32_t offset_vertices = vkal_vertex_buffer_add(batch.vertices, 2*sizeof(vec3) + sizeof(vec2),
 						      batch.vertex_count);
@@ -258,7 +303,6 @@ int main(int argc, char ** argv)
     {
 	glfwPollEvents();
 
-	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
 	view_proj_data.proj = ortho(0, width, height, 0, 0.1f, 2.f);
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
