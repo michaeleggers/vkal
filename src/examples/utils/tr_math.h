@@ -1,6 +1,8 @@
 #ifndef TR_MATH_H
 #define TR_MATH_H
 
+#define TR_PI 3.14159265358979323846f
+
 typedef struct vec2
 {
     float x, y;

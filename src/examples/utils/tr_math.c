@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define TR_PI 3.14159265358979323846f
+
 
 #include "tr_math.h"
 
