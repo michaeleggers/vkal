@@ -23,6 +23,9 @@ typedef struct mat4
     float d[4][4];
 } mat4;
 
+float vec2_length(vec2 v);
+vec2 vec2_normalize(vec2 v);
+
 float vec3_length(vec3 v);
 vec3  vec3_normalize(vec3 v);
 float vec3_dot(vec3 a, vec3 b);

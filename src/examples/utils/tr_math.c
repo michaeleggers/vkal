@@ -6,6 +6,22 @@
 
 #include "tr_math.h"
 
+float vec2_length(vec2 v)
+{
+    return sqrtf(v.x*v.x +
+		 v.y*v.y);
+}
+
+vec2 vec2_normalize(vec2 v)
+{
+    float length = vec2_length(v);
+    vec2 result;
+    result.x = v.x/length;
+    result.y = v.y/length;
+    return result;
+}
+
+
 float vec3_length(vec3 v)
 {
     return sqrtf(v.x*v.x +

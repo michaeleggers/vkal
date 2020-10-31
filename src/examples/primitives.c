@@ -114,14 +114,17 @@ void line(Batch * batch, float x0, float y0, float x1, float y1)
     Vertex tr;
     Vertex br;
 
-    float pixel_width = 1.f;//10.f/(float)width;
-    float pixel_height = 1.f;//10.f/(float)height;
+    float pixel_width = 30.f;//10.f/(float)width;
+    float pixel_height = 30.f;//10.f/(float)height;
+    float half_thick = pixel_width/2.0;
     float dx = fabs(x1 - x0);
     float dy = fabs(y1 - y0);
     float slope = (dx > 0.0) && (dy > 0.0) ? (dy/dx) : 1.f;
     float offset = 1.0 - (1.0/slope);
     offset = offset < 0.0 ? 0.0 : offset;
-
+    vec2 normal = (vec2){-dy, dx};
+    normal = vec2_normalize(normal);
+    
     if ( (x1 > x0) && (y1 > y0) ) { /* bottom right */
 	tl.pos = (vec3){x0, y0, -1};
 	bl.pos = (vec3){x0-offset, y0+pixel_height, -1};
@@ -298,10 +301,11 @@ int main(int argc, char ** argv)
     batch.indices = (uint16_t*)malloc(60000 * sizeof(uint16_t));
     float theta = 0.0f;
     float steps = 2*TR_PI/64.f;
-    for (uint32_t i = 0; i < 64; ++i) {
+    for (uint32_t i = 0; i < 1; ++i) {
 //	line(&batch, rand_between(0, width), rand_between(0, height),
 //	     rand_between(0, width), rand_between(0, height));
-	line(&batch, 500, 500, 500+400*cosf(theta), 500+400*sinf(theta));
+//	line(&batch, 500, 500, 500+400*cosf(theta), 500+400*sinf(theta));
+	line(&batch, 500, 500, 600, 700);
 	theta += steps;
 //	fill_rect(&batch, rand_between(0, SCREEN_WIDTH), rand_between(0, SCREEN_HEIGHT),
 //		  rand_between(100, 200), rand_between(100, 200));
