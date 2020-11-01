@@ -125,8 +125,6 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
 
     float offset_x = thickness*normal.x/2.0;
     float offset_y = thickness*normal.y/2.0;
-    float offset_blbr_x = thickness*normal.x/2.0;
-    float offset_blbr_y = thickness*normal.y/2.0;
     if ( (x1 > x0) && (y1 > y0) ) { /* bottom right */
 	tl.pos = (vec3){x0 + offset_x, y0 - offset_y, -1};
 	bl.pos = (vec3){x0 - offset_x, y0 + offset_y, -1};
@@ -303,14 +301,14 @@ int main(int argc, char ** argv)
     batch.indices = (uint16_t*)malloc(60000 * sizeof(uint16_t));
     float theta = 0.0f;
     float steps = 2*TR_PI/32.f;
-    for (uint32_t i = 0; i < 10000; ++i) {
+    for (uint32_t i = 0; i < 32; ++i) {
 	float r = rand_between(0.0, 1.0);
 	float g = rand_between(0.0, 1.0);
 	float b = rand_between(0.0, 1.0);
-	float thickness = rand_between(1.0, 2.0);
-	line(&batch, rand_between(0, width), rand_between(0, height),
-	     rand_between(0, width), rand_between(0, height), thickness, (vec3){r, g, b});
-//	line(&batch, 500, 500, 500+400*cosf(theta), 500+400*sinf(theta), 10.f, (vec3){1.0, 1.0, 0.0});
+	float thickness = rand_between(1.0, 30.0);
+//	line(&batch, rand_between(0, width), rand_between(0, height),
+//	     rand_between(0, width), rand_between(0, height), thickness, (vec3){r, g, b});
+	line(&batch, 500, 500, 500+400*cosf(theta), 500+400*sinf(theta), thickness, (vec3){r, g, b});
 //	line(&batch, 500, 500, 60, 800);
 //	fill_rect(&batch, 500, 500, 10, 10);
 
