@@ -20,7 +20,7 @@ layout (set = 0, binding = 0) uniform ViewProj_t
 
 void main()
 {
-    out_position = 0.5*position + 0.5;
+    out_position = (u_view_proj.proj * vec4(position, 1.0)).xyz;
     out_color = color;
     out_uv = uv;
 	gl_Position = u_view_proj.proj * vec4(position, 1.0);

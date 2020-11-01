@@ -113,16 +113,16 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
     Vertex bl;
     Vertex tr;
     Vertex br;
-
+    
     float dx = fabs(x1 - x0);
     float dy = fabs(y1 - y0);
-    float slope = (dx > 0.0) && (dy > 0.0) ? (dy/dx) : 1.f;
-    float offset = 1.0 - (1.0/slope);
-    offset = offset < 0.0 ? 0.0 : offset;
-//    vec2 normal = (vec2){-dy, dx};
+    /* The lines' normals are (-dy, dx), (dy, =dx)
+       but we only are interested in (dy, dx) because
+       it is easier to reason about when applying the
+       normal components as offsets.
+    */
     vec2 normal = (vec2){dy, dx};
     normal = vec2_normalize(normal);
-
     float offset_x = thickness*normal.x/2.0;
     float offset_y = thickness*normal.y/2.0;
     if ( (x1 > x0) && (y1 > y0) ) { /* bottom right */
@@ -149,7 +149,7 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
 	tr.pos = (vec3){x1 + offset_x, y1 + offset_y, -1};
 	br.pos = (vec3){x1 - offset_x, y1 - offset_y, -1};
     }
-    
+
     tl.color = color;
     bl.color = color;
     tr.color = color;
