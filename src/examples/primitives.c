@@ -88,9 +88,9 @@ void fill_rect(Batch * batch, float x, float y, float width, float height)
     bl.pos = (vec3){x, y+height,-1};
     tr.pos = (vec3){x+width, y, -1};
     br.pos = (vec3){x+width, y+height, -1};
-    tl.color = (vec3){1,0,0};
+    tl.color = (vec3){0,1,0};
     bl.color = (vec3){0,1,0};
-    tr.color = (vec3){0,0,1};
+    tr.color = (vec3){0,1,0};
     br.color = (vec3){1,1,0};
     
     batch->vertices[batch->vertex_count++] = tl;
@@ -107,53 +107,55 @@ void fill_rect(Batch * batch, float x, float y, float width, float height)
     batch->rect_count++;
 }
 
-void line(Batch * batch, float x0, float y0, float x1, float y1)
+void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness, vec3 color)
 {
     Vertex tl;
     Vertex bl;
     Vertex tr;
     Vertex br;
 
-    float pixel_width = 1.f;//10.f/(float)width;
-    float pixel_height = 10.f;//10.f/(float)height;
-    float half_thick = pixel_width/2.0;
     float dx = fabs(x1 - x0);
     float dy = fabs(y1 - y0);
     float slope = (dx > 0.0) && (dy > 0.0) ? (dy/dx) : 1.f;
     float offset = 1.0 - (1.0/slope);
     offset = offset < 0.0 ? 0.0 : offset;
-    vec2 normal = (vec2){-dy, dx};
+//    vec2 normal = (vec2){-dy, dx};
+    vec2 normal = (vec2){dy, dx};
     normal = vec2_normalize(normal);
-    
+
+    float offset_x = thickness*normal.x/2.0;
+    float offset_y = thickness*normal.y/2.0;
+    float offset_blbr_x = thickness*normal.x/2.0;
+    float offset_blbr_y = thickness*normal.y/2.0;
     if ( (x1 > x0) && (y1 > y0) ) { /* bottom right */
-	tl.pos = (vec3){x0, y0, -1};
-	bl.pos = (vec3){x0+pixel_height*normal.x, y0+pixel_height*normal.y, -1};
-	tr.pos = (vec3){x1, y1, -1};
-	br.pos = (vec3){x1+pixel_height*normal.x, y1+pixel_height*normal.y, -1};
+	tl.pos = (vec3){x0 + offset_x, y0 - offset_y, -1};
+	bl.pos = (vec3){x0 - offset_x, y0 + offset_y, -1};
+	tr.pos = (vec3){x1 + offset_x, y1 - offset_y, -1};
+	br.pos = (vec3){x1 - offset_x, y1 + offset_y, -1};
     }
     else if ( (x1 > x0) && (y1 < y0) ) { /* top right */
-	tl.pos = (vec3){x0, y0, -1};
-	bl.pos = (vec3){x0-pixel_height*normal.x, y0+pixel_height*normal.y, -1};
-	tr.pos = (vec3){x1, y1, -1};
-	br.pos = (vec3){x1-pixel_height*normal.x, y1+pixel_height*normal.y, -1};
+	tl.pos = (vec3){x0 - offset_x, y0 - offset_y, -1};
+	bl.pos = (vec3){x0 + offset_x, y0 + offset_y, -1};
+	tr.pos = (vec3){x1 - offset_x, y1 - offset_y, -1};
+	br.pos = (vec3){x1 + offset_x, y1 + offset_y, -1};
     }
     else if ( (x1 < x0) && (y1 < y0) ) { /* top left */
-	tl.pos = (vec3){x0, y0, -1};
-	bl.pos = (vec3){x0+pixel_height*normal.x, y0+pixel_height*normal.y, -1};
-	tr.pos = (vec3){x1, y1, -1};
-	br.pos = (vec3){x1+pixel_height*normal.x, y1+pixel_height*normal.y, -1};
+	tl.pos = (vec3){x0 - offset_x, y0 + offset_y, -1};
+	bl.pos = (vec3){x0 + offset_x, y0 - offset_y, -1};
+	tr.pos = (vec3){x1 - offset_x, y1 + offset_y, -1};
+	br.pos = (vec3){x1 + offset_x, y1 - offset_y, -1};
     }
     else { /* bottom left*/
-	tl.pos = (vec3){x0, y0, -1};
-	bl.pos = (vec3){x0-pixel_height*normal.x, y0+pixel_height*normal.y, -1};
-	tr.pos = (vec3){x1, y1, -1};
-	br.pos = (vec3){x1-pixel_height*normal.x, y1+pixel_height*normal.y, -1};
+	tl.pos = (vec3){x0 + offset_x, y0 + offset_y, -1};
+	bl.pos = (vec3){x0 - offset_x, y0 - offset_y, -1};
+	tr.pos = (vec3){x1 + offset_x, y1 + offset_y, -1};
+	br.pos = (vec3){x1 - offset_x, y1 - offset_y, -1};
     }
     
-    tl.color = (vec3){1,0,0};
-    bl.color = (vec3){1,0,0};
-    tr.color = (vec3){1,0,0};
-    br.color = (vec3){1,0,0};
+    tl.color = color;
+    bl.color = color;
+    tr.color = color;
+    br.color = color;
     
     batch->vertices[batch->vertex_count++] = tl;
     batch->vertices[batch->vertex_count++] = bl;
@@ -300,12 +302,18 @@ int main(int argc, char ** argv)
     batch.vertices = (Vertex*)malloc(40000 * sizeof(Vertex));
     batch.indices = (uint16_t*)malloc(60000 * sizeof(uint16_t));
     float theta = 0.0f;
-    float steps = 2*TR_PI/16.f;
-    for (uint32_t i = 0; i < 16; ++i) {
-//	line(&batch, rand_between(0, width), rand_between(0, height),
-//	     rand_between(0, width), rand_between(0, height));
-	line(&batch, 500, 500, 500+400*cosf(theta), 500+400*sinf(theta));
-//	line(&batch, 500, 500, 400, 800);
+    float steps = 2*TR_PI/32.f;
+    for (uint32_t i = 0; i < 10000; ++i) {
+	float r = rand_between(0.0, 1.0);
+	float g = rand_between(0.0, 1.0);
+	float b = rand_between(0.0, 1.0);
+	float thickness = rand_between(1.0, 2.0);
+	line(&batch, rand_between(0, width), rand_between(0, height),
+	     rand_between(0, width), rand_between(0, height), thickness, (vec3){r, g, b});
+//	line(&batch, 500, 500, 500+400*cosf(theta), 500+400*sinf(theta), 10.f, (vec3){1.0, 1.0, 0.0});
+//	line(&batch, 500, 500, 60, 800);
+//	fill_rect(&batch, 500, 500, 10, 10);
+
 	theta += steps;
 //	fill_rect(&batch, rand_between(0, SCREEN_WIDTH), rand_between(0, SCREEN_HEIGHT),
 //		  rand_between(100, 200), rand_between(100, 200));
