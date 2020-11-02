@@ -21,6 +21,26 @@ vec2 vec2_normalize(vec2 v)
     return result;
 }
 
+float det_mat2(float c00, float c01, float c10, float c11)
+{
+    return c00*c11 - c10*c01;
+}
+
+float det_mat3(mat3 m)
+{
+    float a = m.d[0][0];
+    float b = m.d[1][0];
+    float c = m.d[2][0];
+
+    float e = m.d[1][1];
+    float h = m.d[1][2];
+    float f = m.d[2][1];
+    float i = m.d[2][2];
+    float d = m.d[0][1];
+    float g = m.d[0][2];
+
+    return a*det_mat2(e,h,f,i) - b*det_mat2(d,g,f,i) + c*det_mat2(d, g, e, h);
+}
 
 float vec3_length(vec3 v)
 {
@@ -213,6 +233,60 @@ vec4 mat4_x_vec4(mat4 m, vec4 v)
     result.z = m.d[0][2]*v.x + m.d[1][2]*v.y + m.d[2][2]*v.z + m.d[3][2]*v.w;
     result.w = m.d[0][3]*v.x + m.d[1][3]*v.y + m.d[2][3]*v.z + m.d[3][3]*v.w;
     return result;
+}
+
+float det_mat4(mat4 m)
+{
+    mat3 a;
+    a.d[0][0] = m.d[1][0];
+    a.d[0][1] = m.d[1][1];
+    a.d[0][2] = m.d[1][3];
+    a.d[1][0] = m.d[2][0];
+    a.d[1][1] = m.d[2][1];
+    a.d[1][2] = m.d[2][3];
+    a.d[2][0] = m.d[3][0];
+    a.d[2][1] = m.d[3][1];
+    a.d[2][2] = m.d[3][3];
+
+    mat3 b;
+    b.d[0][0] = m.d[0][0];
+    b.d[0][1] = m.d[0][1];
+    b.d[0][2] = m.d[0][3];
+    b.d[1][0] = m.d[2][1];
+    b.d[1][1] = m.d[2][3];
+    b.d[1][2] = m.d[3][0];
+    b.d[2][0] = m.d[3][1];
+    b.d[2][1] = m.d[3][1];
+    b.d[2][2] = m.d[3][3];
+
+    mat3 c;
+    c.d[0][0] = m.d[0][0];
+    c.d[0][1] = m.d[0][1];
+    c.d[0][2] = m.d[0][3];
+    c.d[1][0] = m.d[1][0];
+    c.d[1][1] = m.d[1][1];
+    c.d[1][2] = m.d[1][3];
+    c.d[2][0] = m.d[3][0];
+    c.d[2][1] = m.d[3][1];
+    c.d[2][2] = m.d[3][3];
+
+    mat3 d;
+    d.d[0][0] = m.d[0][0];
+    d.d[0][1] = m.d[0][1];
+    d.d[0][2] = m.d[0][3];
+    d.d[1][0] = m.d[1][0];
+    d.d[1][1] = m.d[1][1];
+    d.d[1][2] = m.d[1][3];
+    d.d[2][0] = m.d[2][0];
+    d.d[2][1] = m.d[2][1];
+    d.d[2][2] = m.d[2][3];
+
+    float i = m.d[0][2];
+    float j = m.d[1][2];
+    float k = m.d[2][2];
+    float l = m.d[3][2];
+
+    return i*det_mat3(a) - j*det_mat3(b) + k*det_mat3(c) - l*det_mat3(d);
 }
 
 mat4 translate(mat4 m, vec3 v)

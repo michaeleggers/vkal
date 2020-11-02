@@ -119,6 +119,20 @@ typedef struct MdMesh
 static GLFWwindow * window;
 Platform p;
 
+void check_weights(MdMesh * mesh)
+{
+    Vertex * vertex = mesh->vertices;
+    uint32_t vertex_count = mesh->vertex_count;
+    for (uint32_t i = 0; i < vertex_count; ++i) {
+	float w0 = vertex[i].bone_weights[0];
+	float w1 = vertex[i].bone_weights[1];
+	float w2 = vertex[i].bone_weights[2];
+	float w3 = vertex[i].bone_weights[3];
+	float sum = w0 + w1 + w2 + w3;
+	printf("Vertex %d Weight Sum: %f\n", i, sum);
+    }
+}
+
 MdMesh load_md_mesh(char * filename)
 {
     MdMesh result = {0 };
@@ -406,6 +420,7 @@ int main(int argc, char ** argv)
     md_model.vertex_count = md_mesh.vertex_count;
     md_model.index_buffer_offset = md_mesh.index_buffer_offset;
     md_model.index_count = md_mesh.index_count;
+    check_weights(&md_mesh);
     
 #define NUM_ENTITIES 1
     /* Entities */
@@ -550,6 +565,16 @@ int main(int argc, char ** argv)
 //	md_mesh.animation_matrices[0] = mat4_x_mat4(mat4_inverse(neck_offset), mat4_x_mat4(trans, neck_offset));
 
 	update_skeleton( &md_mesh );
+	static int has_run = 1;
+	if (has_run) {
+	    for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
+		mat4 mat = md_mesh.tmp_matrices[i];
+		float det = det_mat4(mat);
+		printf("Bone %d: det(tmp_matrix) = %f\n", i, det);
+	    }
+	    has_run = 1;
+	}
+	
 	memcpy( storage_buffer_skeleton_matrices.mapped, md_mesh.tmp_matrices, md_mesh.bone_count * sizeof(mat4) );
 	
 	{
