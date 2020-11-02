@@ -2,9 +2,25 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define TR_PI 3.14159265358979323846f
+
 
 #include "tr_math.h"
+
+float vec2_length(vec2 v)
+{
+    return sqrtf(v.x*v.x +
+		 v.y*v.y);
+}
+
+vec2 vec2_normalize(vec2 v)
+{
+    float length = vec2_length(v);
+    vec2 result;
+    result.x = v.x/length;
+    result.y = v.y/length;
+    return result;
+}
+
 
 float vec3_length(vec3 v)
 {
@@ -326,6 +342,18 @@ mat4 perspective_vk(float fov, float aspect, float z_near, float z_far)
     result.d[3][0] = result.d[3][1] = 0;
     result.d[3][2] = -(z_far * z_near) / (z_far - z_near);
     result.d[3][3] = 0;
+    return result;
+}
+
+mat4 ortho(float left, float right, float bottom, float top, float z_near, float z_far)
+{
+    mat4 result = mat4_identity();
+    result.d[0][0] = (2.f) / (right - left);
+    result.d[1][1] = (2.f) / (top - bottom);
+    result.d[2][2] = -1.f / (z_far - z_near);
+    result.d[3][0] = - (right + left) / (right - left);
+    result.d[3][1] = - (top + bottom) / (top - bottom);
+    result.d[3][2] = -z_near / (z_far - z_near);
     return result;
 }
 
