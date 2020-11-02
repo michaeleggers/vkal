@@ -1,6 +1,8 @@
 #ifndef TR_MATH_H
 #define TR_MATH_H
 
+#define TR_PI 3.14159265358979323846f
+
 typedef struct vec2
 {
     float x, y;
@@ -20,6 +22,9 @@ typedef struct mat4
 {
     float d[4][4];
 } mat4;
+
+float vec2_length(vec2 v);
+vec2 vec2_normalize(vec2 v);
 
 float vec3_length(vec3 v);
 vec3  vec3_normalize(vec3 v);
@@ -46,6 +51,7 @@ mat4  rotate_y(float angle);
 mat4  rotate_z(float angle);
 mat4  perspective_gl(float fov, float aspect, float z_near, float z_far);
 mat4  perspective_vk(float fov, float aspect, float z_near, float z_far);
+mat4  ortho(float left, float right, float bottom, float top, float z_near, float z_far);
 mat4  look_at(vec3 eye_pos, vec3 center, vec3 up);
 float tr_radians(float deg);
 float rand_between(float min, float max);
