@@ -112,6 +112,7 @@ typedef struct MdMesh
     uint32_t bone_count;
     mat4 *   animation_matrices;
     mat4 *   tmp_matrices;
+    mat4 *   final_pose;
     Node *   skeleton_nodes;
     uint32_t node_count;
 } MdMesh;
@@ -163,6 +164,7 @@ MdMesh load_md_mesh(char * filename)
     result.bones              = (Bone*)malloc(result.bone_count * sizeof(Bone));
     result.animation_matrices = (mat4*)malloc(result.bone_count * sizeof(mat4));
     result.tmp_matrices       = (mat4*)malloc(result.bone_count * sizeof(mat4));
+    result.final_pose         = (mat4*)malloc(result.bone_count * sizeof(mat4));
     result.skeleton_nodes     = (Node*)malloc(result.node_count * sizeof(Node));
     Vertex * vertex_data = (Vertex*)((MdMeshHeader*)file_data + 1);
     memcpy(result.vertices, vertex_data, result.vertex_count * sizeof(Vertex));
@@ -173,6 +175,7 @@ MdMesh load_md_mesh(char * filename)
     for (uint32_t i = 0; i < result.bone_count; ++i) {
 	result.animation_matrices[i] = mat4_identity();
 	result.tmp_matrices[i] = mat4_identity();
+	result.final_pose[i] = mat4_identity();
     }
     Node * skeleton_nodes = (Node*)(bones + result.bone_count);
     memcpy(result.skeleton_nodes, skeleton_nodes, result.node_count * sizeof(Node));
@@ -194,11 +197,13 @@ void update_skeleton(MdMesh * mesh)
 	    uint32_t parent_bone_index = skeleton_nodes[parent_index].bone_index;
 	    mat4 parent_mat = mesh->tmp_matrices[parent_bone_index];
 	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(parent_mat,
-							 local_transform);
+							 local_transform);	    
 	}
 	else {
 	    mesh->tmp_matrices[bone_index] = local_transform;
 	}
+	mesh->final_pose[bone_index] = mat4_x_mat4(offset_mat,
+						   mat4_x_mat4(mesh->tmp_matrices[bone_index], mat4_inverse(offset_mat)));
     }
 
     for (uint32_t i = 0; i < node_count; ++i) {
@@ -425,8 +430,8 @@ int main(int argc, char ** argv)
 #define NUM_ENTITIES 1
     /* Entities */
     Entity entities[NUM_ENTITIES];
-    vec3 pos = { 0, -1, 0.f };
-    vec3 rot = { 0, 0, 0.f };
+    vec3 pos = { 0.f, 0.f, 0.f };
+    vec3 rot = { 0.f, 0.f, 0.f };
     vec3 scale = (vec3){ 1, 1, 1 };
     entities[0].model       = md_model;
     entities[0].position    = pos;
@@ -435,12 +440,11 @@ int main(int argc, char ** argv)
     
     /* View Projection */
     Camera camera;
-    camera.pos = (vec3){ 0, 1.f, 3.f };
+    camera.pos = (vec3){ 0, 0.f, 5.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
-    view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
 
     /* Uniform Buffers */
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
@@ -507,7 +511,7 @@ int main(int argc, char ** argv)
 	/* Update View Projection Matrices */
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
-	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
+	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 1000.f );
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
         /* Update Info about screen */
@@ -516,7 +520,7 @@ int main(int argc, char ** argv)
 	vkal_update_uniform(&viewport_ubo, &viewport_data);
 
         /* Update Model Matrices */
-	for (int i = 0; i < NUM_ENTITIES - 1; ++i) {
+	for (int i = 0; i < NUM_ENTITIES; ++i) {
 	    mat4 model_mat = mat4_identity();
 	    model_mat = translate(model_mat, entities[i].position);
 	    model_mat = tr_scale(model_mat, entities[i].scale);
@@ -542,33 +546,40 @@ int main(int argc, char ** argv)
 	arm_rot = mat4_x_mat4( arm_rot, arm_rot_y );
 //	arm_rot = mat4_x_mat4( arm_rot, arm_rot_x );
 	mat4 arm_offset = md_mesh.bones[14].offset_matrix;
+	mat4 low_arm_offset = md_mesh.bones[15].offset_matrix;
+	mat4 hand_offset = md_mesh.bones[16].offset_matrix;
 	mat4 neck_offset = md_mesh.bones[3].offset_matrix;
 	mat4 root_offset = md_mesh.bones[0].offset_matrix;
-	mat4 trans = mat4_identity();
-	trans = translate(trans, (vec3){ 0, 0, 0 });
-	trans = mat4_x_mat4(arm_rot, trans);
+	mat4 trans = arm_rot_y; //mat4_identity();
+//	trans = translate(trans, (vec3){ 0, 0.5, 0 });
+//	trans = mat4_x_mat4(arm_rot, trans);
 
 #if 0
 	for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
 	    mat4 offset_mat = md_mesh.bones[i].offset_matrix;
-//	    md_mesh.tmp_matrices[i] = mat4_x_mat4(offset_mat, mat4_x_mat4(trans, mat4_inverse(offset_mat)));
-	    md_mesh.tmp_matrices[i] = trans;
+	    md_mesh.animation_matrices[i] = offset_mat;
 	}
 #endif
-	
 //	md_mesh.animation_matrices[14] = trans;
 //	md_mesh.animation_matrices[14] = mat4_x_mat4(trans, arm_offset);
+//	md_mesh.animation_matrices[14] = mat4_x_mat4(trans, mat4_inverse(arm_offset));
+//	md_mesh.animation_matrices[14] = mat4_x_mat4(arm_offset, trans);
+//	md_mesh.animation_matrices[14] = mat4_x_mat4(mat4_inverse(arm_offset), trans);
 	md_mesh.animation_matrices[14] = mat4_x_mat4(mat4_inverse(arm_offset), mat4_x_mat4(trans, arm_offset));
+//	md_mesh.animation_matrices[14] = mat4_x_mat4(arm_offset, mat4_x_mat4(trans, mat4_inverse(arm_offset)));
 //	md_mesh.animation_matrices[14] = arm_offset;
 
 //	md_mesh.animation_matrices[3] = mat4_x_mat4(mat4_inverse(neck_offset), mat4_x_mat4(trans, neck_offset));
 //	md_mesh.animation_matrices[0] = mat4_x_mat4(mat4_inverse(neck_offset), mat4_x_mat4(trans, neck_offset));
+	update_skeleton( &md_mesh );      
 
-	update_skeleton( &md_mesh );
-	static int has_run = 1;
-	if (has_run) {
+	mat4 arm_offset_inv = mat4_inverse(arm_offset);
+	mat4 ident = mat4_x_mat4(arm_offset_inv, arm_offset);
+	
+	static int has_run = 0;
+ 	if (has_run) {
 	    for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
-		mat4 mat = md_mesh.tmp_matrices[i];
+		mat4 mat = md_mesh.final_pose[i];
 		float det = det_mat4(mat);
 		printf("Bone %d: det(tmp_matrix) = %f\n", i, det);
 	    }

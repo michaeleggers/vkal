@@ -12,9 +12,18 @@ typedef struct Platform
 } Platform;
 
 /* Interface */
+
+#ifdef __cplusplus
+extern "C"{
+#endif 
+
 void init_platform(Platform * p);
 
 /* API specific. Not supposed to be called by user. */
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

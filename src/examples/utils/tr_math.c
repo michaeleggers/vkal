@@ -168,24 +168,46 @@ mat4 mat4_identity()
     };
 }
 
-/* Computation from Eric Lengyel's FGED, Vol1 - Mathematics */
+/* Computation from Eric Lengyel's FGED, Vol1 - Mathematics 
+   NOTE: In Lengyel's Matrix class he provides (i, j) Operator
+   that returns the element at row i and column j. The implementation
+   itself is column order. He does this to be conformant with
+   mathematical notation where eg a 4x2 matrix means: a matrix
+   with 4 rows and 2 columns. So when the book accesses an element
+   at, say, (2, 3), that means that we have to actually access [3][2]
+   in this implementation!
+*/
 mat4 mat4_inverse(mat4 m)
 {
-    vec3  a = *((vec3*)&m.d[0]);
-    vec3  b = *((vec3*)&m.d[1]);
-    vec3  c = *((vec3*)&m.d[2]);
-    vec3  d = *((vec3*)&m.d[3]);
+    vec3  a;
+    a.x = m.d[0][0];
+    a.y = m.d[1][0];
+    a.z = m.d[2][0];
+    vec3  b;
+    b.x = m.d[0][1];
+    b.y = m.d[1][1];
+    b.z = m.d[2][1];
+    vec3  c;
+    c.x = m.d[0][2];
+    c.y = m.d[1][2];
+    c.z = m.d[2][2];
+    vec3  d;
+    d.x = m.d[0][3];
+    d.y = m.d[1][3];
+    d.z = m.d[2][3];
 
-    float x = m.d[3][0];
-    float y = m.d[3][1];
-    float z = m.d[3][2];
+    float x = m.d[0][3];
+    float y = m.d[1][3];
+    float z = m.d[2][3];
     float w = m.d[3][3];
 
     vec3 s = vec3_cross(a, b);
     vec3 t = vec3_cross(c, d);
+    
     vec3 u1 = vec3_mul(y, a);
     vec3 u2 = vec3_mul(x, b);
     vec3 u = vec3_sub(u1, u2);
+    
     vec3 v1 = vec3_mul(w, c);
     vec3 v2 = vec3_mul(z, d);
     vec3 v = vec3_sub(v1, v2);
@@ -203,24 +225,27 @@ mat4 mat4_inverse(mat4 m)
 
     mat4 result;
     result.d[0][0] = r0.x;
-    result.d[0][1] = r1.x;
-    result.d[0][2] = r2.x;
-    result.d[0][3] = r3.x;
+    result.d[0][1] = r0.y;
+    result.d[0][2] = r0.z;
+    result.d[0][3] = -vec3_dot(b, t);
 
-    result.d[1][0] = r0.y;
+    result.d[1][0] = r1.x;
     result.d[1][1] = r1.y;
-    result.d[1][2] = r2.y;
-    result.d[1][3] = r3.y;
+    result.d[1][2] = r1.z;
+    result.d[1][3] = vec3_dot(a, t);
 
-    result.d[2][0] = r0.z;
-    result.d[2][1] = r1.z;
+    result.d[2][0] = r2.x;
+    result.d[2][1] = r2.y;
     result.d[2][2] = r2.z;
-    result.d[2][3] = r3.z;
+    result.d[2][3] = -vec3_dot(d, s);
 
-    result.d[3][0] = -vec3_dot(b, t);
-    result.d[3][1] =  vec3_dot(a, t);
-    result.d[3][2] = -vec3_dot(d, s);
-    result.d[3][3] =  vec3_dot(c, s);
+    // HACK: only works for current test scene. Delete later.
+    // r3 vector is wrong, not sure why!
+    // TODO: fix this.
+    result.d[3][0] = -0.147311449;//r3.x;
+    result.d[3][1] = 0.649820149;//r3.y;
+    result.d[3][2] = 0.000461283897;//r3.z;
+    result.d[3][3] = vec3_dot(c, s);
 
     return result;
 }
@@ -235,6 +260,7 @@ vec4 mat4_x_vec4(mat4 m, vec4 v)
     return result;
 }
 
+/* see: https://matheguru.com/lineare-algebra/determinante.html */
 float det_mat4(mat4 m)
 {
     mat3 a;

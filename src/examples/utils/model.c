@@ -8,7 +8,9 @@
 
 #define FLT_MAX       100.f;
 
+    
 extern Platform p;
+
 
 void clear_model(Model * model)
 {
