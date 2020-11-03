@@ -196,9 +196,9 @@ mat4 mat4_inverse(mat4 m)
     d.y = m.d[1][3];
     d.z = m.d[2][3];
 
-    float x = m.d[0][3];
-    float y = m.d[1][3];
-    float z = m.d[2][3];
+    float x = m.d[3][0];
+    float y = m.d[3][1];
+    float z = m.d[3][2];
     float w = m.d[3][3];
 
     vec3 s = vec3_cross(a, b);
@@ -242,9 +242,9 @@ mat4 mat4_inverse(mat4 m)
     // HACK: only works for current test scene. Delete later.
     // r3 vector is wrong, not sure why!
     // TODO: fix this.
-    result.d[3][0] = -0.147311449;//r3.x;
-    result.d[3][1] = 0.649820149;//r3.y;
-    result.d[3][2] = 0.000461283897;//r3.z;
+    result.d[3][0] = r3.x;
+    result.d[3][1] = r3.y;
+    result.d[3][2] = r3.z;
     result.d[3][3] = vec3_dot(c, s);
 
     return result;
