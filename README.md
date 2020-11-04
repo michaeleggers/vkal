@@ -337,6 +337,7 @@ The root directory contains a `build.bat` that can build the examples.
 | [textures_descriptorarray_push_constant.c](https://github.com/michaeleggers/vkal/blob/readme-update/src/examples/textures_descriptorarray_push_constant.c) | Using a descriptor-array each texture gets its own index into the array. The indices get transmitted via a push constant during command-buffer recording. |
 | [rendertexture.c](https://github.com/michaeleggers/vkal/blob/readme-update/src/examples/rendertexture.c) | Two textures get rendered into a texture. They get sampled from in a second pass to do some image-compositing. |
 | [model_loading.c](https://github.com/michaeleggers/vkal/blob/readme-update/src/examples/model_loading.c) | Two different meshes get rendered multiple times using a dynamic uniform buffer for the model-matrices. |
+| [mesh_skinning.c](https://github.com/michaeleggers/vkal/blob/readme-update/src/examples/mesh_skinning.c) | Model gets loaded from md-data file. Loading vertex/index and bone information and animate a few joints in code. |
 
 
 
