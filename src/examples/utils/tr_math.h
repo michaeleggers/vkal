@@ -13,6 +13,11 @@ typedef struct vec3
     float x, y, z;
 } vec3;
 
+typedef struct mat3
+{
+    float d[3][3];
+} mat3;
+
 typedef struct vec4
 {
     float x, y, z, w;
@@ -25,6 +30,7 @@ typedef struct mat4
 
 float vec2_length(vec2 v);
 vec2 vec2_normalize(vec2 v);
+float det_mat2(float c00, float c01, float c10, float c11);
 
 float vec3_length(vec3 v);
 vec3  vec3_normalize(vec3 v);
@@ -34,6 +40,7 @@ vec3  vec3_div(vec3 v, float s);
 vec3  vec3_add(vec3 a, vec3 b);
 vec3  vec3_sub(vec3 a, vec3 b);
 vec3  vec3_mul(float s, vec3 v);
+float det_mat3(mat3 m);
 
 float vec4_length(vec4 v);
 vec4  vec4_normalize(vec4 v);
@@ -44,6 +51,8 @@ mat4  mat4_identity(void);
 mat4  mat4_inverse(mat4 m);
 mat4  mat4_x_mat4(mat4 a, mat4 b);
 vec4  mat4_x_vec4(mat4 m, vec4 v);
+float det_mat4(mat4 m);
+
 mat4  translate(mat4 m, vec3 v);
 mat4  tr_scale(mat4 m, vec3 v);
 mat4  rotate_x(float angle);

@@ -399,6 +399,11 @@ typedef struct SwapChainSupportDetails {
     uint32_t present_mode_count;
 } SwapChainSupportDetails;
 
+
+#ifdef __cplusplus
+extern "C"{
+#endif 
+
 VkalInfo * vkal_init(char ** extensions, uint32_t extension_count);
 void vkal_create_instance(
     void * window,
@@ -638,5 +643,11 @@ void set_image_layout(
     VkPipelineStageFlags    src_mask, // = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
     VkPipelineStageFlags    dst_mask); // = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int free);
+
+#ifdef __cplusplus
+}
+#endif
+
+
 #endif
 

@@ -119,6 +119,20 @@ typedef struct MdMesh
 static GLFWwindow * window;
 Platform p;
 
+void check_weights(MdMesh * mesh)
+{
+    Vertex * vertex = mesh->vertices;
+    uint32_t vertex_count = mesh->vertex_count;
+    for (uint32_t i = 0; i < vertex_count; ++i) {
+	float w0 = vertex[i].bone_weights[0];
+	float w1 = vertex[i].bone_weights[1];
+	float w2 = vertex[i].bone_weights[2];
+	float w3 = vertex[i].bone_weights[3];
+	float sum = w0 + w1 + w2 + w3;
+	printf("Vertex %d Weight Sum: %f\n", i, sum);
+    }
+}
+
 MdMesh load_md_mesh(char * filename)
 {
     MdMesh result = {0 };
@@ -174,26 +188,17 @@ void update_skeleton(MdMesh * mesh)
 	Node * node = &(skeleton_nodes[i]);
 	int parent_index = node->parent_index;
 	uint32_t bone_index = node->bone_index;
+	mat4 local_transform = mesh->animation_matrices[bone_index];
+	mat4 offset_mat = mesh->bones[bone_index].offset_matrix;
 	if (parent_index >= 0) {
 	    uint32_t parent_bone_index = skeleton_nodes[parent_index].bone_index;
 	    mat4 parent_mat = mesh->tmp_matrices[parent_bone_index];
-	    mat4 offset_mat = mesh->bones[bone_index].offset_matrix;
-	    mat4 parent_offset_mat = mesh->bones[parent_index].offset_matrix;
-	    mesh->tmp_matrices[bone_index] = mat4_x_mat4( parent_mat, mesh->animation_matrices[bone_index] );
+	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(parent_mat,
+							 local_transform);	    
 	}
 	else {
-	    mesh->tmp_matrices[bone_index] = mat4_x_mat4( mat4_identity(), mesh->animation_matrices[bone_index] );
+	    mesh->tmp_matrices[bone_index] = local_transform;
 	}
-    }
-
-    for (uint32_t i = 0; i < node_count; ++i) {
-	Node * node = &(skeleton_nodes[i]);
-	int parent_index = node->parent_index;
-//	if (parent_index >= 0) {
-	    uint32_t bone_index = node->bone_index;
-	    mat4 offset_mat = mesh->bones[bone_index].offset_matrix;
-//	    mesh->tmp_matrices[bone_index] = mat4_x_mat4( mat4_inverse(offset_mat), mat4_x_mat4( mesh->tmp_matrices[bone_index], offset_mat ) );
-//	}
     }
 }
 
@@ -395,13 +400,6 @@ int main(int argc, char ** argv)
     rect_model.vertex_count = vertex_count;
     rect_model.index_buffer_offset = offset_indices;
     rect_model.index_count = index_count;
-    
-    Model model = {0};
-    model.is_indexed = 0;
-    float bmin[3], bmax[3];
-    load_obj(bmin, bmax, "../src/examples/assets/models/lego.obj", &model);
-    model.vertex_buffer_offset = vkal_vertex_buffer_add(model.vertices, 9*sizeof(float), model.vertex_count);
-    clear_model(&model);
 
     MdMesh md_mesh = load_md_mesh("../src/examples/assets/models/modeldata.md"); 
     md_mesh.vertex_buffer_offset = vkal_vertex_buffer_add(md_mesh.vertices, sizeof(Vertex), md_mesh.vertex_count);
@@ -413,31 +411,24 @@ int main(int argc, char ** argv)
     md_model.index_buffer_offset = md_mesh.index_buffer_offset;
     md_model.index_count = md_mesh.index_count;
     
-#define NUM_ENTITIES 2
+#define NUM_ENTITIES 1
     /* Entities */
     Entity entities[NUM_ENTITIES];
-    vec3 pos = { 0, 0, 0.f };
-    vec3 rot = { tr_radians(-90.f), 0.f, 0.f };
-    vec3 scale = (vec3){ 2, 2, 2 };
+    vec3 pos = { 0.f, -.6f, 0.f };
+    vec3 rot = { 0.f, 0.f, 0.f };
+    vec3 scale = (vec3){ 1.5, 1.5, 1.5 };
     entities[0].model       = md_model;
     entities[0].position    = pos;
     entities[0].orientation = rot;
     entities[0].scale       = scale;
-#if 1
-    entities[1].model       = md_model;
-    entities[1].position    = (vec3){ 0.f, 0.f, 3.f };
-    entities[1].orientation = (vec3){ tr_radians(-90.f), 0.f, 0.f };
-    entities[1].scale       = (vec3){ 1, 1, 1 };
-#endif
     
     /* View Projection */
     Camera camera;
-    camera.pos = (vec3){ 0, 0.f, 5.f };
+    camera.pos = (vec3){ 1, 2.f, 2.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
-    view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
 
     /* Uniform Buffers */
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
@@ -471,7 +462,7 @@ int main(int argc, char ** argv)
     vkal_dbg_buffer_name(storage_buffer_bone_matrices, "Storage Buffer Offset Matrices");
     map_memory(&storage_buffer_bone_matrices, md_mesh.bone_count * sizeof(mat4), 0);
     for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
-	printf("%s\n", md_mesh.bones[i].name);
+	printf("Bone No: %d,    name: %s\n", i, md_mesh.bones[i].name);
 	memcpy( (void*)&((mat4*)storage_buffer_bone_matrices.mapped)[i], (void*)&(md_mesh.bones[i].offset_matrix), sizeof(mat4) );
     }
     unmap_memory(&storage_buffer_bone_matrices);	
@@ -493,8 +484,6 @@ int main(int argc, char ** argv)
     // keep this storage's buffers memory mapped because we need to update the matrices in it every(?) frame.
     vkal_update_descriptor_set_bufferarray(descriptor_sets[3], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, 0, storage_buffer_skeleton_matrices);
 
-    float arm_r_rot_x = 0.0f;
-
     
     // Main Loop
     while (!glfwWindowShouldClose(window))
@@ -504,7 +493,7 @@ int main(int argc, char ** argv)
 	/* Update View Projection Matrices */
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
-	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
+	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 1000.f );
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
         /* Update Info about screen */
@@ -513,16 +502,8 @@ int main(int argc, char ** argv)
 	vkal_update_uniform(&viewport_ubo, &viewport_data);
 
         /* Update Model Matrices */
-	static float d = .001f;
-	d += .0005f;
-	static float r = .001f;
-	for (int i = 0; i < NUM_ENTITIES - 1; ++i) {
+	for (int i = 0; i < NUM_ENTITIES; ++i) {
 	    mat4 model_mat = mat4_identity();
-	    d += 0.00001f;
-//	    entities[i].position.x += sinf(d);
-//	    entities[i].orientation.x += r;
-//	    entities[i].orientation.y += r;
-//	    entities[i].orientation.z += r;
 	    model_mat = translate(model_mat, entities[i].position);
 	    model_mat = tr_scale(model_mat, entities[i].scale);
 	    mat4 rot_z = rotate_z( entities[i].orientation.z );
@@ -530,33 +511,40 @@ int main(int argc, char ** argv)
 	    mat4 rot_x = rotate_x( entities[i].orientation.x );
 	    model_mat = mat4_x_mat4(model_mat, rot_z);
 	    model_mat = mat4_x_mat4(model_mat, rot_y);
-	    model_mat = mat4_x_mat4(model_mat, rot_x);
-
-	    mat4 inv = mat4_inverse(model_mat);
-	    mat4 iden = mat4_x_mat4(inv, model_mat);
-	    mat4 iden2 = mat4_x_mat4(model_mat, inv);
-	    
+	    model_mat = mat4_x_mat4(model_mat, rot_x);	   
 	    ((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
 	}
 	vkal_update_uniform(&model_ubo, model_data);
 
 	/* update skeleton's upper right arm (Lego Model Index 14) */	
-	arm_r_rot_x += 0.001f;
-	static float dings = 0.0f;
-	dings += 0.0001f;
-	mat4 arm_rot_x = rotate_x (arm_r_rot_x );
-	mat4 arm_rot_y = rotate_y (arm_r_rot_x );
-	mat4 arm_rot_z = rotate_z (arm_r_rot_x );
-	mat4 arm_rot = mat4_identity();
-//	arm_rot = mat4_x_mat4( arm_rot, arm_rot_z );
-	arm_rot = mat4_x_mat4( arm_rot, arm_rot_y );
-//	arm_rot = mat4_x_mat4( arm_rot, arm_rot_x );
-	mat4 arm_offset = md_mesh.bones[14].offset_matrix;
-	mat4 trans = mat4_identity();
-	trans = translate(trans, (vec3){0, 0.5f*fabs( sinf(dings) ), 0 });
-	trans = mat4_x_mat4(trans, arm_rot);
-	md_mesh.animation_matrices[14] = trans; //mat4_x_mat4(mat4_inverse(arm_offset), mat4_x_mat4(trans, arm_offset) );
-	update_skeleton( &md_mesh );
+	static float arm_rot_angle = 0.0f;
+	arm_rot_angle += 0.001f;
+	mat4 arm_rot_y = rotate_y ( sinf(arm_rot_angle + 1.5*TR_PI) );
+
+	/* update skeleton's neck (Lego Model Index 3) */	
+	static float neck_rot_angle = 0.0f;
+	neck_rot_angle += 0.001f;
+	mat4 neck_rot_y = rotate_y( sinf(neck_rot_angle) );
+
+	/* update skeleton's upper right leg (Lego Model Index 27) */	
+	static float leg_rot_angle = 0.0f;
+	leg_rot_angle += 0.001f;
+	mat4 leg_r_rot_x = rotate_x( sinf(leg_rot_angle) );
+
+	/* update skeleton's upper left leg (Lego Model Index 23) */
+	mat4 leg_l_rot_x = rotate_x( sinf(leg_rot_angle + TR_PI) );
+	
+	mat4 arm_offset   = md_mesh.bones[14].offset_matrix;
+	mat4 neck_offset  = md_mesh.bones[3].offset_matrix;
+	mat4 leg_r_offset = md_mesh.bones[27].offset_matrix;
+	mat4 leg_l_offset = md_mesh.bones[23].offset_matrix;
+
+	md_mesh.animation_matrices[14] = mat4_x_mat4(mat4_inverse(arm_offset), mat4_x_mat4(arm_rot_y, arm_offset));
+	md_mesh.animation_matrices[3] = mat4_x_mat4(mat4_inverse(neck_offset), mat4_x_mat4(neck_rot_y, neck_offset));
+	md_mesh.animation_matrices[27] = mat4_x_mat4(mat4_inverse(leg_r_offset), mat4_x_mat4(leg_r_rot_x, leg_r_offset));
+	md_mesh.animation_matrices[23] = mat4_x_mat4(mat4_inverse(leg_l_offset), mat4_x_mat4(leg_l_rot_x, leg_l_offset));
+
+	update_skeleton( &md_mesh );      
 	memcpy( storage_buffer_skeleton_matrices.mapped, md_mesh.tmp_matrices, md_mesh.bone_count * sizeof(mat4) );
 	
 	{
@@ -571,7 +559,7 @@ int main(int argc, char ** argv)
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
 			 (float)width, (float)height);
-	    for (int i = 0; i < NUM_ENTITIES - 1; ++i) {
+	    for (int i = 0; i < NUM_ENTITIES; ++i) {
 		uint32_t dynamic_offset = (uint32_t)(i*model_ubo.alignment);
 		vkal_bind_descriptor_sets(image_id, descriptor_sets, descriptor_set_layout_count,
 					  &dynamic_offset, 1,
