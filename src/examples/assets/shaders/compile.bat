@@ -21,3 +21,6 @@
 
 %VULKAN_SDK%/bin/glslc model_loading_md.vert -o model_loading_md_vert.spv
 %VULKAN_SDK%/bin/glslc model_loading_md.frag -o model_loading_md_frag.spv
+
+%VULKAN_SDK%/bin/glslc primitives.vert -o primitives_vert.spv
+%VULKAN_SDK%/bin/glslc primitives.frag -o primitives_frag.spv
