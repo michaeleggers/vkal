@@ -414,9 +414,9 @@ int main(int argc, char ** argv)
 #define NUM_ENTITIES 1
     /* Entities */
     Entity entities[NUM_ENTITIES];
-    vec3 pos = { 0.f, 0.f, 0.f };
+    vec3 pos = { 0.f, -.6f, 0.f };
     vec3 rot = { 0.f, 0.f, 0.f };
-    vec3 scale = (vec3){ 1, 1, 1 };
+    vec3 scale = (vec3){ 1.5, 1.5, 1.5 };
     entities[0].model       = md_model;
     entities[0].position    = pos;
     entities[0].orientation = rot;
@@ -424,7 +424,7 @@ int main(int argc, char ** argv)
     
     /* View Projection */
     Camera camera;
-    camera.pos = (vec3){ 0, 1.f, 3.f };
+    camera.pos = (vec3){ 1, 2.f, 2.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
@@ -462,7 +462,7 @@ int main(int argc, char ** argv)
     vkal_dbg_buffer_name(storage_buffer_bone_matrices, "Storage Buffer Offset Matrices");
     map_memory(&storage_buffer_bone_matrices, md_mesh.bone_count * sizeof(mat4), 0);
     for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
-	printf("%s\n", md_mesh.bones[i].name);
+	printf("Bone No: %d,    name: %s\n", i, md_mesh.bones[i].name);
 	memcpy( (void*)&((mat4*)storage_buffer_bone_matrices.mapped)[i], (void*)&(md_mesh.bones[i].offset_matrix), sizeof(mat4) );
     }
     unmap_memory(&storage_buffer_bone_matrices);	
@@ -519,14 +519,30 @@ int main(int argc, char ** argv)
 	/* update skeleton's upper right arm (Lego Model Index 14) */	
 	static float arm_rot_angle = 0.0f;
 	arm_rot_angle += 0.001f;
-	static float head_rot_angle = 0.0f;
-	head_rot_angle += 0.0001f;
-	mat4 arm_rot_y = rotate_y (arm_rot_angle);
+	mat4 arm_rot_y = rotate_y ( sinf(arm_rot_angle + 1.5*TR_PI) );
+
+	/* update skeleton's neck (Lego Model Index 3) */	
+	static float neck_rot_angle = 0.0f;
+	neck_rot_angle += 0.001f;
+	mat4 neck_rot_y = rotate_y( sinf(neck_rot_angle) );
+
+	/* update skeleton's upper right leg (Lego Model Index 27) */	
+	static float leg_rot_angle = 0.0f;
+	leg_rot_angle += 0.001f;
+	mat4 leg_r_rot_x = rotate_x( sinf(leg_rot_angle) );
+
+	/* update skeleton's upper left leg (Lego Model Index 23) */
+	mat4 leg_l_rot_x = rotate_x( sinf(leg_rot_angle + TR_PI) );
 	
-	mat4 arm_offset = md_mesh.bones[14].offset_matrix;
-	mat4 neck_offset = md_mesh.bones[3].offset_matrix;
+	mat4 arm_offset   = md_mesh.bones[14].offset_matrix;
+	mat4 neck_offset  = md_mesh.bones[3].offset_matrix;
+	mat4 leg_r_offset = md_mesh.bones[27].offset_matrix;
+	mat4 leg_l_offset = md_mesh.bones[23].offset_matrix;
 
 	md_mesh.animation_matrices[14] = mat4_x_mat4(mat4_inverse(arm_offset), mat4_x_mat4(arm_rot_y, arm_offset));
+	md_mesh.animation_matrices[3] = mat4_x_mat4(mat4_inverse(neck_offset), mat4_x_mat4(neck_rot_y, neck_offset));
+	md_mesh.animation_matrices[27] = mat4_x_mat4(mat4_inverse(leg_r_offset), mat4_x_mat4(leg_r_rot_x, leg_r_offset));
+	md_mesh.animation_matrices[23] = mat4_x_mat4(mat4_inverse(leg_l_offset), mat4_x_mat4(leg_l_rot_x, leg_l_offset));
 
 	update_skeleton( &md_mesh );      
 	memcpy( storage_buffer_skeleton_matrices.mapped, md_mesh.tmp_matrices, md_mesh.bone_count * sizeof(mat4) );
