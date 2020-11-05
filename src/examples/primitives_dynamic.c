@@ -346,15 +346,22 @@ int main(int argc, char ** argv)
 	/* Draw Some Primitives and update buffers */
 	reset_batch(&batch);
 	for (uint32_t i = 0; i < MAX_PRIMITIVES; ++i) {
-	    vec3 color;
+	    vec3 color = (vec3){0, 0.5, 1.0};
+	    float x0 = 0.0;
+	    float y0 = 0.0f;
+	    float x1 = width;
+	    float y1 = height;
+	    float thickness = 10.0;
+#if 1
 	    color.x = rand_between(0.0, 1.0);
 	    color.y = rand_between(0.0, 1.0);
 	    color.z = rand_between(0.0, 1.0);
-	    float x0 = rand_between(0.0, width);
-	    float y0 = rand_between(0.0, height);
-	    float x1 = rand_between(0.0, width);
-	    float y1 = rand_between(0.0, height);
-	    float thickness = rand_between(1.0, 10.0);
+	     x0 = rand_between(0.0, width);
+	     y0 = rand_between(0.0, height);
+	     x1 = rand_between(0.0, width);
+	     y1 = rand_between(0.0, height);
+	     thickness = rand_between(1.0, 10.0);
+#endif
 	    line(&batch, x0, y0, x1, y1, thickness, color);
 	}
 	memcpy(index_buffer.mapped, batch.indices, PRIMITIVES_INDEX_BUFFER_SIZE);
@@ -383,6 +390,12 @@ int main(int argc, char ** argv)
 	    vkal_present(image_id);
 	}
     }
+
+    vkDeviceWaitIdle(vkal_info->device);
+    vkDestroyBuffer(vkal_info->device, index_buffer.buffer, NULL);
+    vkDestroyBuffer(vkal_info->device, vertex_buffer.buffer, NULL);
+    vkFreeMemory(vkal_info->device, index_memory.vk_device_memory, NULL);
+    vkFreeMemory(vkal_info->device, vertex_memory.vk_device_memory, NULL);
     
     vkal_cleanup();
 
