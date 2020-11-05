@@ -1798,9 +1798,13 @@ void create_staging_buffer(uint32_t size)
     DBG_VULKAN_ASSERT(result, "failed to bind memory");
 }
 
-DeviceMemory vkal_allocate_devicememory(uint32_t size, VkBufferUsageFlags buffer_usage_flags, VkMemoryPropertyFlags memory_property_flags)
+DeviceMemory vkal_allocate_devicememory(uint32_t size,
+					VkBufferUsageFlags buffer_usage_flags,
+					VkMemoryPropertyFlags memory_property_flags)
 {
-    /* Create a dummy buffer so we can select the best possible memory for this type of buffer via vkGetBufferMemoryRequirements */
+    /* Create a dummy buffer so we can select the best possible memory for this type
+       of buffer via vkGetBufferMemoryRequirements 
+    */
     VkBuffer buffer = create_buffer(size, buffer_usage_flags).buffer;
     VkMemoryRequirements buffer_memory_requirements = { 0 };
     vkGetBufferMemoryRequirements(vkal_info.device, buffer, &buffer_memory_requirements);
@@ -2021,21 +2025,25 @@ uint32_t check_memory_type_index(uint32_t const memory_requirement_bits, VkMemor
 {
     VkPhysicalDeviceMemoryProperties memory_properties;
     vkGetPhysicalDeviceMemoryProperties(vkal_info.physical_device, &memory_properties);
-    uint32_t mem_type_index = 0;
-    uint32_t found = 0;
-    uint32_t type_bits = memory_requirement_bits;
+    uint32_t mem_type_index      = 0;
+    uint32_t best_mem_type_index = 0;
+    uint32_t found               = 0;
+    uint32_t type_bits           = memory_requirement_bits;
     for (; mem_type_index < memory_properties.memoryTypeCount; ++mem_type_index) {
 	if (type_bits & 1) {
 	    if ((memory_properties.memoryTypes[mem_type_index].propertyFlags & wanted_property) == wanted_property) {
 		found = 1;
-		break;
+		best_mem_type_index = mem_type_index;
+		break;		
 	    }
+	    found = 1;
+	    best_mem_type_index = mem_type_index;
 	}
 	type_bits >>= 1;
     }
     assert(found == 1);
     
-    return mem_type_index;
+    return best_mem_type_index;
 }
 
 int rate_device(VkPhysicalDevice device)

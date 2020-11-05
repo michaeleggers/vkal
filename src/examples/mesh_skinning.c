@@ -453,12 +453,13 @@ int main(int argc, char ** argv)
 
     /* Storage Buffer for bone-matrices */
     DeviceMemory offset_matrices_mem = vkal_allocate_devicememory(10*1024*1024,
-								 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-								 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-								 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+								  VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+								  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+								  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
+								  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     Buffer storage_buffer_bone_matrices = vkal_create_buffer(md_mesh.bone_count * sizeof(mat4),
-					       &offset_matrices_mem,
-					       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+							     &offset_matrices_mem,
+							     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     vkal_dbg_buffer_name(storage_buffer_bone_matrices, "Storage Buffer Offset Matrices");
     map_memory(&storage_buffer_bone_matrices, md_mesh.bone_count * sizeof(mat4), 0);
     for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
