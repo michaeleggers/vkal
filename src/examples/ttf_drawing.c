@@ -318,9 +318,9 @@ int main(int argc, char ** argv)
 
     //float font_size = stbtt_ScaleForMappingEmToPixels(&font, 100);
     //float scale = stbtt_ScaleForPixelHeight(&font, 100);
-    //stbtt_PackSetOversampling(&spc, 2, 2);
+    //stbtt_PackSetOversampling(&spc, 4, 4);
     stbtt_packedchar chardata['~'-' '];
-    stbtt_PackFontRange(&spc, (unsigned char*)ttf, 0, 100,
+    stbtt_PackFontRange(&spc, (unsigned char*)ttf, 0, 13,
                         ' ', '~'-' ', chardata);
     stbtt_PackEnd(&spc);
     Texture font_texture = vkal_create_texture(1, pixels, 1024, 1024, 1, 0,
