@@ -1915,8 +1915,8 @@ void upload_texture(VkImage const image,
 {
     // Copy image data to staging buffer
     void * staging_buffer;
-    vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, array_layer_count*w*h*4, 0, &staging_buffer);
-    memcpy(staging_buffer, texture_data, array_layer_count*w*h*4);
+    vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, array_layer_count*w*h*n, 0, &staging_buffer);
+    memcpy(staging_buffer, texture_data, array_layer_count*w*h*n);
     VkMappedMemoryRange flush_range = { 0 };
     flush_range.memory = vkal_info.device_memory_staging;
     flush_range.offset = 0;
