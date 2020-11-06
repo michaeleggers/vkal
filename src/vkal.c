@@ -1730,7 +1730,7 @@ void vkal_update_descriptor_set_texturearray(VkDescriptorSet descriptor_set, VkD
 
 Texture vkal_create_texture(uint32_t binding,
                             unsigned char * texture_data, uint32_t width, uint32_t height, uint32_t channels, 
-			    VkImageCreateFlags flags, VkImageViewType view_type,
+			    VkImageCreateFlags flags, VkImageViewType view_type, VkFormat format,
                             uint32_t base_mip_level, uint32_t mip_level_count, 
 			    uint32_t base_array_layer, uint32_t array_layer_count,
                             VkFilter min_filter, VkFilter mag_filter)
@@ -1739,7 +1739,7 @@ Texture vkal_create_texture(uint32_t binding,
     texture.width = width;
     texture.height = height;
     texture.channels = channels;
-    create_image(width, height, mip_level_count, array_layer_count, flags, VK_FORMAT_R8G8B8A8_UNORM,
+    create_image(width, height, mip_level_count, array_layer_count, flags, format,
 		 VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
 		 &texture.image);
     
@@ -1754,7 +1754,7 @@ Texture vkal_create_texture(uint32_t binding,
     DBG_VULKAN_ASSERT(result, "failed to bind texture image memory!");
     
     create_image_view(get_image(texture.image), view_type,
-		      VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT,
+		      format, VK_IMAGE_ASPECT_COLOR_BIT,
 		      base_mip_level, mip_level_count, 
 		      base_array_layer, array_layer_count,
 		      &texture.image_view);

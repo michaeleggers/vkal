@@ -529,12 +529,11 @@ VkWriteDescriptorSet create_write_descriptor_set_buffer2(VkDescriptorSet dst_des
 							 uint32_t count, VkDescriptorType type, VkDescriptorBufferInfo * buffer_info);
 void vkal_allocate_descriptor_sets(VkDescriptorPool pool, VkDescriptorSetLayout * layout, uint32_t layout_count, VkDescriptorSet ** out_descriptor_set);
 Texture vkal_create_texture(uint32_t binding,
-			    unsigned char * texture_data,
-			    uint32_t width, uint32_t height, uint32_t channels,
-			    VkImageCreateFlags flags, VkImageViewType view_type,
-			    uint32_t base_mip_level, uint32_t mip_level_count,
+                            unsigned char * texture_data, uint32_t width, uint32_t height, uint32_t channels, 
+			    VkImageCreateFlags flags, VkImageViewType view_type, VkFormat format,
+                            uint32_t base_mip_level, uint32_t mip_level_count, 
 			    uint32_t base_array_layer, uint32_t array_layer_count,
-			    VkFilter min_filter, VkFilter mag_filter);
+                            VkFilter min_filter, VkFilter mag_filter);
 RenderImage create_render_image(uint32_t width, uint32_t height);
 void vkal_update_descriptor_set_texture(VkDescriptorSet descriptor_set, Texture texture);
 void vkal_update_descriptor_set_render_image(VkDescriptorSet descriptor_set, uint32_t binding,

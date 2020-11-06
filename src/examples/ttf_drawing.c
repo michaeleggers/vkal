@@ -37,11 +37,28 @@ typedef struct Image
 
 typedef struct TTFInfo
 {
-    Texture texture;
-    float size;
-    uint32_t num_chars_in_range;
-    uint32_t first_char;
+    Texture          texture;
+    float            size;
+    uint32_t         num_chars_in_range;
+    uint32_t         first_char;
+    stbtt_packedchar chardata['~'-' '];
 } TTFInfo;
+
+typedef struct Vertex
+{
+    vec3 pos;
+    vec3 color;
+    vec2 uv;
+} Vertex;
+
+typedef struct Batch
+{
+    Vertex * vertices;
+    uint32_t vertex_count;
+    uint16_t * indices;
+    uint32_t index_count;
+    uint32_t rect_count;
+} Batch;
 
 typedef struct ViewProjection
 {
@@ -72,7 +89,7 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: texture.c", 0, 0);
+    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Michi's TTF rasterizer", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
 }
 
@@ -87,6 +104,36 @@ Image load_image_file(char const * file)
     image.channels = tn;
 
     return image;
+}
+
+void fill_rect(Batch * batch, float x, float y, float width, float height)
+{
+    Vertex tl;
+    Vertex bl;
+    Vertex tr;
+    Vertex br;
+
+    tl.pos = (vec3){x,y,-1};
+    bl.pos = (vec3){x, y+height,-1};
+    tr.pos = (vec3){x+width, y, -1};
+    br.pos = (vec3){x+width, y+height, -1};
+    tl.color = (vec3){0,1,0};
+    bl.color = (vec3){0,1,0};
+    tr.color = (vec3){0,1,0};
+    br.color = (vec3){1,1,0};
+    
+    batch->vertices[batch->vertex_count++] = tl;
+    batch->vertices[batch->vertex_count++] = bl;
+    batch->vertices[batch->vertex_count++] = tr;
+    batch->vertices[batch->vertex_count++] = br;
+
+    batch->indices[batch->index_count++] = 0 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 2 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 1 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 1 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 2 + 4*batch->rect_count;
+    batch->indices[batch->index_count++] = 3 + 4*batch->rect_count;
+    batch->rect_count++;
 }
 
 int main(int argc, char ** argv)
@@ -241,14 +288,16 @@ int main(int argc, char ** argv)
     if (!stbtt_PackBegin(&spc, pixels, 1024, 1024, 0, 1, 0))
         printf("failed to create packing context\n");
 
-    float font_size = stbtt_ScaleForMappingEmToPixels(&font, 100);
+    //float font_size = stbtt_ScaleForMappingEmToPixels(&font, 100);
     //stbtt_PackSetOversampling(&spc, 2, 2);
     stbtt_packedchar chardata['~'-' '];
     stbtt_PackFontRange(&spc, (unsigned char*)ttf, 0, 100,
                         ' ', '~'-' ', chardata);
     stbtt_PackEnd(&spc);
     Texture font_texture = vkal_create_texture(1, pixels, 1024, 1024, 1, 0,
-					       VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST);
+					       VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8_UNORM,
+					       0, 1, 0, 1,
+					       VK_FILTER_NEAREST, VK_FILTER_NEAREST);
     free(pixels);
 
     TTFInfo ttf_info;
@@ -256,16 +305,45 @@ int main(int argc, char ** argv)
     ttf_info.size = 13.f;
     ttf_info.num_chars_in_range = '~' - ' ';
     ttf_info.first_char = ' ';
-    
-//    gFontInfo.texture = gTTFTexture;
-//    memcpy(gFontInfo.chardata, chardata, ('~'-' ')*sizeof(stbtt_packedchar));
-//    gFontInfo.fontSize = 13.f;
-//    gFontInfo.numCharsInRange = '~' - ' ';
-//    gFontInfo.firstChar = ' ';
-    /* ! TTF FONT LOADING */
+    memcpy( ttf_info.chardata, chardata, ('~' - ' ')*sizeof(stbtt_packedchar) );
     
     vkal_update_descriptor_set_texture(descriptor_set[0], font_texture);
     view_proj_data.image_aspect = (float)font_texture.width/(float)font_texture.height;
+
+    /* Create Buffers for indices and vertices that can get updated every frame */
+#define MAX_PRIMITIVES                 8192
+#define VERTICES_PER_PRIMITIVE         (4)
+#define INDICES_PER_PRIMITVE           (6)
+#define PRIMITIVES_VERTEX_BUFFER_SIZE  (MAX_PRIMITIVES * 4 * sizeof(Vertex))
+#define PRIMITIVES_INDEX_BUFFER_SIZE   (MAX_PRIMITIVES * 6 * sizeof(uint16_t))
+    DeviceMemory index_memory = vkal_allocate_devicememory(PRIMITIVES_INDEX_BUFFER_SIZE,
+							   VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+							   VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+							   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+							   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
+							   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    Buffer index_buffer = vkal_create_buffer(PRIMITIVES_INDEX_BUFFER_SIZE,
+					     &index_memory,
+					     VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    vkal_dbg_buffer_name(index_buffer, "Index Buffer");
+    map_memory(&index_buffer, PRIMITIVES_INDEX_BUFFER_SIZE, 0);
+
+    DeviceMemory vertex_memory = vkal_allocate_devicememory(PRIMITIVES_VERTEX_BUFFER_SIZE,
+							   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+							   VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+							   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+							   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
+							   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    Buffer vertex_buffer = vkal_create_buffer(PRIMITIVES_VERTEX_BUFFER_SIZE,
+					     &vertex_memory,
+					     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    vkal_dbg_buffer_name(vertex_buffer, "Vertex Buffer");
+    map_memory(&vertex_buffer, PRIMITIVES_VERTEX_BUFFER_SIZE, 0);
+    
+    Batch batch = { 0 };
+    batch.indices = (uint16_t*)malloc(PRIMITIVES_INDEX_BUFFER_SIZE);
+    batch.vertices = (Vertex*)malloc(PRIMITIVES_VERTEX_BUFFER_SIZE);
+
     
     // Main Loop
     while (!glfwWindowShouldClose(window))
@@ -300,6 +378,12 @@ int main(int argc, char ** argv)
 	    vkal_present(image_id);
 	}
     }
+
+    vkDeviceWaitIdle(vkal_info->device);
+    vkDestroyBuffer(vkal_info->device, index_buffer.buffer, NULL);
+    vkDestroyBuffer(vkal_info->device, vertex_buffer.buffer, NULL);
+    vkFreeMemory(vkal_info->device, index_memory.vk_device_memory, NULL);
+    vkFreeMemory(vkal_info->device, vertex_memory.vk_device_memory, NULL);
     
     vkal_cleanup();
 
