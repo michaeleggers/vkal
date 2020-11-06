@@ -106,7 +106,8 @@ Image load_image_file(char const * file)
     return image;
 }
 
-void fill_rect(Batch * batch, float x, float y, float width, float height)
+void fill_rect(Batch * batch, float x, float y, float width, float height,
+	       vec2 tl_uv, vec2 bl_uv, vec2 tr_uv, vec2 br_uv)
 {
     Vertex tl;
     Vertex bl;
@@ -121,7 +122,11 @@ void fill_rect(Batch * batch, float x, float y, float width, float height)
     bl.color = (vec3){0,1,0};
     tr.color = (vec3){0,1,0};
     br.color = (vec3){1,1,0};
-    
+    tl.uv = tl_uv;
+    bl.uv = bl_uv;
+    tr.uv = tr_uv;
+    br.uv = br_uv;
+
     batch->vertices[batch->vertex_count++] = tl;
     batch->vertices[batch->vertex_count++] = bl;
     batch->vertices[batch->vertex_count++] = tr;
@@ -134,6 +139,49 @@ void fill_rect(Batch * batch, float x, float y, float width, float height)
     batch->indices[batch->index_count++] = 2 + 4*batch->rect_count;
     batch->indices[batch->index_count++] = 3 + 4*batch->rect_count;
     batch->rect_count++;
+}
+
+void draw_text(Batch * batch, TTFInfo info, char * text, int length)
+{
+    stbtt_aligned_quad quad = {};
+    char * current_char = text;
+    float x_offset = 0;
+    float y_offset = 0;
+    for (int i = 0; i < length; ++i) {
+	int chardata_index = (int)*current_char;
+	stbtt_GetPackedQuad(info.chardata, 
+                            info.texture.width, info.texture.height,  // same data as above
+                            *current_char - info.first_char,             // character to display
+                            &x_offset, &y_offset,
+                            // pointers to current position in screen pixel space
+                            &quad,      // output: quad to draw
+                            1);
+
+	stbtt_packedchar chardata  = info.chardata[chardata_index];
+	vec2 tl_uv;
+	vec2 bl_uv;
+	vec2 tr_uv;
+	vec2 br_uv;
+	tl_uv.x = quad.s0;
+	tl_uv.y = quad.t0;
+	bl_uv.x = quad.s0;
+	bl_uv.y = quad.t1;
+	tr_uv.x = quad.s1;
+	tr_uv.y = quad.t0;
+	br_uv.x = quad.s1;
+	br_uv.y = quad.t1;
+	
+	fill_rect(batch, 0, 0, 200, 200, tl_uv, bl_uv, tr_uv, br_uv);
+	
+	current_char++;
+    }
+}
+
+void reset_batch(Batch * batch)
+{
+    batch->index_count = 0;
+    batch->vertex_count = 0;
+    batch->rect_count = 0;
 }
 
 int main(int argc, char ** argv)
@@ -183,10 +231,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.rfb("../src/examples/assets/shaders/texture_vert.spv", &vertex_byte_code, &vertex_code_size);
+    p.rfb("../src/examples/assets/shaders/ttf_drawing_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.rfb("../src/examples/assets/shaders/texture_frag.spv", &fragment_byte_code, &fragment_code_size);
+    p.rfb("../src/examples/assets/shaders/ttf_drawing_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -238,38 +286,18 @@ int main(int argc, char ** argv)
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
 
-    /* Model Data */
-    float rect_vertices[] = {
-	// Pos            // Color        // UV
-	-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
-	 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
-	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
-    	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  1.0, 1.0
-    };
-    uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
-    
-    uint16_t rect_indices[] = {
- 	0, 1, 2,
-	2, 1, 3
-    };
-    uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
-  
-    uint32_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
-    uint32_t offset_indices  = vkal_index_buffer_add(rect_indices, index_count);
-
     /* Uniform Buffer for view projection matrices */
     Camera camera;
-    camera.pos = (vec3){ 0, 0.f, 5.f };
+    camera.pos = (vec3){ 0.0f, 0.0f, 0.0f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     ViewProjection view_proj_data;
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
-    view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
     vkal_update_descriptor_set_uniform(descriptor_set[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);
@@ -289,6 +317,7 @@ int main(int argc, char ** argv)
         printf("failed to create packing context\n");
 
     //float font_size = stbtt_ScaleForMappingEmToPixels(&font, 100);
+    //float scale = stbtt_ScaleForPixelHeight(&font, 100);
     //stbtt_PackSetOversampling(&spc, 2, 2);
     stbtt_packedchar chardata['~'-' '];
     stbtt_PackFontRange(&spc, (unsigned char*)ttf, 0, 100,
@@ -352,8 +381,13 @@ int main(int argc, char ** argv)
 
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
-	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
+	view_proj_data.proj = ortho(0, width, height, 0, 0.1f, 2.f);
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
+
+	reset_batch(&batch);
+	draw_text(&batch, ttf_info, "A", 1);
+	memcpy(index_buffer.mapped, batch.indices, PRIMITIVES_INDEX_BUFFER_SIZE);
+	memcpy(vertex_buffer.mapped, batch.vertices, PRIMITIVES_VERTEX_BUFFER_SIZE);
 
 	{
 	    uint32_t image_id = vkal_get_image();
@@ -367,9 +401,9 @@ int main(int argc, char ** argv)
 			 0, 0,
 			 width, height);
 	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
-	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, index_count,
-			      offset_vertices);
+	    vkal_draw_indexed_from_buffers(index_buffer, batch.index_count,
+					   vertex_buffer,
+					   image_id, graphics_pipeline);
 	    vkal_end_renderpass(image_id);
 	    vkal_end_command_buffer(image_id);
 	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };

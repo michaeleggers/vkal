@@ -24,3 +24,6 @@
 
 %VULKAN_SDK%/bin/glslc primitives.vert -o primitives_vert.spv
 %VULKAN_SDK%/bin/glslc primitives.frag -o primitives_frag.spv
+
+%VULKAN_SDK%/bin/glslc ttf_drawing.vert -o ttf_drawing_vert.spv
+%VULKAN_SDK%/bin/glslc ttf_drawing.frag -o ttf_drawing_frag.spv
