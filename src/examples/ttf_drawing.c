@@ -19,6 +19,8 @@
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "external/stb/stb_truetype.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "external/stb/stb_image_write.h"
 
 #define TRM_NDC_ZERO_TO_ONE
 #include "utils/tr_math.h"
@@ -141,16 +143,17 @@ void fill_rect(Batch * batch, float x, float y, float width, float height,
     batch->rect_count++;
 }
 
-void draw_text(Batch * batch, TTFInfo info, char * text, int length)
+void draw_text(Batch * batch, TTFInfo info, char * text)
 {
     stbtt_aligned_quad quad = {};
     char * current_char = text;
     float x_offset = 0;
     float y_offset = 0;
-    for (int i = 0; i < length; ++i) {
+    int i = 0;
+    while (*current_char != '\0') {
 	int chardata_index = (int)*current_char;
 	stbtt_GetPackedQuad(info.chardata, 
-                            info.texture.width, info.texture.height,  // same data as above
+                            info.texture.width, info.texture.height,  
                             *current_char - info.first_char,             // character to display
                             &x_offset, &y_offset,
                             // pointers to current position in screen pixel space
@@ -171,9 +174,15 @@ void draw_text(Batch * batch, TTFInfo info, char * text, int length)
 	br_uv.x = quad.s1;
 	br_uv.y = quad.t1;
 	
-	fill_rect(batch, 0, 0, 200, 200, tl_uv, bl_uv, tr_uv, br_uv);
+	float w = quad.x1 - quad.x0;
+	float h = quad.y1 - quad.y0;
 	
-	current_char++;
+	fill_rect(batch,
+		  info.size * i +  x_offset, y_offset,
+		  w, h,
+		  tl_uv, bl_uv, tr_uv, br_uv);
+	
+	current_char++; i++;
     }
 }
 
@@ -305,7 +314,7 @@ int main(int argc, char ** argv)
     /* TTF loading */
     uint8_t * ttf = NULL;
     int file_size = 0;
-    p.rfb("../src/examples/assets/fonts/ProggyClean.ttf", &ttf, &file_size);
+    p.rfb("../src/examples/assets/fonts/efmi.ttf", &ttf, &file_size);
     
     // stb_truetype texture baking API
     stbtt_fontinfo font;
@@ -320,18 +329,23 @@ int main(int argc, char ** argv)
     //float scale = stbtt_ScaleForPixelHeight(&font, 100);
     //stbtt_PackSetOversampling(&spc, 4, 4);
     stbtt_packedchar chardata['~'-' '];
-    stbtt_PackFontRange(&spc, (unsigned char*)ttf, 0, 13,
+    stbtt_PackFontRange(&spc, (unsigned char*)ttf, 0, 72,
                         ' ', '~'-' ', chardata);
     stbtt_PackEnd(&spc);
     Texture font_texture = vkal_create_texture(1, pixels, 1024, 1024, 1, 0,
 					       VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8_UNORM,
 					       0, 1, 0, 1,
 					       VK_FILTER_NEAREST, VK_FILTER_NEAREST);
+ 
+    unsigned char * output = (unsigned char *)malloc(1024*1024*sizeof(unsigned char));
+    memcpy(output, pixels, 1024*1024*sizeof(unsigned char));
+    stbi_write_png("font_texture.png", 1024, 1024, 1, output, 0);
     free(pixels);
-
+    free(output);
+    
     TTFInfo ttf_info;
     ttf_info.texture = font_texture;
-    ttf_info.size = 13.f;
+    ttf_info.size = 72;
     ttf_info.num_chars_in_range = '~' - ' ';
     ttf_info.first_char = ' ';
     memcpy( ttf_info.chardata, chardata, ('~' - ' ')*sizeof(stbtt_packedchar) );
@@ -385,7 +399,7 @@ int main(int argc, char ** argv)
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
 	reset_batch(&batch);
-	draw_text(&batch, ttf_info, "A", 1);
+	draw_text(&batch, ttf_info, "Hello, World!");
 	memcpy(index_buffer.mapped, batch.indices, PRIMITIVES_INDEX_BUFFER_SIZE);
 	memcpy(vertex_buffer.mapped, batch.vertices, PRIMITIVES_VERTEX_BUFFER_SIZE);
 

@@ -14,5 +14,6 @@ layout (set = 0, binding = 1) uniform sampler2D ttf_sampler;
 void main() 
 {
     vec4 color = texture( ttf_sampler, in_uv );
+    //if (color.r > 0.0) color.r = 1.0;
 	outColor = vec4( vec3(0, 0.5, 1.0), color.r );
 }
