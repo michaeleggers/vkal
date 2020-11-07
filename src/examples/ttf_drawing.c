@@ -77,13 +77,107 @@ typedef struct Camera
 	vec3 right;
 } Camera;
 
+static char g_textbuffer[1024];		  
+static int g_textbuffer_pos;
+
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-	printf("escape key pressed\n");
-	glfwSetWindowShouldClose(window, GLFW_TRUE);
+    if ( (action == GLFW_REPEAT) || (action == GLFW_PRESS) ) {
+	if (key == GLFW_KEY_ESCAPE) {
+	    printf("escape key pressed\n");
+	    glfwSetWindowShouldClose(window, GLFW_TRUE);
+	}
+	else if (key == GLFW_KEY_A ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'a';
+	}
+	else if (key == GLFW_KEY_B ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'b';
+	}
+	else if (key == GLFW_KEY_C ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'c';
+	}
+	else if (key == GLFW_KEY_D ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'd';
+	}
+	else if (key == GLFW_KEY_E ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'e';
+	}
+	else if (key == GLFW_KEY_F ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'f';
+	}
+	else if (key == GLFW_KEY_G ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'g';
+	}
+	else if (key == GLFW_KEY_H ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'h';
+	}
+	else if (key == GLFW_KEY_I ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'i';
+	}
+	else if (key == GLFW_KEY_J ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'j';
+	}
+	else if (key == GLFW_KEY_K ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'k';
+	}
+	else if (key == GLFW_KEY_L ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'l';
+	}
+	else if (key == GLFW_KEY_M ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'm';
+	}
+	else if (key == GLFW_KEY_N ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'n';
+	}
+	else if (key == GLFW_KEY_O ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'o';
+	}
+	else if (key == GLFW_KEY_P ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'p';
+	}
+	else if (key == GLFW_KEY_Q ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'q';
+	}
+	else if (key == GLFW_KEY_R ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'r';
+	}
+	else if (key == GLFW_KEY_S ) {
+	    g_textbuffer[g_textbuffer_pos++] = 's';
+	}
+	else if (key == GLFW_KEY_T ) {
+	    g_textbuffer[g_textbuffer_pos++] = 't';
+	}
+	else if (key == GLFW_KEY_U ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'u';
+	}
+	else if (key == GLFW_KEY_V ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'v';
+	}
+	else if (key == GLFW_KEY_W ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'w';
+	}
+	else if (key == GLFW_KEY_X ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'x';
+	}
+	else if (key == GLFW_KEY_Y ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'y';
+	}
+	else if (key == GLFW_KEY_Z ) {
+	    g_textbuffer[g_textbuffer_pos++] = 'z';
+	}
+	else if (key == GLFW_KEY_SPACE ) {
+	    g_textbuffer[g_textbuffer_pos++] = ' ';
+	}
+	else if (key == GLFW_KEY_PERIOD ) {
+	    g_textbuffer[g_textbuffer_pos++] = '.';
+	}
+	else if (key == GLFW_KEY_BACKSPACE) {
+	    g_textbuffer[g_textbuffer_pos] = ' ';
+	    if (g_textbuffer_pos > 0) g_textbuffer_pos--;
+	}
     }
+    g_textbuffer[g_textbuffer_pos] = '_';
 }
 
 void init_window()
@@ -148,7 +242,7 @@ void draw_text(Batch * batch, TTFInfo info, char * text)
     stbtt_aligned_quad quad = {};
     char * current_char = text;
     float x_offset = 0;
-    float y_offset = 0;
+    float y_offset = info.size;
     int i = 0;
     while (*current_char != '\0') {
 	int chardata_index = (int)*current_char;
@@ -173,15 +267,17 @@ void draw_text(Batch * batch, TTFInfo info, char * text)
 	tr_uv.y = quad.t0;
 	br_uv.x = quad.s1;
 	br_uv.y = quad.t1;
-	
+
+	float x = quad.x0;
+	float y = quad.y0;
 	float w = quad.x1 - quad.x0;
 	float h = quad.y1 - quad.y0;
 	
 	fill_rect(batch,
-		  info.size * i +  x_offset, y_offset,
+		  x, y,
 		  w, h,
 		  tl_uv, bl_uv, tr_uv, br_uv);
-	
+
 	current_char++; i++;
     }
 }
@@ -399,7 +495,7 @@ int main(int argc, char ** argv)
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
 	reset_batch(&batch);
-	draw_text(&batch, ttf_info, "Hello, World!");
+	draw_text(&batch, ttf_info, g_textbuffer);
 	memcpy(index_buffer.mapped, batch.indices, PRIMITIVES_INDEX_BUFFER_SIZE);
 	memcpy(vertex_buffer.mapped, batch.vertices, PRIMITIVES_VERTEX_BUFFER_SIZE);
 
