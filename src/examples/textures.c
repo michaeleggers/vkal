@@ -236,11 +236,11 @@ int main(int argc, char ** argv)
 
     /* Texture Data */
     Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
-    Texture texture = vkal_create_texture(0, image.data, image.width, image.height, image.channels, 0,
-					  VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+    Texture texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
+					  VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     Image image2 = load_image_file("../src/examples/assets/textures/hk.jpg");
-    Texture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, image2.channels, 0,
-					   VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+    Texture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
+					   VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image.data);
     free(image2.data);
 
