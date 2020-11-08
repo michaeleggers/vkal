@@ -338,6 +338,7 @@ The root directory contains a `build.bat` that can build the examples.
 | [rendertexture.c](https://github.com/michaeleggers/vkal/blob/master/src/examples/rendertexture.c) | Two textures get rendered into a texture. They get sampled from in a second pass to do some image-compositing. |
 | [model_loading.c](https://github.com/michaeleggers/vkal/blob/master/src/examples/model_loading.c) | Two different meshes get rendered multiple times using a dynamic uniform buffer for the model-matrices. |
 | [mesh_skinning.c](https://github.com/michaeleggers/vkal/blob/master/src/examples/mesh_skinning.c) | Model gets loaded from md-data file. Loading vertex/index and bone information and animate a few joints in code. |
+| [primitives_dynamic.c](https://github.com/michaeleggers/vkal/blob/master/src/examples/primitives_dynamic.c) | Draw primitives into a Host-Side buffer and copy it into the GPU's memory every frame and draw. Copying the buffer is fast, the CPU-side recording is the bottleneck here. |
 
 
 
