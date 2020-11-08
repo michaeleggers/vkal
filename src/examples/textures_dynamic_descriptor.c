@@ -197,8 +197,8 @@ int main(int argc, char ** argv)
     /* HACK: Update Texture Slots so validation layer won't complain */
     Image yakult_image = load_image_file("../src/examples/assets/textures/yakult.png");
     Texture yakult_texture = vkal_create_texture(
-	0, yakult_image.data, yakult_image.width, yakult_image.height, yakult_image.channels, 0,
-	VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+	0, yakult_image.data, yakult_image.width, yakult_image.height, 4, 0,
+	VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     for (uint32_t i = 0; i < VKAL_MAX_TEXTURES; ++i) {
 	vkal_update_descriptor_set_texturearray(
 	    descriptor_sets[0], 
@@ -241,11 +241,11 @@ int main(int argc, char ** argv)
 
     /* Texture Data */
     Image image2 = load_image_file("../src/examples/assets/textures/hk.jpg");
-    Texture mario_texture = vkal_create_texture(0, image2.data, image2.width, image2.height, image2.channels, 0,
-					   VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+    Texture mario_texture = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
+						VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
-    Texture indy_texture = vkal_create_texture(0, image.data, image.width, image.height, image.channels, 0,
-					  VK_IMAGE_VIEW_TYPE_2D, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+    Texture indy_texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
+					       VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
     free(image.data);
     free(image2.data);
     
