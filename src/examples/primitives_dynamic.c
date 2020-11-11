@@ -176,6 +176,20 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
     batch->rect_count++;
 }
 
+void circle(Batch * batch, float x, float y, float r, uint32_t spans, float thickness, vec3 color)
+{
+    float theta = 2*TR_PI/(float)spans;
+    for (uint32_t i = 0; i < spans; ++i) {
+	vec2 xy;
+	vec2 xy2;
+	xy.x = x + r * cosf( (i+1)*theta );
+	xy.y = y + r * sinf( (i+1)*theta );
+	xy2.x = x + r * cosf( (i+2)*theta );
+	xy2.y = y + r * sinf( (i+2)*theta );
+	line( batch, xy.x, xy.y, xy2.x, xy2.y, thickness, color );
+    }
+}
+
 int main(int argc, char ** argv)
 {
     init_window();
@@ -343,6 +357,7 @@ int main(int argc, char ** argv)
 	view_proj_data.proj = ortho(0, width, height, 0, 0.1f, 2.f);
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
+#if 0
 	/* Draw Some Primitives and update buffers */
 	reset_batch(&batch);
 	for (uint32_t i = 0; i < MAX_PRIMITIVES; ++i) {
@@ -352,7 +367,7 @@ int main(int argc, char ** argv)
 	    float x1 = width;
 	    float y1 = height;
 	    float thickness = 10.0;
-#if 1
+
 	    color.x = rand_between(0.0, 1.0);
 	    color.y = rand_between(0.0, 1.0);
 	    color.z = rand_between(0.0, 1.0);
@@ -361,9 +376,23 @@ int main(int argc, char ** argv)
 	     x1 = rand_between(0.0, width);
 	     y1 = rand_between(0.0, height);
 	     thickness = rand_between(1.0, 10.0);
-#endif
+
 	    line(&batch, x0, y0, x1, y1, thickness, color);
 	}
+#endif
+
+	float radius = 100.f;
+	static float pulse = 0.f;
+	pulse += 0.1f;
+	radius += 20*sinf( pulse );
+	reset_batch( &batch );
+	float theta = 2*TR_PI/64;
+	for (int i = 0; i < 64; ++i) {	   
+	    circle( &batch, 500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 2, (vec3){0, 0.5, 1.0});
+	}
+	circle(&batch, 800, 500, 200, 3, 20, (vec3){1, .5, 1});
+	fill_rect(&batch, 800, 500, 25, 25);
+	
 	memcpy(index_buffer.mapped, batch.indices, PRIMITIVES_INDEX_BUFFER_SIZE);
 	memcpy(vertex_buffer.mapped, batch.vertices, PRIMITIVES_VERTEX_BUFFER_SIZE);
 

@@ -107,6 +107,18 @@ void fill_rect(Batch * batch, float x, float y, float width, float height)
     batch->rect_count++;
 }
 
+void circle(Batch * batch, float x, float y, float r, uint32_t spans, float thickness, vec3 color)
+{
+    float theta = 2*TR_PI/(float)spans;
+    for (int i = 0; i < spans; ++i) {
+	float x0 = cosf( loops * theta );
+	float y0 = sinf( loops * theta );
+	float x1 = cosf( (loops + 1) * theta );
+	float y1 = sinf( (loops + 1) * theta );
+	line( batch, x0, y0, x1, y1, thickness, color );
+    }
+}
+
 void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness, vec3 color)
 {
     Vertex tl;

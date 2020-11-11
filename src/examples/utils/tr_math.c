@@ -12,6 +12,14 @@ float vec2_length(vec2 v)
 		 v.y*v.y);
 }
 
+vec2 vec2_mul(float s, vec2 v)
+{
+    vec2 result;
+    result.x = s * v.x;
+    result.y = s * v.y;
+    return result;
+}
+
 vec2 vec2_normalize(vec2 v)
 {
     float length = vec2_length(v);

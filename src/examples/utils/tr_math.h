@@ -29,7 +29,8 @@ typedef struct mat4
 } mat4;
 
 float vec2_length(vec2 v);
-vec2 vec2_normalize(vec2 v);
+vec2  vec2_mul(float s, vec2 v);
+vec2  vec2_normalize(vec2 v);
 float det_mat2(float c00, float c01, float c10, float c11);
 
 float vec3_length(vec3 v);
