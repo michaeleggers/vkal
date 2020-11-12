@@ -55,6 +55,7 @@ typedef struct Batch
     uint16_t * indices;
     uint32_t index_count;
     uint32_t rect_count;
+    uint32_t poly3_count;
 } Batch;
 
 // GLFW callbacks
@@ -82,6 +83,7 @@ void reset_batch(Batch * batch)
     batch->index_count = 0;
     batch->vertex_count = 0;
     batch->rect_count = 0;
+    batch->poly3_count = 0;
 }
 
 void fill_rect(Batch * batch, float x, float y, float width, float height)
@@ -176,6 +178,31 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
     batch->rect_count++;
 }
 
+void poly3(Batch * batch, vec2 xy1, vec2 xy2, vec2 xy3, vec3 color)
+{
+    vec3 xyz1;
+    vec3 xyz2;
+    vec3 xyz3;
+    Vertex v1;
+    Vertex v2;
+    Vertex v3;
+    xyz1.x = xy1.x; xyz1.y = xy1.y; xyz1.z = -1;
+    xyz2.x = xy2.x; xyz2.y = xy2.y; xyz2.z = -1;
+    xyz3.x = xy3.x; xyz3.y = xy3.y; xyz3.z = -1;
+    v1.pos = xyz1; v2.pos = xyz2; v3.pos = xyz3;
+    v1.color = color; v2.color = color; v3.color = color;
+    
+    batch->vertices[batch->vertex_count++] = v1;
+    batch->vertices[batch->vertex_count++] = v2;    
+    batch->vertices[batch->vertex_count++] = v3;
+
+    batch->indices[batch->index_count++] = 0 + 3*batch->poly3_count;
+    batch->indices[batch->index_count++] = 2 + 3*batch->poly3_count;
+    batch->indices[batch->index_count++] = 1 + 3*batch->poly3_count;
+
+    batch->poly3_count++;
+}
+
 void circle(Batch * batch, float x, float y, float r, uint32_t spans, float thickness, vec3 color)
 {
     float theta = 2*TR_PI/(float)spans;
@@ -187,6 +214,23 @@ void circle(Batch * batch, float x, float y, float r, uint32_t spans, float thic
 	xy2.x = x + r * cosf( (i+2)*theta );
 	xy2.y = y + r * sinf( (i+2)*theta );
 	line( batch, xy.x, xy.y, xy2.x, xy2.y, thickness, color );
+    }
+}
+
+void filled_circle(Batch * batch, float x, float y, float r, uint32_t spans, vec3 color)
+{
+    float theta = 2*TR_PI/(float)spans;
+    for (uint32_t i = 0; i < spans; ++i) {
+	vec2 xy1;
+	vec2 xy2;
+	vec2 xy3;
+	xy1.x = x;
+	xy1.y = y;
+	xy2.x = x + r * cosf( (i+1)*theta );
+	xy2.y = y + r * sinf( (i+1)*theta );
+	xy3.x = x + r * cosf( (i+2)*theta );
+	xy3.y = y + r * sinf( (i+2)*theta );
+	poly3(batch, xy1, xy2, xy3, color);
     }
 }
 
@@ -388,11 +432,12 @@ int main(int argc, char ** argv)
 	reset_batch( &batch );
 	float theta = 2*TR_PI/64;
 	for (int i = 0; i < 64; ++i) {	   
-	    circle( &batch, 500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 2, (vec3){0, 0.5, 1.0});
+	    // circle( &batch, 500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 2, (vec3){0, 0.5, 1.0});
 	}
-	circle(&batch, 800, 500, 200, 3, 20, (vec3){1, .5, 1});
-	fill_rect(&batch, 800, 500, 25, 25);
-	
+	//circle(&batch, 800, 500, 200, 3, 20, (vec3){1, .5, 1});
+	//fill_rect(&batch, 800, 500, 25, 25);
+	filled_circle( &batch, 700, 700, 50, 32, (vec3){1, 0, 0});
+	filled_circle( &batch, 300, 400, 150, 64, (vec3){0, 0, 1});
 	memcpy(index_buffer.mapped, batch.indices, PRIMITIVES_INDEX_BUFFER_SIZE);
 	memcpy(vertex_buffer.mapped, batch.vertices, PRIMITIVES_VERTEX_BUFFER_SIZE);
 
