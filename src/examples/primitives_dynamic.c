@@ -86,7 +86,7 @@ void reset_batch(Batch * batch)
     batch->poly3_count = 0;
 }
 
-void fill_rect(Batch * batch, float x, float y, float width, float height)
+void fill_rect(Batch * batch, float x, float y, float width, float height, vec3 color)
 {
     Vertex tl;
     Vertex bl;
@@ -97,22 +97,23 @@ void fill_rect(Batch * batch, float x, float y, float width, float height)
     bl.pos = (vec3){x, y+height,-1};
     tr.pos = (vec3){x+width, y, -1};
     br.pos = (vec3){x+width, y+height, -1};
-    tl.color = (vec3){0,1,0};
-    bl.color = (vec3){0,1,0};
-    tr.color = (vec3){0,1,0};
-    br.color = (vec3){1,1,0};
+    tl.color = color;
+    bl.color = color;
+    tr.color = color;
+    br.color = color;
     
     batch->vertices[batch->vertex_count++] = tl;
     batch->vertices[batch->vertex_count++] = bl;
     batch->vertices[batch->vertex_count++] = tr;
     batch->vertices[batch->vertex_count++] = br;
 
-    batch->indices[batch->index_count++] = 0 + 4*batch->rect_count;
-    batch->indices[batch->index_count++] = 2 + 4*batch->rect_count;
-    batch->indices[batch->index_count++] = 1 + 4*batch->rect_count;
-    batch->indices[batch->index_count++] = 1 + 4*batch->rect_count;
-    batch->indices[batch->index_count++] = 2 + 4*batch->rect_count;
-    batch->indices[batch->index_count++] = 3 + 4*batch->rect_count;
+    uint32_t offset = 4*batch->rect_count + 3*batch->poly3_count;
+    batch->indices[batch->index_count++] = offset + 0;
+    batch->indices[batch->index_count++] = offset + 2;
+    batch->indices[batch->index_count++] = offset + 1;
+    batch->indices[batch->index_count++] = offset + 1;
+    batch->indices[batch->index_count++] = offset + 2;
+    batch->indices[batch->index_count++] = offset + 3;
     batch->rect_count++;
 }
 
@@ -169,12 +170,13 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
     batch->vertices[batch->vertex_count++] = tr;
     batch->vertices[batch->vertex_count++] = br;
 
-    batch->indices[batch->index_count++] = 0 + 4*batch->rect_count;
-    batch->indices[batch->index_count++] = 2 + 4*batch->rect_count;
-    batch->indices[batch->index_count++] = 1 + 4*batch->rect_count;
-    batch->indices[batch->index_count++] = 1 + 4*batch->rect_count;
-    batch->indices[batch->index_count++] = 2 + 4*batch->rect_count;
-    batch->indices[batch->index_count++] = 3 + 4*batch->rect_count;
+    uint32_t offset = 4*batch->rect_count + 3*batch->poly3_count;
+    batch->indices[batch->index_count++] = offset + 0;
+    batch->indices[batch->index_count++] = offset + 2;
+    batch->indices[batch->index_count++] = offset + 1;
+    batch->indices[batch->index_count++] = offset + 1;
+    batch->indices[batch->index_count++] = offset + 2;
+    batch->indices[batch->index_count++] = offset + 3;
     batch->rect_count++;
 }
 
@@ -191,14 +193,15 @@ void poly3(Batch * batch, vec2 xy1, vec2 xy2, vec2 xy3, vec3 color)
     xyz3.x = xy3.x; xyz3.y = xy3.y; xyz3.z = -1;
     v1.pos = xyz1; v2.pos = xyz2; v3.pos = xyz3;
     v1.color = color; v2.color = color; v3.color = color;
-    
+
     batch->vertices[batch->vertex_count++] = v1;
     batch->vertices[batch->vertex_count++] = v2;    
     batch->vertices[batch->vertex_count++] = v3;
 
-    batch->indices[batch->index_count++] = 0 + 3*batch->poly3_count;
-    batch->indices[batch->index_count++] = 2 + 3*batch->poly3_count;
-    batch->indices[batch->index_count++] = 1 + 3*batch->poly3_count;
+    uint32_t offset = 4*batch->rect_count + 3*batch->poly3_count;
+    batch->indices[batch->index_count++] = offset + 0;
+    batch->indices[batch->index_count++] = offset + 2;
+    batch->indices[batch->index_count++] = offset + 1;
 
     batch->poly3_count++;
 }
@@ -217,7 +220,7 @@ void circle(Batch * batch, float x, float y, float r, uint32_t spans, float thic
     }
 }
 
-void filled_circle(Batch * batch, float x, float y, float r, uint32_t spans, vec3 color)
+void fill_circle(Batch * batch, float x, float y, float r, uint32_t spans, vec3 color)
 {
     float theta = 2*TR_PI/(float)spans;
     for (uint32_t i = 0; i < spans; ++i) {
@@ -431,13 +434,18 @@ int main(int argc, char ** argv)
 	radius += 20*sinf( pulse );
 	reset_batch( &batch );
 	float theta = 2*TR_PI/64;
-	for (int i = 0; i < 64; ++i) {	   
-	    // circle( &batch, 500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 2, (vec3){0, 0.5, 1.0});
-	}
 	//circle(&batch, 800, 500, 200, 3, 20, (vec3){1, .5, 1});
 	//fill_rect(&batch, 800, 500, 25, 25);
-	filled_circle( &batch, 700, 700, 50, 32, (vec3){1, 0, 0});
-	filled_circle( &batch, 300, 400, 150, 64, (vec3){0, 0, 1});
+	fill_circle( &batch, 300, 300, 100, 16, (vec3){1, .5, 1});
+	fill_rect(&batch,  500, 500, 100, 100, (vec3){1, 0, 0});
+	fill_circle( &batch, 400, 300, 30, 16, (vec3){1, 0, 0});
+	fill_rect(&batch,  800, 500, 100, 100, (vec3){0, 0, 1});
+	fill_circle( &batch, 500, 300, 100, 16, (vec3){1, 0, 1});      
+	for (int i = 0; i < 64; ++i) {	   
+	    circle( &batch, 500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 2, (vec3){0, 0.5, 1.0});
+	}
+
+	
 	memcpy(index_buffer.mapped, batch.indices, PRIMITIVES_INDEX_BUFFER_SIZE);
 	memcpy(vertex_buffer.mapped, batch.vertices, PRIMITIVES_VERTEX_BUFFER_SIZE);
 
