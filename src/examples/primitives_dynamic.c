@@ -23,9 +23,6 @@
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
 
-static GLFWwindow * window;
-static Platform p;
-static int width, height; /* current framebuffer width/height */
 
 typedef struct ViewProjection
 {
@@ -58,12 +55,70 @@ typedef struct Batch
     uint32_t poly3_count;
 } Batch;
 
+
+void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness, vec3 color);
+void fill_circle(Batch * batch, float x, float y, float r, uint32_t spans, vec3 color);
+
+/* Globals */
+static GLFWwindow * window;
+static Platform p;
+static int width, height; /* current framebuffer width/height */
+static Batch batch = { 0 };
+
+
+
+
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
 	printf("escape key pressed\n");
 	glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+}
+
+void glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (action == GLFW_PRESS) {
+	double xpos, ypos;
+	glfwGetCursorPos(window, &xpos, &ypos);
+	double gridx_step = 50;
+	double gridy_step = 50;
+	double xposi = xpos/gridx_step;
+	double yposi = ypos/gridy_step;
+	if ( (xposi - (int)xposi) > 0.5 ) {
+	    xpos = (int)xposi * 50 + 50;
+	}
+	else {
+	    xpos = (int)xposi * 50;
+	}
+	if ( (yposi - (int)yposi) > 0.5 ) {
+	    ypos = (int)yposi * 50 + 50;
+	}
+	else {
+	    ypos = (int)yposi * 50;
+	}
+	
+	if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+	    printf("right mouse button clicked at: %f, %f\n", xpos, ypos);
+	}
+	static int click_state = 0;
+	if (button == GLFW_MOUSE_BUTTON_LEFT) {
+	    printf("left mouse button clicked at: %f, %f\n", xpos, ypos);
+	    click_state++;
+	    static double x_old;
+	    static double y_old;
+	    if (click_state == 1) {
+		fill_circle( &batch, xpos, ypos, 10, 32, (vec3){1, 1, 0} );
+	    }
+	    else if (click_state == 2) {
+		fill_circle( &batch, xpos, ypos, 10, 32, (vec3){1, 1, 0} );
+		line( &batch, x_old, y_old, xpos, ypos, 2, (vec3){1, 1, 1});
+		click_state = 0;
+	    }
+	    x_old = xpos;
+	    y_old = ypos;
+	}
     }
 }
 
@@ -74,6 +129,7 @@ void init_window()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: primitives.c", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
+    glfwSetMouseButtonCallback(window, glfw_mouse_button_callback);
     width = SCREEN_WIDTH;
     height = SCREEN_HEIGHT;
 }
@@ -378,7 +434,6 @@ int main(int argc, char ** argv)
     vkal_dbg_buffer_name(vertex_buffer, "Vertex Buffer");
     map_memory(&vertex_buffer, PRIMITIVES_VERTEX_BUFFER_SIZE, 0);
     
-    Batch batch = { 0 };
     batch.indices = (uint16_t*)malloc(PRIMITIVES_INDEX_BUFFER_SIZE);
     batch.vertices = (Vertex*)malloc(PRIMITIVES_VERTEX_BUFFER_SIZE);
 
@@ -394,7 +449,13 @@ int main(int argc, char ** argv)
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
     vkal_update_descriptor_set_uniform(descriptor_set[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);    
-    
+
+
+    fill_rect(&batch,  0, 0, width, height, (vec3){0, 0, 0});
+    for (int i = 0; i < 200; ++i) {
+	line( &batch, i*50, 0, i*50, height, 1, (vec3){.4, .4, .4});
+	line( &batch, 0, i*50, width, i*50, 1, (vec3){.4, .4, .4});
+    }
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -432,10 +493,9 @@ int main(int argc, char ** argv)
 	static float pulse = 0.f;
 	pulse += 0.1f;
 	radius += 20*sinf( pulse );
-	reset_batch( &batch );
 	float theta = 2*TR_PI/64;
-	//circle(&batch, 800, 500, 200, 3, 20, (vec3){1, .5, 1});
-	//fill_rect(&batch, 800, 500, 25, 25);
+#if 0
+	reset_batch( &batch );
 	fill_circle( &batch, 300, 300, 100, 16, (vec3){1, .5, 1});
 	fill_rect(&batch,  500, 500, 100, 100, (vec3){1, 0, 0});
 	fill_circle( &batch, 400, 300, 30, 16, (vec3){1, 0, 0});
@@ -444,7 +504,7 @@ int main(int argc, char ** argv)
 	for (int i = 0; i < 64; ++i) {	   
 	    circle( &batch, 500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 2, (vec3){0, 0.5, 1.0});
 	}
-
+#endif
 	
 	memcpy(index_buffer.mapped, batch.indices, PRIMITIVES_INDEX_BUFFER_SIZE);
 	memcpy(vertex_buffer.mapped, batch.vertices, PRIMITIVES_VERTEX_BUFFER_SIZE);
