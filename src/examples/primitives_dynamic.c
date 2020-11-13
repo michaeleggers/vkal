@@ -60,22 +60,14 @@ typedef struct MyTexture
     uint32_t id;
 } MyTexture;
 
-typedef enum BatchType
-{
-    BATCH_STD,
-    BATCH_TEX_RECT
-} BatchType;
-
 typedef struct Batch
 {
-    BatchType type;
     Vertex * vertices;
     uint32_t vertex_count;
     uint16_t * indices;
     uint32_t index_count;
     uint32_t rect_count;
     uint32_t poly3_count;
-    uint32_t texture_id;
 
     DeviceMemory index_memory;
     DeviceMemory vertex_memory;
@@ -83,6 +75,23 @@ typedef struct Batch
     Buffer       vertex_buffer;
 } Batch;
 
+typedef enum RenderCmdType
+{
+    RENDER_CMD_STD,
+    RENDER_CMD_TEXTURED_RECT
+} RenderCmdType;
+
+typedef struct RenderCmd
+{
+    RenderCmdType type;
+    uint32_t      index_buffer_offset;
+    uint32_t      index_count;
+    uint32_t      index_buffer_size;
+    uint32_t      vertex_buffer_offset;
+    uint32_t      vertex_buffer_size;
+
+    uint32_t      texture_id;
+} RenderCmd;
 
 void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness, vec3 color);
 void fill_circle(Batch * batch, float x, float y, float r, uint32_t spans, vec3 color);
@@ -91,8 +100,9 @@ void fill_circle(Batch * batch, float x, float y, float r, uint32_t spans, vec3 
 static GLFWwindow * window;
 static Platform p;
 static int width, height; /* current framebuffer width/height */
-static Batch batch = { 0 };
-
+static Batch g_batch = { 0 };
+static RenderCmd render_commands[1024];
+static uint32_t  render_cmd_count;
 
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
@@ -135,11 +145,11 @@ void glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int 
 	    static double x_old;
 	    static double y_old;
 	    if (click_state == 1) {
-		fill_circle( &batch, xpos, ypos, 5, 16, (vec3){1, 1, 0} );
+		fill_circle( &g_batch, xpos, ypos, 5, 16, (vec3){1, 1, 0} );
 	    }
 	    else if (click_state == 2) {
-		fill_circle( &batch, xpos, ypos, 5, 16, (vec3){1, 1, 0} );
-		line( &batch, x_old, y_old, xpos, ypos, 2, (vec3){1, 1, 1});
+		fill_circle( &g_batch, xpos, ypos, 5, 16, (vec3){1, 1, 0} );
+		line( &g_batch, x_old, y_old, xpos, ypos, 2, (vec3){1, 1, 1});
 		click_state = 0;
 	    }
 	    x_old = xpos;
@@ -272,6 +282,16 @@ void fill_rect(Batch * batch, float x, float y, float width, float height, vec3 
 
 void textured_rect(Batch * batch, float x, float y, float width, float height, MyTexture texture)
 {
+    RenderCmd render_cmd;
+    render_cmd.type                 = RENDER_CMD_TEXTURED_RECT;
+    render_cmd.index_buffer_offset  = batch->index_count*sizeof(uint16_t);
+    render_cmd.index_count          = 6;
+    render_cmd.index_buffer_size    = 6*sizeof(uint16_t);
+    render_cmd.vertex_buffer_offset = batch->vertex_count*sizeof(Vertex);
+    render_cmd.vertex_buffer_size   = 4*sizeof(Vertex);
+    render_cmd.texture_id           = texture.id;
+    render_commands[render_cmd_count++] = render_cmd;
+	
     Vertex tl;
     Vertex bl;
     Vertex tr;
@@ -285,7 +305,6 @@ void textured_rect(Batch * batch, float x, float y, float width, float height, M
     bl.uv = (vec2){0, 0};
     tr.uv = (vec2){1, 1};
     br.uv = (vec2){1, 0};
-    batch->texture_id = texture.id;
     
     batch->vertices[batch->vertex_count++] = tl;
     batch->vertices[batch->vertex_count++] = bl;
@@ -299,7 +318,7 @@ void textured_rect(Batch * batch, float x, float y, float width, float height, M
     batch->indices[batch->index_count++] = offset + 1;
     batch->indices[batch->index_count++] = offset + 2;
     batch->indices[batch->index_count++] = offset + 3;
-    batch->rect_count++;    
+    batch->rect_count++;
 }
 
 void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness, vec3 color)
@@ -514,7 +533,7 @@ int main(int argc, char ** argv)
 	{
 	    1,
 	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	    10,
+	    2,
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
 	}
@@ -583,15 +602,13 @@ int main(int argc, char ** argv)
 	vkal_info->render_pass, pipeline_layout_textured_rect);
 
     MyTexture tex = create_texture("../src/examples/assets/textures/hk.jpg", 0);
+    MyTexture tex2 = create_texture("../src/examples/assets/textures/brucelee.jpg", 1);
     
     /* Create batches that hold Buffers for indices and vertices that can get updated every frame */
     /* Global Batch */
-    batch.type = BATCH_STD;
-    create_batch(&batch);
+    create_batch(&g_batch);
     /* Batch for textured rects */
     Batch tex_batch = { 0 };
-    tex_batch.type = BATCH_TEX_RECT;
-    tex_batch.texture_id = 0;
     create_batch(&tex_batch);
 
     /* Uniform Buffer for view projection matrices */
@@ -609,15 +626,20 @@ int main(int argc, char ** argv)
     vkal_update_descriptor_set_texturearray(
 	descriptor_sets[1], 
 	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-	tex_batch.texture_id, /* texture-id (index into array) */
+	tex.id, /* texture-id (index into array) */
 	tex.texture);
-
+    vkal_update_descriptor_set_texturearray(
+	descriptor_sets[1], 
+	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+	tex2.id, /* texture-id (index into array) */
+	tex2.texture);
+    
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);    
 
-    fill_rect(&batch,  0, 0, width, height, (vec3){0, 0, 0});
+    fill_rect(&g_batch,  0, 0, width, height, (vec3){0, 0, 0});
     for (int i = 0; i < 200; ++i) {
-	line( &batch, i*50, 0, i*50, height, 1, (vec3){.4, .4, .4});
-	line( &batch, 0, i*50, width, i*50, 1, (vec3){.4, .4, .4});
+	line( &g_batch, i*50, 0, i*50, height, 1, (vec3){.4, .4, .4});
+	line( &g_batch, 0, i*50, width, i*50, 1, (vec3){.4, .4, .4});
     }
     // Main Loop
     while (!glfwWindowShouldClose(window))
@@ -669,13 +691,14 @@ int main(int argc, char ** argv)
 	}
 #endif
 
+	render_cmd_count = 0;
+	reset_batch(&tex_batch);
 	textured_rect(&tex_batch, 0, 0, 500, 500, tex);
+	textured_rect(&tex_batch, 500, 500, 300, 300, tex2);
 	
-	update_batch(&batch);
+	update_batch(&g_batch);
 	update_batch(&tex_batch);
 	
-	Batch batches[2] = { batch, tex_batch };
-	int num_batches = sizeof(batches)/sizeof(*batches);
 	{
 	    uint32_t image_id = vkal_get_image();
 
@@ -687,25 +710,29 @@ int main(int argc, char ** argv)
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
 			 width, height);
-	    for (int i = 0; i < num_batches; ++i) {
-		Batch batch = batches[i];
-		if (batch.type == BATCH_STD) {
-		    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
-		    vkal_draw_indexed_from_buffers(batch.index_buffer, batch.index_count,					       
-						   batch.vertex_buffer,
-						   image_id, graphics_pipeline);		
-
-		}
-		else if (batch.type == BATCH_TEX_RECT) {
+		
+	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
+	    vkal_draw_indexed_from_buffers(g_batch.index_buffer, 0, g_batch.index_count,					       
+					   g_batch.vertex_buffer, 0,
+					   image_id, graphics_pipeline);		
+#if 1
+	    for (uint32_t i = 0; i < render_cmd_count; ++i) {
+		RenderCmd render_cmd = render_commands[i];
+		if (render_cmd.type == RENDER_CMD_TEXTURED_RECT) {
+		    uint32_t texture_id = render_cmd.texture_id;
+		    uint32_t index_offset = render_cmd.index_buffer_offset;
+		    uint32_t index_count = render_cmd.index_count;
+		    uint32_t vertex_offset = render_cmd.vertex_buffer_offset;
 		    vkCmdPushConstants(vkal_info->command_buffers[image_id], pipeline_layout_textured_rect,
-				       VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), (void*)&batch.texture_id);
+				       VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), (void*)&render_cmd.texture_id);
 		    vkal_bind_descriptor_set(image_id, &descriptor_sets[1], pipeline_layout_textured_rect);
-		    vkal_draw_indexed_from_buffers(batch.index_buffer, batch.index_count,					       
-						   batch.vertex_buffer,
-						   image_id, graphics_pipeline_textured_rect);		
-
+		    vkal_draw_indexed_from_buffers(tex_batch.index_buffer, index_offset, index_count,					       
+						   tex_batch.vertex_buffer, 0,
+						   image_id, graphics_pipeline_textured_rect);
 		}
 	    }
+#endif	
+	
 	    vkal_end_renderpass(image_id);
 	    vkal_end_command_buffer(image_id);
 	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
@@ -717,7 +744,7 @@ int main(int argc, char ** argv)
 
     vkDeviceWaitIdle(vkal_info->device);
     
-    destroy_batch(vkal_info, &batch);
+    destroy_batch(vkal_info, &g_batch);
     destroy_batch(vkal_info, &tex_batch);
     
     vkal_cleanup();
