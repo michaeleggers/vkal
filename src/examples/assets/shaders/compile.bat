@@ -25,5 +25,8 @@
 %VULKAN_SDK%/bin/glslc primitives.vert -o primitives_vert.spv
 %VULKAN_SDK%/bin/glslc primitives.frag -o primitives_frag.spv
 
+%VULKAN_SDK%/bin/glslc primitives_textured_rect.vert -o primitives_textured_rect_vert.spv
+%VULKAN_SDK%/bin/glslc primitives_textured_rect.frag -o primitives_textured_rect_frag.spv
+
 %VULKAN_SDK%/bin/glslc ttf_drawing.vert -o ttf_drawing_vert.spv
 %VULKAN_SDK%/bin/glslc ttf_drawing.frag -o ttf_drawing_frag.spv

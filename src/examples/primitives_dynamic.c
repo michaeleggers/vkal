@@ -23,6 +23,9 @@
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
 
+#define MAX_PRIMITIVES                 8192
+#define PRIMITIVES_VERTEX_BUFFER_SIZE  (MAX_PRIMITIVES * 4 * sizeof(Vertex))
+#define PRIMITIVES_INDEX_BUFFER_SIZE   (MAX_PRIMITIVES * 6 * sizeof(uint16_t))
 
 typedef struct ViewProjection
 {
@@ -45,14 +48,39 @@ typedef struct Vertex
     vec2 uv;
 } Vertex;
 
+typedef struct Image
+{
+    uint32_t width, height, channels;
+    unsigned char * data;
+} Image;
+
+typedef struct MyTexture
+{
+    Texture texture;
+    uint32_t id;
+} MyTexture;
+
+typedef enum BatchType
+{
+    BATCH_STD,
+    BATCH_TEX_RECT
+} BatchType;
+
 typedef struct Batch
 {
+    BatchType type;
     Vertex * vertices;
     uint32_t vertex_count;
     uint16_t * indices;
     uint32_t index_count;
     uint32_t rect_count;
     uint32_t poly3_count;
+    uint32_t texture_id;
+
+    DeviceMemory index_memory;
+    DeviceMemory vertex_memory;
+    Buffer       index_buffer;
+    Buffer       vertex_buffer;
 } Batch;
 
 
@@ -64,8 +92,6 @@ static GLFWwindow * window;
 static Platform p;
 static int width, height; /* current framebuffer width/height */
 static Batch batch = { 0 };
-
-
 
 
 // GLFW callbacks
@@ -109,10 +135,10 @@ void glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int 
 	    static double x_old;
 	    static double y_old;
 	    if (click_state == 1) {
-		fill_circle( &batch, xpos, ypos, 10, 32, (vec3){1, 1, 0} );
+		fill_circle( &batch, xpos, ypos, 5, 16, (vec3){1, 1, 0} );
 	    }
 	    else if (click_state == 2) {
-		fill_circle( &batch, xpos, ypos, 10, 32, (vec3){1, 1, 0} );
+		fill_circle( &batch, xpos, ypos, 5, 16, (vec3){1, 1, 0} );
 		line( &batch, x_old, y_old, xpos, ypos, 2, (vec3){1, 1, 1});
 		click_state = 0;
 	    }
@@ -132,6 +158,77 @@ void init_window()
     glfwSetMouseButtonCallback(window, glfw_mouse_button_callback);
     width = SCREEN_WIDTH;
     height = SCREEN_HEIGHT;
+}
+
+Image load_image_file(char const * file)
+{
+    Image image = (Image){0};
+    int tw, th, tn;
+    image.data = stbi_load(file, &tw, &th, &tn, 4);
+    assert(image.data != NULL);
+    image.width = tw;
+    image.height = th;
+    image.channels = tn;
+
+    return image;
+}
+
+void create_batch(Batch * batch)
+{
+    batch->index_memory = vkal_allocate_devicememory(PRIMITIVES_INDEX_BUFFER_SIZE,
+						    VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+						    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+						    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+						    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
+						    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    batch->index_buffer = vkal_create_buffer(PRIMITIVES_INDEX_BUFFER_SIZE,
+					    &batch->index_memory,
+					    VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    vkal_dbg_buffer_name(batch->index_buffer, "Index Buffer");
+    map_memory(&batch->index_buffer, PRIMITIVES_INDEX_BUFFER_SIZE, 0);
+
+    batch->vertex_memory = vkal_allocate_devicememory(PRIMITIVES_VERTEX_BUFFER_SIZE,
+						     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+						     VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+						     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+						     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
+						     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    batch->vertex_buffer = vkal_create_buffer(PRIMITIVES_VERTEX_BUFFER_SIZE,
+					     &batch->vertex_memory,
+					     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    vkal_dbg_buffer_name(batch->vertex_buffer, "Vertex Buffer");
+    map_memory(&batch->vertex_buffer, PRIMITIVES_VERTEX_BUFFER_SIZE, 0);
+    
+    batch->indices = (uint16_t*)malloc(PRIMITIVES_INDEX_BUFFER_SIZE);
+    batch->vertices = (Vertex*)malloc(PRIMITIVES_VERTEX_BUFFER_SIZE);
+}
+
+void update_batch(Batch * batch)
+{
+    memcpy(batch->index_buffer.mapped, batch->indices, PRIMITIVES_INDEX_BUFFER_SIZE);
+    memcpy(batch->vertex_buffer.mapped, batch->vertices, PRIMITIVES_VERTEX_BUFFER_SIZE);      
+}
+
+void destroy_batch(VkalInfo * vkal_info, Batch * batch)
+{
+    vkDestroyBuffer(vkal_info->device, batch->index_buffer.buffer, NULL);
+    vkDestroyBuffer(vkal_info->device, batch->vertex_buffer.buffer, NULL);
+    vkFreeMemory(vkal_info->device, batch->index_memory.vk_device_memory, NULL);
+    vkFreeMemory(vkal_info->device, batch->vertex_memory.vk_device_memory, NULL);
+}
+
+MyTexture create_texture(char const * file, uint32_t id)
+{
+    MyTexture my_texture;
+    Image img = load_image_file(file);
+    Texture tex = vkal_create_texture(1, img.data, img.width, img.height, 4,
+					 0, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
+					 0, 1,
+					 0, 1,
+					 VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+    my_texture.texture = tex;
+    my_texture.id = id;
+    return my_texture;
 }
 
 void reset_batch(Batch * batch)
@@ -171,6 +268,38 @@ void fill_rect(Batch * batch, float x, float y, float width, float height, vec3 
     batch->indices[batch->index_count++] = offset + 2;
     batch->indices[batch->index_count++] = offset + 3;
     batch->rect_count++;
+}
+
+void textured_rect(Batch * batch, float x, float y, float width, float height, MyTexture texture)
+{
+    Vertex tl;
+    Vertex bl;
+    Vertex tr;
+    Vertex br;
+
+    tl.pos = (vec3){x,y,-1};
+    bl.pos = (vec3){x, y+height,-1};
+    tr.pos = (vec3){x+width, y, -1};
+    br.pos = (vec3){x+width, y+height, -1};
+    tl.uv = (vec2){0, 1};
+    bl.uv = (vec2){0, 0};
+    tr.uv = (vec2){1, 1};
+    br.uv = (vec2){1, 0};
+    batch->texture_id = texture.id;
+    
+    batch->vertices[batch->vertex_count++] = tl;
+    batch->vertices[batch->vertex_count++] = bl;
+    batch->vertices[batch->vertex_count++] = tr;
+    batch->vertices[batch->vertex_count++] = br;
+
+    uint32_t offset = 4*batch->rect_count + 3*batch->poly3_count;
+    batch->indices[batch->index_count++] = offset + 0;
+    batch->indices[batch->index_count++] = offset + 2;
+    batch->indices[batch->index_count++] = offset + 1;
+    batch->indices[batch->index_count++] = offset + 1;
+    batch->indices[batch->index_count++] = offset + 2;
+    batch->indices[batch->index_count++] = offset + 3;
+    batch->rect_count++;    
 }
 
 void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness, vec3 color)
@@ -373,17 +502,36 @@ int main(int argc, char ** argv)
 	}
     };
     VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 1);
+
+    VkDescriptorSetLayoutBinding set_layout_textured_rect[] = {
+	{
+	    0,
+	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	    1,
+	    VK_SHADER_STAGE_VERTEX_BIT,
+	    0
+	},
+	{
+	    1,
+	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	    10,
+	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    0
+	}
+    };
+    VkDescriptorSetLayout descriptor_set_layout_textured_rect = vkal_create_descriptor_set_layout(set_layout_textured_rect, 2);
     
     VkDescriptorSetLayout layouts[] = {
-	descriptor_set_layout
+	descriptor_set_layout,
+	descriptor_set_layout_textured_rect
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
-    VkDescriptorSet * descriptor_set = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_set);
+    VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
+    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
     
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
-	layouts, descriptor_set_layout_count, 
+	&layouts[0], 1, 
 	NULL, 0);
     /* Vertices are defined CCW, but we flip y-axis in vertex-shader, so the
        winding of the polys appear CW after vertex-shader has run. That is
@@ -404,39 +552,47 @@ int main(int argc, char ** argv)
 	VK_FRONT_FACE_CLOCKWISE, 
 	vkal_info->render_pass, pipeline_layout);
 
-    /* Create Buffers for indices and vertices that can get updated every frame */
-#define MAX_PRIMITIVES                 8192
-#define VERTICES_PER_PRIMITIVE         (4)
-#define INDICES_PER_PRIMITVE           (6)
-#define PRIMITIVES_VERTEX_BUFFER_SIZE  (MAX_PRIMITIVES * 4 * sizeof(Vertex))
-#define PRIMITIVES_INDEX_BUFFER_SIZE   (MAX_PRIMITIVES * 6 * sizeof(uint16_t))
-    DeviceMemory index_memory = vkal_allocate_devicememory(PRIMITIVES_INDEX_BUFFER_SIZE,
-							   VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-							   VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-							   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-							   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
-							   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    Buffer index_buffer = vkal_create_buffer(PRIMITIVES_INDEX_BUFFER_SIZE,
-					     &index_memory,
-					     VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    vkal_dbg_buffer_name(index_buffer, "Index Buffer");
-    map_memory(&index_buffer, PRIMITIVES_INDEX_BUFFER_SIZE, 0);
+    /* Shader Setup Textured Rect */
+    vertex_byte_code = 0;
+    p.rfb("../src/examples/assets/shaders/primitives_textured_rect_vert.spv", &vertex_byte_code, &vertex_code_size);
+    fragment_byte_code = 0;
+    p.rfb("../src/examples/assets/shaders/primitives_textured_rect_frag.spv", &fragment_byte_code, &fragment_code_size);
+    ShaderStageSetup shader_setup_textured_rect = vkal_create_shaders(
+	vertex_byte_code, vertex_code_size, 
+	fragment_byte_code, fragment_code_size);
 
-    DeviceMemory vertex_memory = vkal_allocate_devicememory(PRIMITIVES_VERTEX_BUFFER_SIZE,
-							   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-							   VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-							   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-							   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
-							   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    Buffer vertex_buffer = vkal_create_buffer(PRIMITIVES_VERTEX_BUFFER_SIZE,
-					     &vertex_memory,
-					     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    vkal_dbg_buffer_name(vertex_buffer, "Vertex Buffer");
-    map_memory(&vertex_buffer, PRIMITIVES_VERTEX_BUFFER_SIZE, 0);
+    /* Push Constants */	
+    VkPushConstantRange push_constant_ranges[] =
+	{
+	    { // Model Matrix
+		VK_SHADER_STAGE_FRAGMENT_BIT,
+		0, 
+		sizeof(uint32_t)
+	    }
+	};
+    uint32_t push_constant_range_count = sizeof(push_constant_ranges) / sizeof(*push_constant_ranges);
+    VkPipelineLayout pipeline_layout_textured_rect = vkal_create_pipeline_layout(
+	&layouts[1], 1, 
+	push_constant_ranges, push_constant_range_count);
+    VkPipeline graphics_pipeline_textured_rect = vkal_create_graphics_pipeline(
+	vertex_input_bindings, 1,
+	vertex_attributes, vertex_attribute_count,
+	shader_setup_textured_rect, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
+	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+	VK_FRONT_FACE_CLOCKWISE, 
+	vkal_info->render_pass, pipeline_layout_textured_rect);
+
+    MyTexture tex = create_texture("../src/examples/assets/textures/hk.jpg", 0);
     
-    batch.indices = (uint16_t*)malloc(PRIMITIVES_INDEX_BUFFER_SIZE);
-    batch.vertices = (Vertex*)malloc(PRIMITIVES_VERTEX_BUFFER_SIZE);
-
+    /* Create batches that hold Buffers for indices and vertices that can get updated every frame */
+    /* Global Batch */
+    batch.type = BATCH_STD;
+    create_batch(&batch);
+    /* Batch for textured rects */
+    Batch tex_batch = { 0 };
+    tex_batch.type = BATCH_TEX_RECT;
+    tex_batch.texture_id = 0;
+    create_batch(&tex_batch);
 
     /* Uniform Buffer for view projection matrices */
     Camera camera;
@@ -447,9 +603,16 @@ int main(int argc, char ** argv)
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
     view_proj_data.proj = ortho(0.f, (float)SCREEN_WIDTH, (float)SCREEN_HEIGHT, 0.f, -1.f, 2.f);
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
-    vkal_update_descriptor_set_uniform(descriptor_set[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    vkal_update_uniform(&view_proj_ubo, &view_proj_data);    
+    
+    vkal_update_descriptor_set_uniform(descriptor_sets[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    vkal_update_descriptor_set_uniform(descriptor_sets[1], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    vkal_update_descriptor_set_texturearray(
+	descriptor_sets[1], 
+	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+	tex_batch.texture_id, /* texture-id (index into array) */
+	tex.texture);
 
+    vkal_update_uniform(&view_proj_ubo, &view_proj_data);    
 
     fill_rect(&batch,  0, 0, width, height, (vec3){0, 0, 0});
     for (int i = 0; i < 200; ++i) {
@@ -460,11 +623,11 @@ int main(int argc, char ** argv)
     while (!glfwWindowShouldClose(window))
     {
 	glfwPollEvents();
-
+	
 	glfwGetFramebufferSize(window, &width, &height);
 	view_proj_data.proj = ortho(0, width, height, 0, 0.1f, 2.f);
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
-
+	
 #if 0
 	/* Draw Some Primitives and update buffers */
 	reset_batch(&batch);
@@ -485,7 +648,7 @@ int main(int argc, char ** argv)
 	     y1 = rand_between(0.0, height);
 	     thickness = rand_between(1.0, 10.0);
 
-	    line(&batch, x0, y0, x1, y1, thickness, color);
+	     line(&batch, x0, y0, x1, y1, thickness, color);
 	}
 #endif
 
@@ -505,10 +668,14 @@ int main(int argc, char ** argv)
 	    circle( &batch, 500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 2, (vec3){0, 0.5, 1.0});
 	}
 #endif
-	
-	memcpy(index_buffer.mapped, batch.indices, PRIMITIVES_INDEX_BUFFER_SIZE);
-	memcpy(vertex_buffer.mapped, batch.vertices, PRIMITIVES_VERTEX_BUFFER_SIZE);
 
+	textured_rect(&tex_batch, 0, 0, 500, 500, tex);
+	
+	update_batch(&batch);
+	update_batch(&tex_batch);
+	
+	Batch batches[2] = { batch, tex_batch };
+	int num_batches = sizeof(batches)/sizeof(*batches);
 	{
 	    uint32_t image_id = vkal_get_image();
 
@@ -520,10 +687,25 @@ int main(int argc, char ** argv)
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
 			 width, height);
-	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
-	    vkal_draw_indexed_from_buffers(index_buffer, batch.index_count,
-					   vertex_buffer,
-					   image_id, graphics_pipeline);
+	    for (int i = 0; i < num_batches; ++i) {
+		Batch batch = batches[i];
+		if (batch.type == BATCH_STD) {
+		    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
+		    vkal_draw_indexed_from_buffers(batch.index_buffer, batch.index_count,					       
+						   batch.vertex_buffer,
+						   image_id, graphics_pipeline);		
+
+		}
+		else if (batch.type == BATCH_TEX_RECT) {
+		    vkCmdPushConstants(vkal_info->command_buffers[image_id], pipeline_layout_textured_rect,
+				       VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), (void*)&batch.texture_id);
+		    vkal_bind_descriptor_set(image_id, &descriptor_sets[1], pipeline_layout_textured_rect);
+		    vkal_draw_indexed_from_buffers(batch.index_buffer, batch.index_count,					       
+						   batch.vertex_buffer,
+						   image_id, graphics_pipeline_textured_rect);		
+
+		}
+	    }
 	    vkal_end_renderpass(image_id);
 	    vkal_end_command_buffer(image_id);
 	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
@@ -534,10 +716,9 @@ int main(int argc, char ** argv)
     }
 
     vkDeviceWaitIdle(vkal_info->device);
-    vkDestroyBuffer(vkal_info->device, index_buffer.buffer, NULL);
-    vkDestroyBuffer(vkal_info->device, vertex_buffer.buffer, NULL);
-    vkFreeMemory(vkal_info->device, index_memory.vk_device_memory, NULL);
-    vkFreeMemory(vkal_info->device, vertex_memory.vk_device_memory, NULL);
+    
+    destroy_batch(vkal_info, &batch);
+    destroy_batch(vkal_info, &tex_batch);
     
     vkal_cleanup();
 
