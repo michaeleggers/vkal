@@ -251,6 +251,22 @@ void reset_batch(Batch * batch)
 
 void fill_rect(Batch * batch, float x, float y, float width, float height, vec3 color)
 {
+    RenderCmd * render_cmd_ptr = NULL;
+    if (render_cmd_count >= 1) {
+	RenderCmd * last_render_cmd = &render_commands[render_cmd_count - 1];
+	if ( last_render_cmd->type == RENDER_CMD_STD ) {
+	    last_render_cmd->index_count += 6;
+	    render_cmd_ptr = last_render_cmd;
+	}
+    }
+    if (render_cmd_ptr == NULL) {
+	RenderCmd render_cmd;
+	render_cmd.type                     = RENDER_CMD_STD;
+	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
+	render_cmd.index_count              = 6;
+	render_commands[render_cmd_count++] = render_cmd;
+    }
+    
     Vertex tl;
     Vertex bl;
     Vertex tr;
@@ -295,9 +311,6 @@ void textured_rect(Batch * batch, float x, float y, float width, float height, M
 	render_cmd.type                     = RENDER_CMD_TEXTURED_RECT;
 	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
 	render_cmd.index_count              = 6;
-	render_cmd.index_buffer_size        = 6*sizeof(uint16_t);
-	render_cmd.vertex_buffer_offset     = batch->vertex_count*sizeof(Vertex);
-	render_cmd.vertex_buffer_size       = 4*sizeof(Vertex);
 	render_cmd.texture_id               = texture.id;
 	render_commands[render_cmd_count++] = render_cmd;
     }
@@ -311,10 +324,10 @@ void textured_rect(Batch * batch, float x, float y, float width, float height, M
     bl.pos = (vec3){x, y+height,-1};
     tr.pos = (vec3){x+width, y, -1};
     br.pos = (vec3){x+width, y+height, -1};
-    tl.uv = (vec2){0, 1};
-    bl.uv = (vec2){0, 0};
-    tr.uv = (vec2){1, 1};
-    br.uv = (vec2){1, 0};
+    tl.uv = (vec2){0, 0};
+    bl.uv = (vec2){0, 1};
+    tr.uv = (vec2){1, 0};
+    br.uv = (vec2){1, 1};
     
     batch->vertices[batch->vertex_count++] = tl;
     batch->vertices[batch->vertex_count++] = bl;
@@ -333,6 +346,22 @@ void textured_rect(Batch * batch, float x, float y, float width, float height, M
 
 void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness, vec3 color)
 {
+    RenderCmd * render_cmd_ptr = NULL;
+    if (render_cmd_count >= 1) {
+	RenderCmd * last_render_cmd = &render_commands[render_cmd_count - 1];
+	if ( last_render_cmd->type == RENDER_CMD_STD ) {
+	    last_render_cmd->index_count += 6;
+	    render_cmd_ptr = last_render_cmd;
+	}
+    }
+    if (render_cmd_ptr == NULL) {
+	RenderCmd render_cmd;
+	render_cmd.type                     = RENDER_CMD_STD;
+	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
+	render_cmd.index_count              = 6;
+	render_commands[render_cmd_count++] = render_cmd;
+    }
+    
     Vertex tl;
     Vertex bl;
     Vertex tr;
@@ -396,6 +425,22 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
 
 void poly3(Batch * batch, vec2 xy1, vec2 xy2, vec2 xy3, vec3 color)
 {
+    RenderCmd * render_cmd_ptr = NULL;
+    if (render_cmd_count >= 1) {
+	RenderCmd * last_render_cmd = &render_commands[render_cmd_count - 1];
+	if ( last_render_cmd->type == RENDER_CMD_STD ) {
+	    last_render_cmd->index_count += 3;
+	    render_cmd_ptr = last_render_cmd;
+	}
+    }
+    if (render_cmd_ptr == NULL) {
+	RenderCmd render_cmd;
+	render_cmd.type                     = RENDER_CMD_STD;
+	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
+	render_cmd.index_count              = 3;
+	render_commands[render_cmd_count++] = render_cmd;
+    }
+    
     vec3 xyz1;
     vec3 xyz2;
     vec3 xyz3;
@@ -710,6 +755,21 @@ int main(int argc, char ** argv)
 	    float y0 = rand_between(0.0, height);
 	    textured_rect(&tex_batch, x0, y0, 200, 200, tex2);
 	}
+	for (int i = 0; i < 100; ++i) {
+	    float x0 = rand_between(0.0, width);
+	    float y0 = rand_between(0.0, height);
+	    fill_rect(&tex_batch, x0, y0, 20, 20, (vec3){1, 0, 0});
+	}
+	for (int i = 0; i < 10; ++i) {
+	    float x0 = rand_between(0.0, width);
+	    float y0 = rand_between(0.0, height);
+	    circle( &tex_batch, x0, y0, 30.0f, 32, 2, (vec3){0, 0.5, 1.0});
+	}
+	for (int i = 0; i < 10; ++i) {
+	    float x0 = rand_between(0.0, width);
+	    float y0 = rand_between(0.0, height);
+	    fill_circle( &tex_batch, x0, y0, 30.0f, 32, (vec3){1, 0.8, 0.0});
+	}		
 //	textured_rect(&tex_batch, 800, 800, 500, 500, tex);
 	
 	update_batch(&g_batch);
@@ -734,17 +794,22 @@ int main(int argc, char ** argv)
 #if 1
 	    for (uint32_t i = 0; i < render_cmd_count; ++i) {
 		RenderCmd render_cmd = render_commands[i];
+		uint32_t index_offset = render_cmd.index_buffer_offset;
+		uint32_t index_count = render_cmd.index_count;
 		if (render_cmd.type == RENDER_CMD_TEXTURED_RECT) {
 		    uint32_t texture_id = render_cmd.texture_id;
-		    uint32_t index_offset = render_cmd.index_buffer_offset;
-		    uint32_t index_count = render_cmd.index_count;
-		    uint32_t vertex_offset = render_cmd.vertex_buffer_offset;
 		    vkCmdPushConstants(vkal_info->command_buffers[image_id], pipeline_layout_textured_rect,
 				       VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), (void*)&render_cmd.texture_id);
 		    vkal_bind_descriptor_set(image_id, &descriptor_sets[1], pipeline_layout_textured_rect);
 		    vkal_draw_indexed_from_buffers(tex_batch.index_buffer, index_offset, index_count,					       
 						   tex_batch.vertex_buffer, 0,
 						   image_id, graphics_pipeline_textured_rect);
+		}
+		else if (render_cmd.type == RENDER_CMD_STD) {
+		    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
+		    vkal_draw_indexed_from_buffers(tex_batch.index_buffer, index_offset, index_count,					       
+						   tex_batch.vertex_buffer, 0,
+						   image_id, graphics_pipeline);		
 		}
 	    }
 #endif	
