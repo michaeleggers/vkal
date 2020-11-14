@@ -95,17 +95,17 @@ typedef struct RenderCmd
     Batch *       batch;
 } RenderCmd;
 
-void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness, vec3 color);
-void fill_circle(Batch * batch, float x, float y, float r, uint32_t spans, vec3 color);
+void line(float x0, float y0, float x1, float y1, float thickness, vec3 color);
+void fill_circle(float x, float y, float r, uint32_t spans, vec3 color);
 
 /* Globals */
 static GLFWwindow * window;
-static Platform p;
-static int width, height; /* current framebuffer width/height */
-static Batch g_batch = { 0 };
-static Batch g_persistent_batch = { 0 };
-static RenderCmd render_commands[1024];
-static uint32_t  render_cmd_count;
+static Platform     p;
+static int          width, height; /* current framebuffer width/height */
+static Batch        g_default_batch = { 0 };
+static Batch        g_persistent_batch = { 0 };
+static RenderCmd    render_commands[1024];
+static uint32_t     render_cmd_count;
 
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
@@ -148,11 +148,11 @@ void glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int 
 	    static double x_old;
 	    static double y_old;
 	    if (click_state == 1) {
-		fill_circle( &g_persistent_batch, xpos, ypos, 5, 16, (vec3){1, 1, 0} );
+		fill_circle( xpos, ypos, 5, 16, (vec3){1, 1, 0} );
 	    }
 	    else if (click_state == 2) {
-		fill_circle( &g_persistent_batch, xpos, ypos, 5, 16, (vec3){1, 1, 0} );
-		line( &g_persistent_batch, x_old, y_old, xpos, ypos, 2, (vec3){1, 1, 1});
+		fill_circle( xpos, ypos, 5, 16, (vec3){1, 1, 0} );
+		line( x_old, y_old, xpos, ypos, 2, (vec3){1, 1, 1});
 		click_state = 0;
 	    }
 	    x_old = xpos;
@@ -252,23 +252,24 @@ void reset_batch(Batch * batch)
     batch->poly3_count = 0;
 }
 
-void fill_rect(Batch * batch, float x, float y, float width, float height, vec3 color)
+void fill_rect(float x, float y, float width, float height, vec3 color)
 {
     RenderCmd * render_cmd_ptr = NULL;
     if (render_cmd_count >= 1) {
 	RenderCmd * last_render_cmd = &render_commands[render_cmd_count - 1];
-	if ( last_render_cmd->type == RENDER_CMD_STD && last_render_cmd->batch == batch ) {
+	if ( last_render_cmd->type == RENDER_CMD_STD ) {
 	    last_render_cmd->index_count += 6;	    
 	    render_cmd_ptr = last_render_cmd;
 	}
     }
     if (render_cmd_ptr == NULL) {
-	RenderCmd render_cmd;
+	RenderCmd render_cmd;       
 	render_cmd.type                     = RENDER_CMD_STD;
-	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
+	render_cmd.index_buffer_offset      = g_default_batch.index_count*sizeof(uint16_t);
 	render_cmd.index_count              = 6;
-	render_cmd.batch                    = batch;
+	render_cmd.batch                    = &g_default_batch;
 	render_commands[render_cmd_count++] = render_cmd;
+	render_cmd_ptr = &render_commands[render_cmd_count - 1];
     }
     
     Vertex tl;
@@ -285,6 +286,7 @@ void fill_rect(Batch * batch, float x, float y, float width, float height, vec3 
     tr.color = color;
     br.color = color;
     
+    Batch * batch = render_cmd_ptr->batch;
     batch->vertices[batch->vertex_count++] = tl;
     batch->vertices[batch->vertex_count++] = bl;
     batch->vertices[batch->vertex_count++] = tr;
@@ -300,7 +302,7 @@ void fill_rect(Batch * batch, float x, float y, float width, float height, vec3 
     batch->rect_count++;
 }
 
-void fill_rect_cmd(RenderCmd * render_cmd, Batch * batch, float x, float y, float width, float height, vec3 color)
+void fill_rect_cmd(RenderCmd * render_cmd, float x, float y, float width, float height, vec3 color)
 {
     render_cmd->index_count += 6;
     
@@ -317,7 +319,8 @@ void fill_rect_cmd(RenderCmd * render_cmd, Batch * batch, float x, float y, floa
     bl.color = color;
     tr.color = color;
     br.color = color;
-    
+
+    Batch * batch = render_cmd->batch;
     batch->vertices[batch->vertex_count++] = tl;
     batch->vertices[batch->vertex_count++] = bl;
     batch->vertices[batch->vertex_count++] = tr;
@@ -338,13 +341,12 @@ void add_render_cmd(RenderCmd cmd)
     render_commands[render_cmd_count++] = cmd;
 }
 
-void textured_rect(Batch * batch, float x, float y, float width, float height, MyTexture texture)
+void textured_rect(float x, float y, float width, float height, MyTexture texture)
 {
     RenderCmd * render_cmd_ptr = NULL;
     if (render_cmd_count >= 1) {
 	RenderCmd * last_render_cmd = &render_commands[render_cmd_count - 1];
-	if ( (last_render_cmd->type == RENDER_CMD_TEXTURED_RECT) && (last_render_cmd->texture_id == texture.id) &&
-	     (last_render_cmd->batch == batch) ) {
+	if ( (last_render_cmd->type == RENDER_CMD_TEXTURED_RECT) && (last_render_cmd->texture_id == texture.id) ) {
 	    last_render_cmd->index_count += 6;
 	    render_cmd_ptr = last_render_cmd;
 	}
@@ -352,11 +354,12 @@ void textured_rect(Batch * batch, float x, float y, float width, float height, M
     if (render_cmd_ptr == NULL) {
 	RenderCmd render_cmd;
 	render_cmd.type                     = RENDER_CMD_TEXTURED_RECT;
-	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
+	render_cmd.index_buffer_offset      = g_default_batch.index_count*sizeof(uint16_t);
 	render_cmd.index_count              = 6;
 	render_cmd.texture_id               = texture.id;
-	render_cmd.batch                    = batch;
+	render_cmd.batch                    = &g_default_batch;
 	render_commands[render_cmd_count++] = render_cmd;
+	render_cmd_ptr = &render_commands[render_cmd_count - 1];
     }
 	
     Vertex tl;
@@ -372,7 +375,8 @@ void textured_rect(Batch * batch, float x, float y, float width, float height, M
     bl.uv = (vec2){0, 1};
     tr.uv = (vec2){1, 0};
     br.uv = (vec2){1, 1};
-    
+
+    Batch * batch = render_cmd_ptr->batch;
     batch->vertices[batch->vertex_count++] = tl;
     batch->vertices[batch->vertex_count++] = bl;
     batch->vertices[batch->vertex_count++] = tr;
@@ -388,12 +392,12 @@ void textured_rect(Batch * batch, float x, float y, float width, float height, M
     batch->rect_count++;
 }
 
-void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness, vec3 color)
+void line(float x0, float y0, float x1, float y1, float thickness, vec3 color)
 {
     RenderCmd * render_cmd_ptr = NULL;
     if (render_cmd_count >= 1) {
 	RenderCmd * last_render_cmd = &render_commands[render_cmd_count - 1];
-	if ( last_render_cmd->type == RENDER_CMD_STD && last_render_cmd->batch == batch ) {
+	if ( last_render_cmd->type == RENDER_CMD_STD ) {
 	    last_render_cmd->index_count += 6;
 	    render_cmd_ptr = last_render_cmd;
 	}
@@ -401,10 +405,11 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
     if (render_cmd_ptr == NULL) {
 	RenderCmd render_cmd;
 	render_cmd.type                     = RENDER_CMD_STD;
-	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
+	render_cmd.index_buffer_offset      = g_default_batch.index_count*sizeof(uint16_t);
 	render_cmd.index_count              = 6;
-	render_cmd.batch                    = batch;
+	render_cmd.batch                    = &g_default_batch;
 	render_commands[render_cmd_count++] = render_cmd;
+	render_cmd_ptr = &render_commands[render_cmd_count - 1];
     }
     
     Vertex tl;
@@ -453,6 +458,7 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
     tr.color = color;
     br.color = color;
     
+    Batch * batch = render_cmd_ptr->batch;
     batch->vertices[batch->vertex_count++] = tl;
     batch->vertices[batch->vertex_count++] = bl;
     batch->vertices[batch->vertex_count++] = tr;
@@ -468,7 +474,7 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
     batch->rect_count++;
 }
 
-void line_cmd(RenderCmd * render_cmd, Batch * batch, float x0, float y0, float x1, float y1, float thickness, vec3 color)
+void line_cmd(RenderCmd * render_cmd, float x0, float y0, float x1, float y1, float thickness, vec3 color)
 {
     render_cmd->index_count += 6;
 
@@ -517,7 +523,8 @@ void line_cmd(RenderCmd * render_cmd, Batch * batch, float x0, float y0, float x
     bl.color = color;
     tr.color = color;
     br.color = color;
-    
+
+    Batch * batch = render_cmd->batch;
     batch->vertices[batch->vertex_count++] = tl;
     batch->vertices[batch->vertex_count++] = bl;
     batch->vertices[batch->vertex_count++] = tr;
@@ -533,12 +540,12 @@ void line_cmd(RenderCmd * render_cmd, Batch * batch, float x0, float y0, float x
     batch->rect_count++;
 }
 
-void poly3(Batch * batch, vec2 xy1, vec2 xy2, vec2 xy3, vec3 color)
+void poly3(vec2 xy1, vec2 xy2, vec2 xy3, vec3 color)
 {
     RenderCmd * render_cmd_ptr = NULL;
     if (render_cmd_count >= 1) {
 	RenderCmd * last_render_cmd = &render_commands[render_cmd_count - 1];
-	if ( last_render_cmd->type == RENDER_CMD_STD && last_render_cmd->batch == batch ) {
+	if ( last_render_cmd->type == RENDER_CMD_STD ) {
 	    last_render_cmd->index_count += 3;
 	    render_cmd_ptr = last_render_cmd;
 	}
@@ -546,10 +553,11 @@ void poly3(Batch * batch, vec2 xy1, vec2 xy2, vec2 xy3, vec3 color)
     if (render_cmd_ptr == NULL) {
 	RenderCmd render_cmd;
 	render_cmd.type                     = RENDER_CMD_STD;
-	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
+	render_cmd.index_buffer_offset      = g_default_batch.index_count*sizeof(uint16_t);
 	render_cmd.index_count              = 3;
-	render_cmd.batch                    = batch;
+	render_cmd.batch                    = &g_default_batch;
 	render_commands[render_cmd_count++] = render_cmd;
+	render_cmd_ptr = &render_commands[render_cmd_count - 1];
     }
     
     vec3 xyz1;
@@ -563,7 +571,8 @@ void poly3(Batch * batch, vec2 xy1, vec2 xy2, vec2 xy3, vec3 color)
     xyz3.x = xy3.x; xyz3.y = xy3.y; xyz3.z = -1;
     v1.pos = xyz1; v2.pos = xyz2; v3.pos = xyz3;
     v1.color = color; v2.color = color; v3.color = color;
-
+    
+    Batch * batch = render_cmd_ptr->batch;
     batch->vertices[batch->vertex_count++] = v1;
     batch->vertices[batch->vertex_count++] = v2;    
     batch->vertices[batch->vertex_count++] = v3;
@@ -576,7 +585,7 @@ void poly3(Batch * batch, vec2 xy1, vec2 xy2, vec2 xy3, vec3 color)
     batch->poly3_count++;
 }
 
-void circle(Batch * batch, float x, float y, float r, uint32_t spans, float thickness, vec3 color)
+void circle(float x, float y, float r, uint32_t spans, float thickness, vec3 color)
 {
     float theta = 2*TR_PI/(float)spans;
     for (uint32_t i = 0; i < spans; ++i) {
@@ -586,11 +595,11 @@ void circle(Batch * batch, float x, float y, float r, uint32_t spans, float thic
 	xy.y = y + r * sinf( (i+1)*theta );
 	xy2.x = x + r * cosf( (i+2)*theta );
 	xy2.y = y + r * sinf( (i+2)*theta );
-	line( batch, xy.x, xy.y, xy2.x, xy2.y, thickness, color );
+	line( xy.x, xy.y, xy2.x, xy2.y, thickness, color );
     }
 }
 
-void fill_circle(Batch * batch, float x, float y, float r, uint32_t spans, vec3 color)
+void fill_circle(float x, float y, float r, uint32_t spans, vec3 color)
 {
     float theta = 2*TR_PI/(float)spans;
     for (uint32_t i = 0; i < spans; ++i) {
@@ -603,7 +612,7 @@ void fill_circle(Batch * batch, float x, float y, float r, uint32_t spans, vec3 
 	xy2.y = y + r * sinf( (i+1)*theta );
 	xy3.x = x + r * cosf( (i+2)*theta );
 	xy3.y = y + r * sinf( (i+2)*theta );
-	poly3(batch, xy1, xy2, xy3, color);
+	poly3(xy1, xy2, xy3, color);
     }
 }
 
@@ -772,7 +781,7 @@ int main(int argc, char ** argv)
     
     /* Create batches that hold Buffers for indices and vertices that can get updated every frame */
     /* Global Batch */
-    create_batch(&g_batch);
+    create_batch(&g_default_batch);
     create_batch(&g_persistent_batch);
     
     /* Uniform Buffer for view projection matrices */
@@ -805,10 +814,10 @@ int main(int argc, char ** argv)
     persistent_command.type = RENDER_CMD_STD;
     persistent_command.batch = &g_persistent_batch;
     
-    fill_rect_cmd(&persistent_command, &g_persistent_batch,  0, 0, width, height, (vec3){0, 0, 0});
+    fill_rect_cmd(&persistent_command,  0, 0, width, height, (vec3){0, 0, 0});
     for (int i = 0; i < 200; ++i) {
-	line_cmd( &persistent_command, &g_persistent_batch, i*50, 0, i*50, height, 1, (vec3){.4, .4, .4});
-	line_cmd( &persistent_command, &g_persistent_batch, 0, i*50, width, i*50, 1, (vec3){.4, .4, .4});
+	line_cmd( &persistent_command, i*50, 0, i*50, height, 1, (vec3){.4, .4, .4});
+	line_cmd( &persistent_command, 0, i*50, width, i*50, 1, (vec3){.4, .4, .4});
     }
     update_batch(&g_persistent_batch);
     
@@ -864,32 +873,32 @@ int main(int argc, char ** argv)
 
 	render_cmd_count = 0;
 	add_render_cmd(persistent_command);
-	reset_batch(&g_batch);
-//	textured_rect(&g_batch, 0, 0, 500, 500, tex);
-//	textured_rect(&g_batch, 800, 0, 500, 500, tex);
+	reset_batch(&g_default_batch);
+//	textured_rect(&g_default_batch, 0, 0, 500, 500, tex);
+//	textured_rect(&g_default_batch, 800, 0, 500, 500, tex);
 	for (int i = 0; i < 100; ++i) {
 	    float x0 = rand_between(0.0, width);
 	    float y0 = rand_between(0.0, height);
-	    textured_rect(&g_batch, x0, y0, 200, 200, tex2);
+	    textured_rect(x0, y0, 200, 200, tex2);
 	}
 	for (int i = 0; i < 100; ++i) {
 	    float x0 = rand_between(0.0, width);
 	    float y0 = rand_between(0.0, height);
-	    fill_rect(&g_batch, x0, y0, 20, 20, (vec3){1, 0, 0});
+	    fill_rect(x0, y0, 20, 20, (vec3){1, 0, 0});
 	}
 	for (int i = 0; i < 10; ++i) {
 	    float x0 = rand_between(0.0, width);
 	    float y0 = rand_between(0.0, height);
-	    circle( &g_batch, x0, y0, 30.0f, 32, 2, (vec3){0, 0.5, 1.0});
+	    circle( x0, y0, 30.0f, 32, 2, (vec3){0, 0.5, 1.0});
 	}
 	for (int i = 0; i < 10; ++i) {
 	    float x0 = rand_between(0.0, width);
 	    float y0 = rand_between(0.0, height);
-	    fill_circle( &g_batch, x0, y0, 30.0f, 32, (vec3){1, 0.8, 0.0});
+	    fill_circle( x0, y0, 30.0f, 32, (vec3){1, 0.8, 0.0});
 	}		
-//	textured_rect(&g_batch, 800, 800, 500, 500, tex);
+//	textured_rect(&g_default_batch, 800, 800, 500, 500, tex);
 	
-	update_batch(&g_batch);
+	update_batch(&g_default_batch);
 	
 	{
 	    uint32_t image_id = vkal_get_image();
@@ -938,7 +947,7 @@ int main(int argc, char ** argv)
     vkDeviceWaitIdle(vkal_info->device);
 
     destroy_batch(vkal_info, &g_persistent_batch);
-    destroy_batch(vkal_info, &g_batch);
+    destroy_batch(vkal_info, &g_default_batch);
     
     vkal_cleanup();
 
