@@ -148,11 +148,11 @@ void glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int 
 	    static double x_old;
 	    static double y_old;
 	    if (click_state == 1) {
-		fill_circle( &g_batch, xpos, ypos, 5, 16, (vec3){1, 1, 0} );
+		fill_circle( &g_persistent_batch, xpos, ypos, 5, 16, (vec3){1, 1, 0} );
 	    }
 	    else if (click_state == 2) {
-		fill_circle( &g_batch, xpos, ypos, 5, 16, (vec3){1, 1, 0} );
-		line( &g_batch, x_old, y_old, xpos, ypos, 2, (vec3){1, 1, 1});
+		fill_circle( &g_persistent_batch, xpos, ypos, 5, 16, (vec3){1, 1, 0} );
+		line( &g_persistent_batch, x_old, y_old, xpos, ypos, 2, (vec3){1, 1, 1});
 		click_state = 0;
 	    }
 	    x_old = xpos;
@@ -300,6 +300,44 @@ void fill_rect(Batch * batch, float x, float y, float width, float height, vec3 
     batch->rect_count++;
 }
 
+void fill_rect_cmd(RenderCmd * render_cmd, Batch * batch, float x, float y, float width, float height, vec3 color)
+{
+    render_cmd->index_count += 6;
+    
+    Vertex tl;
+    Vertex bl;
+    Vertex tr;
+    Vertex br;
+
+    tl.pos = (vec3){x,y,-1};
+    bl.pos = (vec3){x, y+height,-1};
+    tr.pos = (vec3){x+width, y, -1};
+    br.pos = (vec3){x+width, y+height, -1};
+    tl.color = color;
+    bl.color = color;
+    tr.color = color;
+    br.color = color;
+    
+    batch->vertices[batch->vertex_count++] = tl;
+    batch->vertices[batch->vertex_count++] = bl;
+    batch->vertices[batch->vertex_count++] = tr;
+    batch->vertices[batch->vertex_count++] = br;
+
+    uint32_t offset = 4*batch->rect_count + 3*batch->poly3_count;
+    batch->indices[batch->index_count++] = offset + 0;
+    batch->indices[batch->index_count++] = offset + 2;
+    batch->indices[batch->index_count++] = offset + 1;
+    batch->indices[batch->index_count++] = offset + 1;
+    batch->indices[batch->index_count++] = offset + 2;
+    batch->indices[batch->index_count++] = offset + 3;
+    batch->rect_count++;
+}
+
+void add_render_cmd(RenderCmd cmd)
+{
+    render_commands[render_cmd_count++] = cmd;
+}
+
 void textured_rect(Batch * batch, float x, float y, float width, float height, MyTexture texture)
 {
     RenderCmd * render_cmd_ptr = NULL;
@@ -369,6 +407,71 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
 	render_commands[render_cmd_count++] = render_cmd;
     }
     
+    Vertex tl;
+    Vertex bl;
+    Vertex tr;
+    Vertex br;
+    
+    float dx = fabs(x1 - x0);
+    float dy = fabs(y1 - y0);
+    /* The lines' normals are (-dy, dx), (dy, =dx)
+       but we only are interested in (dy, dx) because
+       it is easier to reason about when applying the
+       normal components as offsets.
+    */
+    vec2 normal = (vec2){dy, dx};
+    normal = vec2_normalize(normal);
+    float offset_x = thickness*normal.x/2.0;
+    float offset_y = thickness*normal.y/2.0;
+    if ( (x1 > x0) && (y1 > y0) ) { /* bottom right */
+	tl.pos = (vec3){x0 + offset_x, y0 - offset_y, -1};
+	bl.pos = (vec3){x0 - offset_x, y0 + offset_y, -1};
+	tr.pos = (vec3){x1 + offset_x, y1 - offset_y, -1};
+	br.pos = (vec3){x1 - offset_x, y1 + offset_y, -1};
+    }
+    else if ( (x1 > x0) && (y1 < y0) ) { /* top right */
+	tl.pos = (vec3){x0 - offset_x, y0 - offset_y, -1};
+	bl.pos = (vec3){x0 + offset_x, y0 + offset_y, -1};
+	tr.pos = (vec3){x1 - offset_x, y1 - offset_y, -1};
+	br.pos = (vec3){x1 + offset_x, y1 + offset_y, -1};
+    }
+    else if ( (x1 < x0) && (y1 < y0) ) { /* top left */
+	tl.pos = (vec3){x0 - offset_x, y0 + offset_y, -1};
+	bl.pos = (vec3){x0 + offset_x, y0 - offset_y, -1};
+	tr.pos = (vec3){x1 - offset_x, y1 + offset_y, -1};
+	br.pos = (vec3){x1 + offset_x, y1 - offset_y, -1};
+    }
+    else { /* bottom left*/
+	tl.pos = (vec3){x0 + offset_x, y0 + offset_y, -1};
+	bl.pos = (vec3){x0 - offset_x, y0 - offset_y, -1};
+	tr.pos = (vec3){x1 + offset_x, y1 + offset_y, -1};
+	br.pos = (vec3){x1 - offset_x, y1 - offset_y, -1};
+    }
+
+    tl.color = color;
+    bl.color = color;
+    tr.color = color;
+    br.color = color;
+    
+    batch->vertices[batch->vertex_count++] = tl;
+    batch->vertices[batch->vertex_count++] = bl;
+    batch->vertices[batch->vertex_count++] = tr;
+    batch->vertices[batch->vertex_count++] = br;
+
+    uint32_t offset = 4*batch->rect_count + 3*batch->poly3_count;
+    batch->indices[batch->index_count++] = offset + 0;
+    batch->indices[batch->index_count++] = offset + 2;
+    batch->indices[batch->index_count++] = offset + 1;
+    batch->indices[batch->index_count++] = offset + 1;
+    batch->indices[batch->index_count++] = offset + 2;
+    batch->indices[batch->index_count++] = offset + 3;
+    batch->rect_count++;
+}
+
+void line_cmd(RenderCmd * render_cmd, Batch * batch, float x0, float y0, float x1, float y1, float thickness, vec3 color)
+{
+    render_cmd->index_count += 6;
+
     Vertex tl;
     Vertex bl;
     Vertex tr;
@@ -698,10 +801,14 @@ int main(int argc, char ** argv)
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);    
 
     /* Draw grid */
-    fill_rect(&g_persistent_batch,  0, 0, width, height, (vec3){0, 0, 0});
+    RenderCmd persistent_command = { 0 };
+    persistent_command.type = RENDER_CMD_STD;
+    persistent_command.batch = &g_persistent_batch;
+    
+    fill_rect_cmd(&persistent_command, &g_persistent_batch,  0, 0, width, height, (vec3){0, 0, 0});
     for (int i = 0; i < 200; ++i) {
-	line( &g_persistent_batch, i*50, 0, i*50, height, 1, (vec3){.4, .4, .4});
-	line( &g_persistent_batch, 0, i*50, width, i*50, 1, (vec3){.4, .4, .4});
+	line_cmd( &persistent_command, &g_persistent_batch, i*50, 0, i*50, height, 1, (vec3){.4, .4, .4});
+	line_cmd( &persistent_command, &g_persistent_batch, 0, i*50, width, i*50, 1, (vec3){.4, .4, .4});
     }
     update_batch(&g_persistent_batch);
     
@@ -756,6 +863,7 @@ int main(int argc, char ** argv)
 #endif
 
 	render_cmd_count = 0;
+	add_render_cmd(persistent_command);
 	reset_batch(&g_batch);
 //	textured_rect(&g_batch, 0, 0, 500, 500, tex);
 //	textured_rect(&g_batch, 800, 0, 500, 500, tex);
