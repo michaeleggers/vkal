@@ -91,6 +91,8 @@ typedef struct RenderCmd
     uint32_t      vertex_buffer_size;
 
     uint32_t      texture_id;
+
+    Batch *       batch;
 } RenderCmd;
 
 void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness, vec3 color);
@@ -101,6 +103,7 @@ static GLFWwindow * window;
 static Platform p;
 static int width, height; /* current framebuffer width/height */
 static Batch g_batch = { 0 };
+static Batch g_persistent_batch = { 0 };
 static RenderCmd render_commands[1024];
 static uint32_t  render_cmd_count;
 
@@ -254,8 +257,8 @@ void fill_rect(Batch * batch, float x, float y, float width, float height, vec3 
     RenderCmd * render_cmd_ptr = NULL;
     if (render_cmd_count >= 1) {
 	RenderCmd * last_render_cmd = &render_commands[render_cmd_count - 1];
-	if ( last_render_cmd->type == RENDER_CMD_STD ) {
-	    last_render_cmd->index_count += 6;
+	if ( last_render_cmd->type == RENDER_CMD_STD && last_render_cmd->batch == batch ) {
+	    last_render_cmd->index_count += 6;	    
 	    render_cmd_ptr = last_render_cmd;
 	}
     }
@@ -264,6 +267,7 @@ void fill_rect(Batch * batch, float x, float y, float width, float height, vec3 
 	render_cmd.type                     = RENDER_CMD_STD;
 	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
 	render_cmd.index_count              = 6;
+	render_cmd.batch                    = batch;
 	render_commands[render_cmd_count++] = render_cmd;
     }
     
@@ -301,7 +305,8 @@ void textured_rect(Batch * batch, float x, float y, float width, float height, M
     RenderCmd * render_cmd_ptr = NULL;
     if (render_cmd_count >= 1) {
 	RenderCmd * last_render_cmd = &render_commands[render_cmd_count - 1];
-	if ( (last_render_cmd->type == RENDER_CMD_TEXTURED_RECT) && (last_render_cmd->texture_id == texture.id) ) {
+	if ( (last_render_cmd->type == RENDER_CMD_TEXTURED_RECT) && (last_render_cmd->texture_id == texture.id) &&
+	     (last_render_cmd->batch == batch) ) {
 	    last_render_cmd->index_count += 6;
 	    render_cmd_ptr = last_render_cmd;
 	}
@@ -312,6 +317,7 @@ void textured_rect(Batch * batch, float x, float y, float width, float height, M
 	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
 	render_cmd.index_count              = 6;
 	render_cmd.texture_id               = texture.id;
+	render_cmd.batch                    = batch;
 	render_commands[render_cmd_count++] = render_cmd;
     }
 	
@@ -349,7 +355,7 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
     RenderCmd * render_cmd_ptr = NULL;
     if (render_cmd_count >= 1) {
 	RenderCmd * last_render_cmd = &render_commands[render_cmd_count - 1];
-	if ( last_render_cmd->type == RENDER_CMD_STD ) {
+	if ( last_render_cmd->type == RENDER_CMD_STD && last_render_cmd->batch == batch ) {
 	    last_render_cmd->index_count += 6;
 	    render_cmd_ptr = last_render_cmd;
 	}
@@ -359,6 +365,7 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
 	render_cmd.type                     = RENDER_CMD_STD;
 	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
 	render_cmd.index_count              = 6;
+	render_cmd.batch                    = batch;
 	render_commands[render_cmd_count++] = render_cmd;
     }
     
@@ -428,7 +435,7 @@ void poly3(Batch * batch, vec2 xy1, vec2 xy2, vec2 xy3, vec3 color)
     RenderCmd * render_cmd_ptr = NULL;
     if (render_cmd_count >= 1) {
 	RenderCmd * last_render_cmd = &render_commands[render_cmd_count - 1];
-	if ( last_render_cmd->type == RENDER_CMD_STD ) {
+	if ( last_render_cmd->type == RENDER_CMD_STD && last_render_cmd->batch == batch ) {
 	    last_render_cmd->index_count += 3;
 	    render_cmd_ptr = last_render_cmd;
 	}
@@ -438,6 +445,7 @@ void poly3(Batch * batch, vec2 xy1, vec2 xy2, vec2 xy3, vec3 color)
 	render_cmd.type                     = RENDER_CMD_STD;
 	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
 	render_cmd.index_count              = 3;
+	render_cmd.batch                    = batch;
 	render_commands[render_cmd_count++] = render_cmd;
     }
     
@@ -662,10 +670,8 @@ int main(int argc, char ** argv)
     /* Create batches that hold Buffers for indices and vertices that can get updated every frame */
     /* Global Batch */
     create_batch(&g_batch);
-    /* Batch for textured rects */
-    Batch tex_batch = { 0 };
-    create_batch(&tex_batch);
-
+    create_batch(&g_persistent_batch);
+    
     /* Uniform Buffer for view projection matrices */
     Camera camera;
     camera.pos = (vec3){ 0, 0.f, 0.f };
@@ -691,11 +697,14 @@ int main(int argc, char ** argv)
     
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);    
 
-    fill_rect(&g_batch,  0, 0, width, height, (vec3){0, 0, 0});
+    /* Draw grid */
+    fill_rect(&g_persistent_batch,  0, 0, width, height, (vec3){0, 0, 0});
     for (int i = 0; i < 200; ++i) {
-	line( &g_batch, i*50, 0, i*50, height, 1, (vec3){.4, .4, .4});
-	line( &g_batch, 0, i*50, width, i*50, 1, (vec3){.4, .4, .4});
+	line( &g_persistent_batch, i*50, 0, i*50, height, 1, (vec3){.4, .4, .4});
+	line( &g_persistent_batch, 0, i*50, width, i*50, 1, (vec3){.4, .4, .4});
     }
+    update_batch(&g_persistent_batch);
+    
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -747,33 +756,32 @@ int main(int argc, char ** argv)
 #endif
 
 	render_cmd_count = 0;
-	reset_batch(&tex_batch);
-//	textured_rect(&tex_batch, 0, 0, 500, 500, tex);
-//	textured_rect(&tex_batch, 800, 0, 500, 500, tex);
+	reset_batch(&g_batch);
+//	textured_rect(&g_batch, 0, 0, 500, 500, tex);
+//	textured_rect(&g_batch, 800, 0, 500, 500, tex);
 	for (int i = 0; i < 100; ++i) {
 	    float x0 = rand_between(0.0, width);
 	    float y0 = rand_between(0.0, height);
-	    textured_rect(&tex_batch, x0, y0, 200, 200, tex2);
+	    textured_rect(&g_batch, x0, y0, 200, 200, tex2);
 	}
 	for (int i = 0; i < 100; ++i) {
 	    float x0 = rand_between(0.0, width);
 	    float y0 = rand_between(0.0, height);
-	    fill_rect(&tex_batch, x0, y0, 20, 20, (vec3){1, 0, 0});
+	    fill_rect(&g_batch, x0, y0, 20, 20, (vec3){1, 0, 0});
 	}
 	for (int i = 0; i < 10; ++i) {
 	    float x0 = rand_between(0.0, width);
 	    float y0 = rand_between(0.0, height);
-	    circle( &tex_batch, x0, y0, 30.0f, 32, 2, (vec3){0, 0.5, 1.0});
+	    circle( &g_batch, x0, y0, 30.0f, 32, 2, (vec3){0, 0.5, 1.0});
 	}
 	for (int i = 0; i < 10; ++i) {
 	    float x0 = rand_between(0.0, width);
 	    float y0 = rand_between(0.0, height);
-	    fill_circle( &tex_batch, x0, y0, 30.0f, 32, (vec3){1, 0.8, 0.0});
+	    fill_circle( &g_batch, x0, y0, 30.0f, 32, (vec3){1, 0.8, 0.0});
 	}		
-//	textured_rect(&tex_batch, 800, 800, 500, 500, tex);
+//	textured_rect(&g_batch, 800, 800, 500, 500, tex);
 	
 	update_batch(&g_batch);
-	update_batch(&tex_batch);
 	
 	{
 	    uint32_t image_id = vkal_get_image();
@@ -787,10 +795,6 @@ int main(int argc, char ** argv)
 			 0, 0,
 			 width, height);
 		
-	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
-	    vkal_draw_indexed_from_buffers(g_batch.index_buffer, 0, g_batch.index_count,					       
-					   g_batch.vertex_buffer, 0,
-					   image_id, graphics_pipeline);		
 #if 1
 	    for (uint32_t i = 0; i < render_cmd_count; ++i) {
 		RenderCmd render_cmd = render_commands[i];
@@ -801,14 +805,14 @@ int main(int argc, char ** argv)
 		    vkCmdPushConstants(vkal_info->command_buffers[image_id], pipeline_layout_textured_rect,
 				       VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), (void*)&render_cmd.texture_id);
 		    vkal_bind_descriptor_set(image_id, &descriptor_sets[1], pipeline_layout_textured_rect);
-		    vkal_draw_indexed_from_buffers(tex_batch.index_buffer, index_offset, index_count,					       
-						   tex_batch.vertex_buffer, 0,
+		    vkal_draw_indexed_from_buffers(render_cmd.batch->index_buffer, index_offset, index_count,					       
+						   render_cmd.batch->vertex_buffer, 0,
 						   image_id, graphics_pipeline_textured_rect);
 		}
 		else if (render_cmd.type == RENDER_CMD_STD) {
 		    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
-		    vkal_draw_indexed_from_buffers(tex_batch.index_buffer, index_offset, index_count,					       
-						   tex_batch.vertex_buffer, 0,
+		    vkal_draw_indexed_from_buffers(render_cmd.batch->index_buffer, index_offset, index_count,					       
+						   render_cmd.batch->vertex_buffer, 0,
 						   image_id, graphics_pipeline);		
 		}
 	    }
@@ -824,9 +828,9 @@ int main(int argc, char ** argv)
     }
 
     vkDeviceWaitIdle(vkal_info->device);
-    
+
+    destroy_batch(vkal_info, &g_persistent_batch);
     destroy_batch(vkal_info, &g_batch);
-    destroy_batch(vkal_info, &tex_batch);
     
     vkal_cleanup();
 
