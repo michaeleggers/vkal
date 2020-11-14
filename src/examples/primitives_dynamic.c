@@ -282,15 +282,25 @@ void fill_rect(Batch * batch, float x, float y, float width, float height, vec3 
 
 void textured_rect(Batch * batch, float x, float y, float width, float height, MyTexture texture)
 {
-    RenderCmd render_cmd;
-    render_cmd.type                 = RENDER_CMD_TEXTURED_RECT;
-    render_cmd.index_buffer_offset  = batch->index_count*sizeof(uint16_t);
-    render_cmd.index_count          = 6;
-    render_cmd.index_buffer_size    = 6*sizeof(uint16_t);
-    render_cmd.vertex_buffer_offset = batch->vertex_count*sizeof(Vertex);
-    render_cmd.vertex_buffer_size   = 4*sizeof(Vertex);
-    render_cmd.texture_id           = texture.id;
-    render_commands[render_cmd_count++] = render_cmd;
+    RenderCmd * render_cmd_ptr = NULL;
+    if (render_cmd_count >= 1) {
+	RenderCmd * last_render_cmd = &render_commands[render_cmd_count - 1];
+	if ( (last_render_cmd->type == RENDER_CMD_TEXTURED_RECT) && (last_render_cmd->texture_id == texture.id) ) {
+	    last_render_cmd->index_count += 6;
+	    render_cmd_ptr = last_render_cmd;
+	}
+    }
+    if (render_cmd_ptr == NULL) {
+	RenderCmd render_cmd;
+	render_cmd.type                     = RENDER_CMD_TEXTURED_RECT;
+	render_cmd.index_buffer_offset      = batch->index_count*sizeof(uint16_t);
+	render_cmd.index_count              = 6;
+	render_cmd.index_buffer_size        = 6*sizeof(uint16_t);
+	render_cmd.vertex_buffer_offset     = batch->vertex_count*sizeof(Vertex);
+	render_cmd.vertex_buffer_size       = 4*sizeof(Vertex);
+	render_cmd.texture_id               = texture.id;
+	render_commands[render_cmd_count++] = render_cmd;
+    }
 	
     Vertex tl;
     Vertex bl;
@@ -693,8 +703,14 @@ int main(int argc, char ** argv)
 
 	render_cmd_count = 0;
 	reset_batch(&tex_batch);
-	textured_rect(&tex_batch, 0, 0, 500, 500, tex);
-	textured_rect(&tex_batch, 500, 500, 300, 300, tex2);
+//	textured_rect(&tex_batch, 0, 0, 500, 500, tex);
+//	textured_rect(&tex_batch, 800, 0, 500, 500, tex);
+	for (int i = 0; i < 100; ++i) {
+	    float x0 = rand_between(0.0, width);
+	    float y0 = rand_between(0.0, height);
+	    textured_rect(&tex_batch, x0, y0, 200, 200, tex2);
+	}
+//	textured_rect(&tex_batch, 800, 800, 500, 500, tex);
 	
 	update_batch(&g_batch);
 	update_batch(&tex_batch);
