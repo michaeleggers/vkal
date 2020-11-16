@@ -421,7 +421,7 @@ QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR su
 void create_swapchain(void);
 void create_image_views(void);
 void recreate_swapchain(void);
-void create_framebuffer(void);
+void create_default_framebuffers(void);
 void internal_create_framebuffer(VkFramebufferCreateInfo create_info, uint32_t * out_framebuffer);
 VkFramebuffer get_framebuffer(uint32_t id);
 void destroy_framebuffer(uint32_t id);
@@ -431,13 +431,14 @@ VkalImage create_vkal_image(uint32_t width, uint32_t height,
 			    VkFormat format,
 			    VkImageUsageFlagBits usage_flags, VkImageAspectFlags aspect_bits,
 			    VkImageLayout layout, char const * name);
-void create_command_buffers(void);
+void create_default_command_buffers(void);
 VkCommandBuffer create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uint32_t begin);
-void create_render_pass(void);
+void create_default_render_pass(void);
 void create_render_to_image_render_pass(void);
-void create_offscreen_render_pass(void);
-void create_offscreen_framebuffer(void);
-VkPipeline vkal_create_graphics_pipeline(VkVertexInputBindingDescription * vertex_input_bindings,
+void create_default_offscreen_render_pass(void);
+void create_default_offscreen_framebuffer(void);
+
+    VkPipeline vkal_create_graphics_pipeline(VkVertexInputBindingDescription * vertex_input_bindings,
 					 uint32_t vertex_input_binding_count,
 					 VkVertexInputAttributeDescription * vertex_attributes,
 					 uint32_t vertex_attribute_count,
@@ -451,21 +452,21 @@ VkPipeline vkal_create_graphics_pipeline(VkVertexInputBindingDescription * verte
 void create_graphics_pipeline(VkGraphicsPipelineCreateInfo create_info, uint32_t * out_graphics_pipeline);
 VkPipeline get_graphics_pipeline(uint32_t id);
 void destroy_graphics_pipeline(uint32_t id);
-void create_depth_buffer(void);
-void create_descriptor_pool(void);
-void create_command_pool(void);
-void allocate_device_memory_uniform(void);
-void allocate_device_memory_vertex(void);
-void allocate_device_memory_index(void);
+    
+void create_default_depth_buffer(void);
+void create_default_descriptor_pool(void);
+void create_default_command_pool(void);
+void allocate_default_device_memory_uniform(void);
+void allocate_default_device_memory_vertex(void);
+void allocate_default_device_memory_index(void);
 DeviceMemory vkal_allocate_devicememory(uint32_t size, VkBufferUsageFlags buffer_usage_flags, VkMemoryPropertyFlags memory_property_flags);
-void create_uniform_buffer(uint32_t size);
-void create_vertex_buffer(uint32_t size);
-void create_index_buffer(uint32_t size);
-void create_semaphores(void);
+void create_default_uniform_buffer(uint32_t size);
+void create_default_vertex_buffer(uint32_t size);
+void create_default_index_buffer(uint32_t size);
+void create_default_semaphores(void);
 void vkal_cleanup(void);
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset);
 uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count);
-//uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkDeviceSize offset);
 uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count);
 void create_surface(void);
 UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint32_t binding);
@@ -544,23 +545,6 @@ void create_shader_module(uint8_t const * shader_byte_code, int size, uint32_t *
 VkShaderModule get_shader_module(uint32_t id);
 void destroy_shader_module(uint32_t id);
 uint32_t vkal_get_image(void);
-/* 
-   void vkal_record_models_pc(
-   uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-   Model * models, uint32_t model_draw_count);
-   void vkal_record_models(
-   uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-   UniformBuffer * uniforms, uint32_t uniform_count,
-   Model * models, uint32_t model_draw_count);
-   void vkal_record_models_dimensions(
-   uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-   UniformBuffer * uniforms, uint32_t uniform_count,
-   Model * models, uint32_t model_draw_count, float width, float height);
-   void vkal_record_models_indexed(
-   uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-   UniformBuffer * uniforms, uint32_t uniform_count,
-   Model * models, uint32_t model_draw_count);
-*/
 void vkal_viewport(VkCommandBuffer command_buffer, float x, float y, float width, float height);
 void vkal_scissor(VkCommandBuffer command_buffer, float offset_x, float offset_y, float extent_x, float extent_y);
 void vkal_draw_indexed(
@@ -606,20 +590,10 @@ VkDescriptorSetLayout get_descriptor_set_layout(uint32_t id);
 void destroy_descriptor_set_layout(uint32_t id);
 QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
 void vkal_destroy_graphics_pipeline(VkPipeline pipeline);
-/*
-  void build_shadow_command_buffers(Model * models, uint32_t model_draw_count, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-  VkDescriptorSet * descriptor_sets, uint32_t first_set, uint32_t descriptor_set_count);
-*/
 void offscreen_buffers_submit(uint32_t image_id);
-/*
-  void update_shadow_command_buffer(uint32_t image_id, Model * models, uint32_t model_draw_count, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-  VkDescriptorSet * descriptor_sets, uint32_t first_set, uint32_t descriptor_set_count);
-*/
 void create_offscreen_descriptor_set(VkDescriptorSetLayout descriptor_set_layout, uint32_t binding);
 
 /* NV Raytracing */
-
-
 void init_raytracing(void);
 void create_rt_storage_image(void);
 void create_rt_target_image(void);

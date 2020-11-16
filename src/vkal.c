@@ -64,26 +64,25 @@ VkalInfo * vkal_init(
     create_logical_device(extensions, extension_count);
     create_swapchain();
     create_image_views();
-    create_render_pass();
+    create_default_render_pass();
     create_render_to_image_render_pass();
     {
-	create_offscreen_render_pass();
-	create_offscreen_framebuffer();
+	create_default_offscreen_render_pass();
+	create_default_offscreen_framebuffer();
     }
-    create_depth_buffer();
-    create_framebuffer();
-    create_descriptor_pool();
-    create_command_pool();
-    create_command_buffers();
-    create_uniform_buffer(UNIFORM_BUFFER_SIZE);
-    allocate_device_memory_uniform();
-    create_vertex_buffer(VERTEX_BUFFER_SIZE);
-    allocate_device_memory_vertex();
-    create_index_buffer(INDEX_BUFFER_SIZE);
-    allocate_device_memory_index();
+    create_default_depth_buffer();
+    create_default_framebuffers();
+    create_default_descriptor_pool();
+    create_default_command_pool();
+    create_default_command_buffers();
+    create_default_uniform_buffer(UNIFORM_BUFFER_SIZE);
+    allocate_default_device_memory_uniform();
+    create_default_vertex_buffer(VERTEX_BUFFER_SIZE);
+    allocate_default_device_memory_vertex();
+    create_default_index_buffer(INDEX_BUFFER_SIZE);
+    allocate_default_device_memory_index();
     create_staging_buffer(STAGING_BUFFER_SIZE);
-    //create_graphics_pipeline(uniform_size, uniform_offset);
-    create_semaphores();
+    create_default_semaphores();
     vkal_info.frames_rendered = 0;
 
 
@@ -1436,9 +1435,9 @@ void recreate_swapchain(void)
     destroy_image_view( vkal_info.depth_stencil_image_view );
     destroy_image( vkal_info.depth_stencil_image );
     destroy_device_memory( vkal_info.device_memory_depth_stencil ); // TODO: Is this smart to destroy the whole memory object?
-    create_depth_buffer();
-    create_framebuffer();
-    create_command_buffers();
+    create_default_depth_buffer();
+    create_default_framebuffers();
+    create_default_command_buffers();
 }
 
 void create_swapchain(void)
@@ -1988,7 +1987,7 @@ void upload_texture(VkImage const image,
     vkDeviceWaitIdle(vkal_info.device);	
 }
 
-void create_depth_buffer(void)
+void create_default_depth_buffer(void)
 {
     {
 	create_image(
@@ -2268,7 +2267,7 @@ void destroy_shader_module(uint32_t id)
     }
 }
 
-void create_descriptor_pool(void)
+void create_default_descriptor_pool(void)
 {
     VkDescriptorPoolSize pool_sizes[] =
 	{
@@ -2301,7 +2300,7 @@ void create_descriptor_pool(void)
     DBG_VULKAN_ASSERT(result, "failed to create descriptor pool!");
 }
 
-void create_offscreen_render_pass(void)
+void create_default_offscreen_render_pass(void)
 {
     VkAttachmentDescription attachments[] = 
 	{
@@ -2360,7 +2359,7 @@ void create_offscreen_render_pass(void)
     VkResult result = vkCreateRenderPass(vkal_info.device, &info, 0, &vkal_info.offscreen_pass.render_pass);
 }
 
-void create_offscreen_framebuffer(void)
+void create_default_offscreen_framebuffer(void)
 {
     vkal_info.offscreen_pass.width  = VKAL_SHADOW_MAP_DIMENSION;
     vkal_info.offscreen_pass.height = VKAL_SHADOW_MAP_DIMENSION;
@@ -2399,108 +2398,6 @@ void create_offscreen_framebuffer(void)
     info.layers = 1;
     internal_create_framebuffer(info, &vkal_info.offscreen_pass.framebuffer);
 }
-
-/*
-void build_shadow_command_buffers(Model * models, uint32_t model_draw_count, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-	VkDescriptorSet * descriptor_sets, uint32_t first_set, uint32_t descriptor_set_count)
-{
-	VkCommandBufferBeginInfo cmd_buffer_info = {};
-	cmd_buffer_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	//cmd_buffer_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	VkClearValue clear_values[2];
-	for (int i = 0; i < vkal_info.offscreen_pass.command_buffer_count; ++i) {
-	    clear_values[0].depthStencil = (VkClearDepthStencilValue){ 1.0f, 0 };
-		vkBeginCommandBuffer(vkal_info.offscreen_pass.command_buffers[i], &cmd_buffer_info);
-		VkRenderPassBeginInfo render_pass_info = (VkRenderPassBeginInfo){};
-		render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		render_pass_info.renderPass = vkal_info.offscreen_pass.render_pass;
-		render_pass_info.framebuffer = get_framebuffer(vkal_info.offscreen_pass.framebuffer);
-		render_pass_info.renderArea.extent.width = vkal_info.offscreen_pass.width;
-		render_pass_info.renderArea.extent.height = vkal_info.offscreen_pass.height;
-		render_pass_info.clearValueCount = 1;
-		render_pass_info.pClearValues = clear_values;
-
-		vkCmdBeginRenderPass(vkal_info.offscreen_pass.command_buffers[i], &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-		
-		VkViewport viewport = { 0 };
-		viewport.x = 0.f;
-		viewport.y = 0.f;
-		viewport.width = vkal_info.swapchain_extent.width; // (float)vp_width;
-		viewport.height = vkal_info.swapchain_extent.height; // (float)vp_height;
-		viewport.minDepth = 0.f;
-		viewport.maxDepth = 1.f;
-		vkCmdSetViewport(vkal_info.offscreen_pass.command_buffers[i], 0, 1, &viewport);
-
-		VkRect2D scissor = { 0 };
-		scissor.offset = { 0,0 };
-		scissor.extent = vkal_info.swapchain_extent;
-		vkCmdSetScissor(vkal_info.offscreen_pass.command_buffers[i], 0, 1, &scissor);
-
-		vkCmdBindPipeline(vkal_info.offscreen_pass.command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-		vkCmdBindDescriptorSets(vkal_info.offscreen_pass.command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, first_set, descriptor_set_count, descriptor_sets, 0, 0);
-		
-		for (int j = 0; j < model_draw_count; ++j) {
-			Model model = models[j]; 
-			vkCmdBindVertexBuffers(vkal_info.offscreen_pass.command_buffers[i], 0, 1, &vkal_info.vertex_buffer.buffer, &model.offset);
-			vkCmdDraw(vkal_info.offscreen_pass.command_buffers[i], model.vertex_count, 1, 0, 0); // TODO: Model input
-		}
-		vkCmdEndRenderPass(vkal_info.offscreen_pass.command_buffers[i]);
-		vkEndCommandBuffer(vkal_info.offscreen_pass.command_buffers[i]);
-	}
-}
-
-void update_shadow_command_buffer(uint32_t image_id, Model * models, uint32_t model_draw_count, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-	VkDescriptorSet * descriptor_sets, uint32_t first_set, uint32_t descriptor_set_count)
-{
-	VkCommandBufferBeginInfo cmd_buffer_info = { 0 };
-	cmd_buffer_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	//cmd_buffer_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	VkClearValue clear_values[2];
-	
-	clear_values[0].depthStencil = { 1.0f, 0 };
-	vkBeginCommandBuffer(vkal_info.offscreen_pass.command_buffers[image_id], &cmd_buffer_info);
-	VkRenderPassBeginInfo render_pass_info = { 0 };
-	render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	render_pass_info.renderPass = vkal_info.offscreen_pass.render_pass;
-	render_pass_info.framebuffer = get_framebuffer(vkal_info.offscreen_pass.framebuffer);
-	render_pass_info.renderArea.extent.width = vkal_info.offscreen_pass.width;
-	render_pass_info.renderArea.extent.height = vkal_info.offscreen_pass.height;
-	render_pass_info.clearValueCount = 1;
-	render_pass_info.pClearValues = clear_values;
-
-	vkCmdBeginRenderPass(vkal_info.offscreen_pass.command_buffers[image_id], &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-
-	VkViewport viewport = { 0 };
-	viewport.x = 0.f;
-	viewport.y = 0.f;
-	viewport.width = vkal_info.offscreen_pass.width; // (float)vp_width;
-	viewport.height = vkal_info.offscreen_pass.height; // (float)vp_height;
-	viewport.minDepth = 0.f;
-	viewport.maxDepth = 1.f;
-	vkCmdSetViewport(vkal_info.offscreen_pass.command_buffers[image_id], 0, 1, &viewport);
-
-	VkRect2D scissor = { 0 };
-	scissor.offset = { 0,0 };
-	scissor.extent.width = vkal_info.offscreen_pass.width;
-	scissor.extent.height = vkal_info.offscreen_pass.height;
-	vkCmdSetScissor(vkal_info.offscreen_pass.command_buffers[image_id], 0, 1, &scissor);
-
-	vkCmdBindPipeline(vkal_info.offscreen_pass.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-	vkCmdBindDescriptorSets(vkal_info.offscreen_pass.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, first_set, descriptor_set_count, descriptor_sets, 0, 0);
-
-	for (int j = 0; j < model_draw_count; ++j) {
-		Model model = models[j];
-		vkCmdBindVertexBuffers(vkal_info.offscreen_pass.command_buffers[image_id], 0, 1, &vkal_info.vertex_buffer.buffer, &model.offset);
-		vkCmdPushConstants(vkal_info.offscreen_pass.command_buffers[image_id], pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)&model.model_matrix);
-		vkCmdDraw(vkal_info.offscreen_pass.command_buffers[image_id], model.vertex_count, 1, 0, 0); // TODO: Model input
-	}
-	vkCmdEndRenderPass(vkal_info.offscreen_pass.command_buffers[image_id]);
-	vkEndCommandBuffer(vkal_info.offscreen_pass.command_buffers[image_id]);
-	
-}
-*/
 
 void create_render_to_image_render_pass(void)
 {
@@ -2573,7 +2470,7 @@ void create_render_to_image_render_pass(void)
     DBG_VULKAN_ASSERT(result, "failed to create render pass!");
 }
 
-void create_render_pass(void)
+void create_default_render_pass(void)
 {
     VkAttachmentDescription attachments[2];
     // Color Attachment
@@ -2746,7 +2643,7 @@ void create_rt_renderpass(void)
     VkAttachmentReference input_image_ref = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 }
 
-void create_framebuffer(void)
+void create_default_framebuffers(void)
 {
     VkImageView attachments[2];
     // The order matches the order of the VkAttachmentDescriptions of the Renderpass.
@@ -3194,7 +3091,7 @@ VkWriteDescriptorSet create_write_descriptor_set_buffer2(VkDescriptorSet dst_des
     return write_set;
 }
 
-void create_command_pool(void)
+void create_default_command_pool(void)
 {
     VkCommandPoolCreateInfo cmdpool_info = { 0 };
     cmdpool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -3248,7 +3145,7 @@ VkCommandBuffer create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uin
     return command_buffer;
 }
 
-void create_command_buffers(void)
+void create_default_command_buffers(void)
 {
     // Regular
     {
@@ -3404,149 +3301,6 @@ void vkal_bind_descriptor_set2(VkCommandBuffer command_buffer,
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
                             pipeline_layout, first_set, descriptor_set_count, descriptor_sets, 0, 0);
 }
-
-/* Draw models. If you use this it is expected to use the predefined push constants for materials and model-matrices! */
-/*
-  void vkal_record_models_pc(
-  uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-  Model * models, uint32_t model_draw_count)
-  {
-  vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-    
-  VkViewport viewport = { 0 };
-  viewport.x = 0.f;
-  viewport.y = 0.f;
-  viewport.width = vkal_info.swapchain_extent.width; // (float)vp_width;
-  viewport.height = vkal_info.swapchain_extent.height; // (float)vp_height;
-  viewport.minDepth = 0.f;
-  viewport.maxDepth = 1.f;
-  vkCmdSetViewport(vkal_info.command_buffers[image_id], 0, 1, &viewport);
-    
-  VkRect2D scissor = { 0 };
-  scissor.offset = { 0,0 };
-  scissor.extent = vkal_info.swapchain_extent;
-  vkCmdSetScissor(vkal_info.command_buffers[image_id], 0, 1, &scissor);
-    
-  //vkCmdCopyBuffer(vkal_info.command_buffers[image_id], vkal_info.src_buffer, vkal_info.dst_buffer, regioncount, pRegions);
-  for (int i = 0; i < model_draw_count; ++i) {
-  Model model = models[i];
-  vkCmdPushConstants(vkal_info.command_buffers[image_id], pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)&(model.model_matrix));
-  vkCmdPushConstants(vkal_info.command_buffers[image_id], pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::mat4), sizeof(Material), (void*)&(model.material));
-  uint64_t vertex_buffer_offsets[] = { model.offset };
-  VkBuffer vertex_buffers[] = { vkal_info.vertex_buffer.buffer };
-  vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
-  vkCmdDraw(vkal_info.command_buffers[image_id], model.vertex_count, 1, 0, 0);
-  }
-  }
-*/
-
-/* Records a model without the predefined material and model matrix push constants */
-/*
-  void vkal_record_models(
-  uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-  UniformBuffer * uniforms, uint32_t uniform_count,
-  Model * models, uint32_t model_draw_count)
-  {
-  vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-  VkViewport viewport = { 0 };
-  viewport.x = 0.f;
-  viewport.y = 0.f;
-  viewport.width = vkal_info.swapchain_extent.width; // (float)vp_width;
-  viewport.height = vkal_info.swapchain_extent.height; // (float)vp_height;
-  viewport.minDepth = 0.f;
-  viewport.maxDepth = 1.f;
-  vkCmdSetViewport(vkal_info.command_buffers[image_id], 0, 1, &viewport);
-
-  VkRect2D scissor = { 0 };
-  scissor.offset = { 0,0 };
-  scissor.extent = vkal_info.swapchain_extent;
-  vkCmdSetScissor(vkal_info.command_buffers[image_id], 0, 1, &scissor);
-
-  //vkCmdCopyBuffer(vkal_info.command_buffers[image_id], vkal_info.src_buffer, vkal_info.dst_buffer, regioncount, pRegions);
-  for (int i = 0; i < model_draw_count; ++i) {
-  Model model = models[i];
-  uint64_t vertex_buffer_offsets[] = { model.offset };
-  VkBuffer vertex_buffers[] = { vkal_info.vertex_buffer.buffer };
-  vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
-  vkCmdDraw(vkal_info.command_buffers[image_id], model.vertex_count, 1, 0, 0);
-  }
-  }
-*/
-
-/* Same as vkal_record_models but lets user specify width, height of Viewport. This is needed for offscreen render targets
-   that do not meet the swapchain-images extent.
-*/
-/*
-  void vkal_record_models_dimensions(
-  uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-  UniformBuffer * uniforms, uint32_t uniform_count,
-  Model * models, uint32_t model_draw_count, float width, float height)
-  {
-  vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-  VkViewport viewport = { 0 };
-  viewport.x = 0.f;
-  viewport.y = 0.f;
-  viewport.width = width; // (float)vp_width;
-  viewport.height = height; // (float)vp_height;
-  viewport.minDepth = 0.f;
-  viewport.maxDepth = 1.f;
-  vkCmdSetViewport(vkal_info.command_buffers[image_id], 0, 1, &viewport);
-
-  VkRect2D scissor = { 0 };
-  scissor.offset = { 0,0 };
-  scissor.extent = { uint32_t(width), uint32_t(height) };
-  vkCmdSetScissor(vkal_info.command_buffers[image_id], 0, 1, &scissor);
-
-  //vkCmdCopyBuffer(vkal_info.command_buffers[image_id], vkal_info.src_buffer, vkal_info.dst_buffer, regioncount, pRegions);
-  for (int i = 0; i < model_draw_count; ++i) {
-  Model model = models[i];
-  vkCmdPushConstants(vkal_info.command_buffers[image_id], pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)&(model.model_matrix));
-  vkCmdPushConstants(vkal_info.command_buffers[image_id], pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::mat4), sizeof(Material), (void*)&(model.material));
-  uint64_t vertex_buffer_offsets[] = { model.offset };
-  VkBuffer vertex_buffers[] = { vkal_info.vertex_buffer.buffer };
-  vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
-  vkCmdDraw(vkal_info.command_buffers[image_id], model.vertex_count, 1, 0, 0);
-  }
-  }
-*/
-
-/*
-  void vkal_record_models_indexed(
-  uint32_t image_id, VkPipeline pipeline, VkPipelineLayout pipeline_layout,
-  UniformBuffer * uniforms, uint32_t uniform_count,
-  Model * models, uint32_t model_draw_count)
-  {
-  vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-    
-  VkViewport viewport = { 0 };
-  viewport.x = 0.f;
-  viewport.y = 0.f;
-  viewport.width = vkal_info.swapchain_extent.width; // (float)vp_width;
-  viewport.height = vkal_info.swapchain_extent.height; // (float)vp_height;
-  viewport.minDepth = 0.f;
-  viewport.maxDepth = 1.f;
-  vkCmdSetViewport(vkal_info.command_buffers[image_id], 0, 1, &viewport);
-    
-  VkRect2D scissor = { 0 };
-  scissor.offset = { 0,0 };
-  scissor.extent = vkal_info.swapchain_extent;
-  vkCmdSetScissor(vkal_info.command_buffers[image_id], 0, 1, &scissor);
-    
-  //vkCmdCopyBuffer(vkal_info.command_buffers[image_id], vkal_info.src_buffer, vkal_info.dst_buffer, regioncount, pRegions);
-  for (int i = 0; i < model_draw_count; ++i) {
-  Model model = models[i];
-  //vkCmdPushConstants(vkal_info.command_buffers[image_id], pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)&(model.model_matrix));
-  //vkCmdPushConstants(vkal_info.command_buffers[image_id], pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::mat4), sizeof(Material), (void*)&(model.material));
-  vkCmdBindIndexBuffer(vkal_info.command_buffers[image_id], vkal_info.index_buffer.buffer, model.index_buffer_offset, VK_INDEX_TYPE_UINT16);
-  uint64_t vertex_buffer_offsets[] = { model.offset };
-  VkBuffer vertex_buffers[] = { vkal_info.vertex_buffer.buffer };
-  vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
-  vkCmdDrawIndexed(vkal_info.command_buffers[image_id], model.index_count, 1, 0, 0, 0);
-  }
-  }
-*/
 
 void vkal_viewport(VkCommandBuffer command_buffer, float x, float y, float width, float height)
 {
@@ -3732,7 +3486,7 @@ void vkal_present(uint32_t image_id)
 //    vkQueueWaitIdle(vkal_info.graphics_queue);
 }
 
-void create_semaphores(void)
+void create_default_semaphores(void)
 {
     for (int i = 0; i < VKAL_MAX_IMAGES_IN_FLIGHT; ++i) {
 	VkFenceCreateInfo fenceInfo;
@@ -3751,7 +3505,7 @@ void create_semaphores(void)
     //memset(vkal_info.image_in_flight_fences, VK_NULL_HANDLE, vkal_info.swapchain_image_count * sizeof(VkFence));
 }
 
-void allocate_device_memory_uniform(void)
+void allocate_default_device_memory_uniform(void)
 {
     VkMemoryRequirements buffer_memory_requirements;
     vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.uniform_buffer.buffer, &buffer_memory_requirements);
@@ -3764,7 +3518,7 @@ void allocate_device_memory_uniform(void)
     DBG_VULKAN_ASSERT(result, "failed to bind uniform buffer to device memory!");
 }
 
-void allocate_device_memory_vertex(void)
+void allocate_default_device_memory_vertex(void)
 {
     VkMemoryRequirements buffer_memory_requirements;
     vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.vertex_buffer.buffer, &buffer_memory_requirements);
@@ -3776,7 +3530,7 @@ void allocate_device_memory_vertex(void)
     
 }
 
-void allocate_device_memory_index(void)
+void allocate_default_device_memory_index(void)
 {
     VkMemoryRequirements buffer_memory_requirements;
     vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.index_buffer.buffer, &buffer_memory_requirements);
@@ -3787,7 +3541,7 @@ void allocate_device_memory_index(void)
     DBG_VULKAN_ASSERT(result, "failed to bind vertex buffer memory!");
 }
 
-void create_uniform_buffer(uint32_t size)
+void create_default_uniform_buffer(uint32_t size)
 {
     vkal_info.uniform_buffer = create_buffer(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 #ifdef _DEBUG
@@ -3891,7 +3645,7 @@ Buffer create_buffer(uint32_t size, VkBufferUsageFlags usage)
     return buffer;
 }
 
-void create_vertex_buffer(uint32_t size)
+void create_default_vertex_buffer(uint32_t size)
 {
     vkal_info.vertex_buffer = create_buffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     vkal_info.vertex_buffer_offset = 0;
@@ -3900,7 +3654,7 @@ void create_vertex_buffer(uint32_t size)
 #endif
 }
 
-void create_index_buffer(uint32_t size)
+void create_default_index_buffer(uint32_t size)
 {
     vkal_info.index_buffer = create_buffer(size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     vkal_info.index_buffer_offset = 0;
@@ -3969,43 +3723,6 @@ UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint3
     vkal_info.uniform_buffer_offset += next_offset;
     return uniform_buffer;
 }
-
-// NOTE: If vertex_count is higher than the currentbuffer, vertex data after offset+vertex_count (in bytes) will be overwritten!!!
-/*
-uint32_t vkal_vertex_buffer_update(Vertex * vertices, uint32_t vertex_count, VkDeviceSize offset)
-{
-    uint32_t vertices_in_bytes = vertex_count * sizeof(Vertex);
-    
-    // map staging memory and upload vertex data
-    void * staging_memory;
-    VkResult result = vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, vertices_in_bytes, 0, &staging_memory);
-    DBG_VULKAN_ASSERT(result, "failed to map device staging memory!");
-    flush_to_memory(vkal_info.device_memory_staging, staging_memory, vertices, vertices_in_bytes, 0);
-    vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
-    
-    // copy vertex buffer data from staging memory (host visible) to device local memory for every command buffer
-    VkCommandBufferBeginInfo begin_info = { 0 };
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    for (uint32_t i = 0; i < vkal_info.command_buffer_count; ++i) {
-	vkBeginCommandBuffer(vkal_info.command_buffers[i], &begin_info);
-	VkBufferCopy buffer_copy = { 0 };
-	buffer_copy.dstOffset = offset;
-	buffer_copy.srcOffset = 0;
-	buffer_copy.size = vertices_in_bytes;
-	vkCmdCopyBuffer(vkal_info.command_buffers[i], vkal_info.staging_buffer.buffer, vkal_info.vertex_buffer.buffer, 1, &buffer_copy);
-	vkEndCommandBuffer(vkal_info.command_buffers[i]);
-    }
-    
-    VkSubmitInfo submit_info = { 0 };
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = vkal_info.command_buffer_count;
-    submit_info.pCommandBuffers = vkal_info.command_buffers;
-    vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
-    vkDeviceWaitIdle(vkal_info.device);
-    
-    return offset;
-}
-*/
 
 uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count)
 {
