@@ -23,7 +23,7 @@
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
 
-#define MAX_PRIMITIVES                 8192
+#define MAX_PRIMITIVES                 4*8192
 #define PRIMITIVES_VERTEX_BUFFER_SIZE  (MAX_PRIMITIVES * 4 * sizeof(Vertex))
 #define PRIMITIVES_INDEX_BUFFER_SIZE   (MAX_PRIMITIVES * 6 * sizeof(uint16_t))
 
@@ -166,7 +166,7 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: primitives.c", 0, 0);
+    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Bruce Lee Test", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
     glfwSetMouseButtonCallback(window, glfw_mouse_button_callback);
     width = SCREEN_WIDTH;
@@ -777,7 +777,7 @@ int main(int argc, char ** argv)
 	vkal_info->render_pass, pipeline_layout_textured_rect);
 
     MyTexture tex = create_texture("../src/examples/assets/textures/hk.jpg", 0);
-    MyTexture tex2 = create_texture("../src/examples/assets/textures/brucelee.jpg", 1);
+    MyTexture tex2 = create_texture("../src/examples/assets/textures/brucelee3.jpg", 1);
     
     /* Create batches that hold Buffers for indices and vertices that can get updated every frame */
     /* Global Batch */
@@ -876,11 +876,12 @@ int main(int argc, char ** argv)
 	reset_batch(&g_default_batch);
 //	textured_rect(&g_default_batch, 0, 0, 500, 500, tex);
 //	textured_rect(&g_default_batch, 800, 0, 500, 500, tex);
-	for (int i = 0; i < 100; ++i) {
+	for (int i = 0; i < 30000; ++i) {
 	    float x0 = rand_between(0.0, width);
 	    float y0 = rand_between(0.0, height);
-	    textured_rect(x0, y0, 200, 200, tex2);
+	    textured_rect(x0, y0, 100, 100, tex2);
 	}
+#if 0
 	for (int i = 0; i < 100; ++i) {
 	    float x0 = rand_between(0.0, width);
 	    float y0 = rand_between(0.0, height);
@@ -897,7 +898,7 @@ int main(int argc, char ** argv)
 	    fill_circle( x0, y0, 30.0f, 32, (vec3){1, 0.8, 0.0});
 	}		
 //	textured_rect(&g_default_batch, 800, 800, 500, 500, tex);
-	
+#endif	
 	update_batch(&g_default_batch);
 	
 	{

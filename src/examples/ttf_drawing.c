@@ -511,8 +511,8 @@ int main(int argc, char ** argv)
 			 0, 0,
 			 width, height);
 	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
-	    vkal_draw_indexed_from_buffers(index_buffer, batch.index_count,
-					   vertex_buffer,
+	    vkal_draw_indexed_from_buffers(index_buffer, 0, batch.index_count,
+					   vertex_buffer, 0,
 					   image_id, graphics_pipeline);
 	    vkal_end_renderpass(image_id);
 	    vkal_end_command_buffer(image_id);
