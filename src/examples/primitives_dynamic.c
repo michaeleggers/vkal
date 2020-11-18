@@ -1,7 +1,11 @@
 /* Michael Eggers, 10/22/2020
    
-   Simple example showing how to draw a rect (two triangles) and mapping
-   a texture on it.
+   Drawing lines, filled rectangles, circles, filled circles and textured rectangles into Host-side buffers and copy
+   them over to GPU (Host-visible) memory every frame. Render commands are used to group
+   similar draw-calls together. If primitive drawings are performed one right after another
+   we can use the same pipeline and therefore group all those primitives together. Only if
+   a textured rectangle is used we have to use a new drawcall since the shaders differ
+   for textured rects from regular lines, rects, and so on...
 */
 
 
@@ -23,7 +27,7 @@
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
 
-#define MAX_PRIMITIVES                 4*8192
+#define MAX_PRIMITIVES                 2*8192
 #define PRIMITIVES_VERTEX_BUFFER_SIZE  (MAX_PRIMITIVES * 4 * sizeof(Vertex))
 #define PRIMITIVES_INDEX_BUFFER_SIZE   (MAX_PRIMITIVES * 6 * sizeof(uint16_t))
 
@@ -830,75 +834,21 @@ int main(int argc, char ** argv)
 	view_proj_data.proj = ortho(0, width, height, 0, 0.1f, 2.f);
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 	
-#if 0
+
 	/* Draw Some Primitives and update buffers */
-	reset_batch(&batch);
-	for (uint32_t i = 0; i < MAX_PRIMITIVES; ++i) {
-	    vec3 color = (vec3){0, 0.5, 1.0};
-	    float x0 = 0.0;
-	    float y0 = 0.0f;
-	    float x1 = width;
-	    float y1 = height;
-	    float thickness = 10.0;
-
-	    color.x = rand_between(0.0, 1.0);
-	    color.y = rand_between(0.0, 1.0);
-	    color.z = rand_between(0.0, 1.0);
-	     x0 = rand_between(0.0, width);
-	     y0 = rand_between(0.0, height);
-	     x1 = rand_between(0.0, width);
-	     y1 = rand_between(0.0, height);
-	     thickness = rand_between(1.0, 10.0);
-
-	     line(&batch, x0, y0, x1, y1, thickness, color);
-	}
-#endif
+	render_cmd_count = 0;
+	reset_batch(&g_default_batch);
 
 	float radius = 100.f;
 	static float pulse = 0.f;
 	pulse += 0.1f;
 	radius += 20*sinf( pulse );
 	float theta = 2*TR_PI/64;
-#if 0
-	reset_batch( &batch );
-	fill_circle( &batch, 300, 300, 100, 16, (vec3){1, .5, 1});
-	fill_rect(&batch,  500, 500, 100, 100, (vec3){1, 0, 0});
-	fill_circle( &batch, 400, 300, 30, 16, (vec3){1, 0, 0});
-	fill_rect(&batch,  800, 500, 100, 100, (vec3){0, 0, 1});
-	fill_circle( &batch, 500, 300, 100, 16, (vec3){1, 0, 1});      
-	for (int i = 0; i < 64; ++i) {	   
-	    circle( &batch, 500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 2, (vec3){0, 0.5, 1.0});
-	}
-#endif
 
-	render_cmd_count = 0;
-	add_render_cmd(persistent_command);
-	reset_batch(&g_default_batch);
-//	textured_rect(&g_default_batch, 0, 0, 500, 500, tex);
-//	textured_rect(&g_default_batch, 800, 0, 500, 500, tex);
-	for (int i = 0; i < 30000; ++i) {
-	    float x0 = rand_between(0.0, width);
-	    float y0 = rand_between(0.0, height);
-	    textured_rect(x0, y0, 100, 100, tex2);
+	for (int i = 0; i < 64; ++i) {	   
+	    circle(  500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 2, (vec3){0, 0.5, 1.0});
 	}
-#if 0
-	for (int i = 0; i < 100; ++i) {
-	    float x0 = rand_between(0.0, width);
-	    float y0 = rand_between(0.0, height);
-	    fill_rect(x0, y0, 20, 20, (vec3){1, 0, 0});
-	}
-	for (int i = 0; i < 10; ++i) {
-	    float x0 = rand_between(0.0, width);
-	    float y0 = rand_between(0.0, height);
-	    circle( x0, y0, 30.0f, 32, 2, (vec3){0, 0.5, 1.0});
-	}
-	for (int i = 0; i < 10; ++i) {
-	    float x0 = rand_between(0.0, width);
-	    float y0 = rand_between(0.0, height);
-	    fill_circle( x0, y0, 30.0f, 32, (vec3){1, 0.8, 0.0});
-	}		
-//	textured_rect(&g_default_batch, 800, 800, 500, 500, tex);
-#endif	
+
 	update_batch(&g_default_batch);
 	
 	{
@@ -911,9 +861,7 @@ int main(int argc, char ** argv)
 			  width, height);
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
-			 width, height);
-		
-#if 1
+			 width, height);	       
 	    for (uint32_t i = 0; i < render_cmd_count; ++i) {
 		RenderCmd render_cmd = render_commands[i];
 		uint32_t index_offset = render_cmd.index_buffer_offset;
@@ -934,7 +882,6 @@ int main(int argc, char ** argv)
 						   image_id, graphics_pipeline);		
 		}
 	    }
-#endif	
 	
 	    vkal_end_renderpass(image_id);
 	    vkal_end_command_buffer(image_id);
