@@ -288,7 +288,7 @@ int main(int argc, char ** argv)
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
@@ -329,7 +329,7 @@ int main(int argc, char ** argv)
     camera.pos = (vec3){ 0, 1000.f, 1000.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
-    camera.velocity = 20.f;
+    camera.velocity = 10.f;
     ViewProjection view_proj_data;
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
     view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );

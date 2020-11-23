@@ -5,14 +5,14 @@
 
 layout(location = 0) out vec4 outColor;
 
-layout(location = 0) in vec3 in_position;
-layout(location = 1) in vec3 in_color;
+layout(location = 0) in vec4 in_position;
+layout(location = 1) in vec3 in_normal;
 layout(location = 2) in vec2 in_uv;
 layout(set = 0, binding = 1) uniform sampler2D u_texture;
 
 void main() 
 {
     vec4 texel = texture(u_texture, in_uv);
-    
-	outColor = vec4( 0.5*in_color+0.5, 1.0);
+    float z = in_position.z / in_position.w;
+	outColor = vec4( (0.5*in_normal+0.5), 1.0);
 }
