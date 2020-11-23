@@ -53,6 +53,18 @@ typedef struct Vertex
     vec2 uv;
 } Vertex;
 
+typedef enum KeyCmd
+{
+    W,
+    A,
+    S,
+    D,
+    LEFT,
+    RIGHT,
+    UP,
+    DOWN,
+    MAX_KEYS
+} KeyCmd;
 
 void camera_dolly(Camera * camera, vec3 translate);
 void camera_yaw(Camera * camera, float angle);
@@ -61,12 +73,11 @@ void camera_pitch(Camera * camera, float angle);
 static GLFWwindow * g_window;
 static Platform p;
 static Camera camera;
+static int g_keys[MAX_KEYS];
 
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
 {
-    float yaw_angle = 0.0f;
-    float pitch_angle = 0.0f;
     if (action == GLFW_PRESS) {
 	if (key == GLFW_KEY_ESCAPE) {
 	    printf("escape key pressed\n");
@@ -75,34 +86,56 @@ static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int ac
     }
     if (action == GLFW_REPEAT || action == GLFW_PRESS) {
 	if (key == GLFW_KEY_W) {
-	    vec3 forward = vec3_normalize( vec3_sub(camera.center, camera.pos) );
-	    camera_dolly(&camera, forward);
+	    g_keys[W] = 1;
 	}
 	if (key == GLFW_KEY_S) {
-	    vec3 forward = vec3_normalize( vec3_sub(camera.center, camera.pos) );
-	    camera_dolly(&camera, vec3_mul(-1, forward) );
+	    g_keys[S] = 1;
 	}
 	if (key == GLFW_KEY_A) {
-	    camera_dolly(&camera, vec3_mul(-1, camera.right) );
+	    g_keys[A] = 1;
 	}
 	if (key == GLFW_KEY_D) {
-	    camera_dolly(&camera, camera.right);
+	    g_keys[D] = 1;
 	}
+	
 	if (key == GLFW_KEY_UP) {
-	    yaw_angle = -5.0f;
-	    camera_yaw(&camera, tr_radians(yaw_angle) );
+	    g_keys[UP] = 1;
 	}	
 	if (key == GLFW_KEY_DOWN) {
-	    yaw_angle = 5.0f;
-	    camera_yaw(&camera, tr_radians(yaw_angle) );
+	    g_keys[DOWN] = 1;
 	}
 	if (key == GLFW_KEY_LEFT) {
-	    pitch_angle = 5.0f;
-	    camera_pitch(&camera, tr_radians(pitch_angle) );
+	    g_keys[LEFT] = 1;
 	}	
 	if (key == GLFW_KEY_RIGHT) {
-	    pitch_angle = -5.0f;
-	    camera_pitch(&camera, tr_radians(pitch_angle) );
+	    g_keys[RIGHT] = 1;
+	}
+    }
+    else if (action == GLFW_RELEASE) {
+	if (key == GLFW_KEY_W) {
+	    g_keys[W] = 0;
+	}
+	if (key == GLFW_KEY_S) {
+	    g_keys[S] = 0;
+	}
+	if (key == GLFW_KEY_A) {
+	    g_keys[A] = 0;
+	}
+	if (key == GLFW_KEY_D) {
+	    g_keys[D] = 0;
+	}
+
+	if (key == GLFW_KEY_UP) {
+	    g_keys[UP] = 0;
+	}	
+	if (key == GLFW_KEY_DOWN) {
+	    g_keys[DOWN] = 0;
+	}
+	if (key == GLFW_KEY_LEFT) {
+	    g_keys[LEFT] = 0;
+	}	
+	if (key == GLFW_KEY_RIGHT) {
+	    g_keys[RIGHT] = 0;
 	}
     }
 }
@@ -275,10 +308,10 @@ int main(int argc, char ** argv)
         Q2Tri face_verts = q2bsp_triangulateFace(&bsp, bsp.faces[i]);
         for (uint32_t i = 0; i < face_verts.vert_count; ++i) {
 	    Vertex vert = { 0 };
-	    vert.pos.x = face_verts.verts[i].x;
+	    vert.pos.x = -face_verts.verts[i].x;
 	    vert.pos.y = face_verts.verts[i].z;
 	    vert.pos.z = face_verts.verts[i].y;
-	    vert.normal.x = face_verts.normal.x;
+	    vert.normal.x = -face_verts.normal.x;
 	    vert.normal.y = face_verts.normal.z;
 	    vert.normal.z = face_verts.normal.y;
 	    map_vertices[map_vertex_count++] = vert;
@@ -317,6 +350,33 @@ int main(int argc, char ** argv)
     {
 	glfwPollEvents();
 
+	if (g_keys[W]) {
+	    vec3 forward = vec3_normalize( vec3_sub(camera.center, camera.pos) );
+	    camera_dolly(&camera, forward);
+	}
+	if (g_keys[S]) {
+	    vec3 forward = vec3_normalize( vec3_sub(camera.center, camera.pos) );
+	    camera_dolly(&camera, vec3_mul(-1, forward) );
+	}
+	if (g_keys[A]) {
+	    camera_dolly(&camera, vec3_mul(-1, camera.right) );
+	}
+	if (g_keys[D]) {
+	    camera_dolly(&camera, camera.right);
+	}
+	if (g_keys[UP]) {
+	    camera_yaw(&camera, tr_radians(-2.0f) );	    
+	}
+	if (g_keys[DOWN]) {
+	    camera_yaw(&camera, tr_radians(2.0f) );
+	}
+	if (g_keys[LEFT]) {
+	    camera_pitch(&camera, tr_radians(2.0f) );
+	}
+	if (g_keys[RIGHT]) {
+	    camera_pitch(&camera, tr_radians(-2.0f) );
+	}
+	
 	int width, height;
 	glfwGetFramebufferSize(g_window, &width, &height);
 	view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
