@@ -268,6 +268,8 @@ vec4 mat4_x_vec4(mat4 m, vec4 v)
     return result;
 }
 
+
+
 /* see: https://matheguru.com/lineare-algebra/determinante.html */
 float det_mat4(mat4 m)
 {
@@ -407,6 +409,36 @@ mat4 rotate_z(float angle)
     return result;
 }
 
+/* Rotation around general axis.
+   See: Van Verth, page 129
+*/
+mat4 rotate(vec3 r, float angle)
+{
+    float c = cosf(angle);
+    float s = sinf(angle);
+    float t = 1.0f - cosf(angle);
+    float x = r.x;
+    float y = r.y;
+    float z = r.z;
+    
+    mat4 result = { 0 };
+    result.d[0][0] = t*x*x + c;
+    result.d[0][1] = t*x*y + s*z;
+    result.d[0][2] = t*x*z - s*y;
+
+    result.d[1][0] = t*x*y - s*z;
+    result.d[1][1] = t*y*y + c;
+    result.d[1][2] = t*y*z + s*x;
+
+    result.d[2][0] = t*x*z + s*y;
+    result.d[2][1] = t*y*z - s*x;
+    result.d[2][2] = t*z*z + c;
+    
+    result.d[3][3] = 1.0f;
+    
+    return result;
+}
+
 /* OpenGL friendly: this persp proj. will result in z from [-1,1] after persp. divide. */
 mat4 perspective_gl(float fov, float aspect, float z_near, float z_far)
 {
@@ -498,4 +530,18 @@ float rand_between(float min, float max)
     float range = max - min;
     float step = range / RAND_MAX;
     return (step * rand()) + min;
+}
+
+vec4 vec3_to_vec4(vec3 v3, float w)
+{
+    vec4 v4;
+    *( (vec3*)(&v4) ) = v3;
+    v4.w = w;
+    return v4;
+}
+
+vec3 vec4_as_vec3(vec4 v4)
+{
+    vec3 v3;
+    return *( (vec3*)&v4 );
 }

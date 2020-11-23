@@ -23,8 +23,6 @@
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
 
-static GLFWwindow * window;
-static Platform p;
 
 typedef struct Image
 {
@@ -41,10 +39,11 @@ typedef struct ViewProjection
 
 typedef struct Camera
 {
-	vec3 pos;
-	vec3 center;
-	vec3 up;
-	vec3 right;
+    vec3 pos;
+    vec3 center;
+    vec3 up;
+    vec3 right;
+    float velocity;
 } Camera;
 
 typedef struct Vertex
@@ -54,12 +53,57 @@ typedef struct Vertex
     vec2 uv;
 } Vertex;
 
+
+void camera_dolly(Camera * camera, vec3 translate);
+void camera_yaw(Camera * camera, float angle);
+void camera_pitch(Camera * camera, float angle);
+
+static GLFWwindow * g_window;
+static Platform p;
+static Camera camera;
+
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-	printf("escape key pressed\n");
-	glfwSetWindowShouldClose(window, GLFW_TRUE);
+    float yaw_angle = 0.0f;
+    float pitch_angle = 0.0f;
+    if (action == GLFW_PRESS) {
+	if (key == GLFW_KEY_ESCAPE) {
+	    printf("escape key pressed\n");
+	    glfwSetWindowShouldClose(window, GLFW_TRUE);
+	}
+    }
+    if (action == GLFW_REPEAT || action == GLFW_PRESS) {
+	if (key == GLFW_KEY_W) {
+	    vec3 forward = vec3_normalize( vec3_sub(camera.center, camera.pos) );
+	    camera_dolly(&camera, forward);
+	}
+	if (key == GLFW_KEY_S) {
+	    vec3 forward = vec3_normalize( vec3_sub(camera.center, camera.pos) );
+	    camera_dolly(&camera, vec3_mul(-1, forward) );
+	}
+	if (key == GLFW_KEY_A) {
+	    camera_dolly(&camera, vec3_mul(-1, camera.right) );
+	}
+	if (key == GLFW_KEY_D) {
+	    camera_dolly(&camera, camera.right);
+	}
+	if (key == GLFW_KEY_UP) {
+	    yaw_angle = -5.0f;
+	    camera_yaw(&camera, tr_radians(yaw_angle) );
+	}	
+	if (key == GLFW_KEY_DOWN) {
+	    yaw_angle = 5.0f;
+	    camera_yaw(&camera, tr_radians(yaw_angle) );
+	}
+	if (key == GLFW_KEY_LEFT) {
+	    pitch_angle = 5.0f;
+	    camera_pitch(&camera, tr_radians(pitch_angle) );
+	}	
+	if (key == GLFW_KEY_RIGHT) {
+	    pitch_angle = -5.0f;
+	    camera_pitch(&camera, tr_radians(pitch_angle) );
+	}
     }
 }
 
@@ -68,8 +112,8 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: texture.c", 0, 0);
-    glfwSetKeyCallback(window, glfw_key_callback);
+    g_window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: texture.c", 0, 0);
+    glfwSetKeyCallback(g_window, glfw_key_callback);
 }
 
 Image load_image_file(char const * file)
@@ -83,6 +127,30 @@ Image load_image_file(char const * file)
     image.channels = tn;
 
     return image;
+}
+
+void camera_dolly(Camera * camera, vec3 translate)
+{
+    camera->pos = vec3_add(camera->pos, vec3_mul(camera->velocity, translate) );
+    camera->center = vec3_add(camera->center, vec3_mul(camera->velocity, translate));
+}
+
+void camera_yaw(Camera * camera, float angle)
+{
+    vec3 forward = vec3_sub(camera->center, camera->pos);
+    mat4 rot = rotate(camera->right, angle);
+    forward = vec4_as_vec3( mat4_x_vec4(rot, vec3_to_vec4(forward, 1.0)) );
+    camera->center = vec3_add( camera->pos, forward );
+//    camera->up = vec3_normalize( vec3_cross(camera->right, new_forward3) );    
+}
+
+void camera_pitch(Camera * camera, float angle)
+{
+    mat4 rot_y   = rotate_y(angle);
+    vec3 forward = vec3_sub(camera->center, camera->pos);
+    forward        = vec4_as_vec3( mat4_x_vec4( rot_y, vec3_to_vec4(forward, 1.0) ) );
+    camera->right  = vec4_as_vec3( mat4_x_vec4( rot_y, vec3_to_vec4(camera->right, 1.0) ) );
+    camera->center = vec3_add(camera->pos, forward);
 }
 
 int main(int argc, char ** argv)
@@ -113,7 +181,7 @@ int main(int argc, char ** argv)
     instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);    
 #endif
    
-    vkal_create_instance(window,
+    vkal_create_instance(g_window,
 			 instance_extensions, instance_extension_count,
  			 instance_layers, instance_layer_count);
     
@@ -132,10 +200,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.rfb("../src/examples/assets/shaders/texture_vert.spv", &vertex_byte_code, &vertex_code_size);
+    p.rfb("../src/examples/assets/shaders/q2bsp_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.rfb("../src/examples/assets/shaders/texture_frag.spv", &fragment_byte_code, &fragment_code_size);
+    p.rfb("../src/examples/assets/shaders/q2bsp_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -187,7 +255,7 @@ int main(int argc, char ** argv)
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
@@ -224,10 +292,11 @@ int main(int argc, char ** argv)
     uint32_t offset_indices  = vkal_index_buffer_add(map_indices, map_index_count);
 
     /* Uniform Buffer for view projection matrices */
-    Camera camera;
-    camera.pos = (vec3){ 0, 0.f, 5.f };
+    camera.right = (vec3){ 1.0, 0.0, 0.0 };
+    camera.pos = (vec3){ 0, 1000.f, 1000.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
+    camera.velocity = 20.f;
     ViewProjection view_proj_data;
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
     view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
@@ -244,13 +313,14 @@ int main(int argc, char ** argv)
     view_proj_data.image_aspect = (float)texture.width/(float)texture.height;
     
     // Main Loop
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(g_window))
     {
 	glfwPollEvents();
 
 	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
+	glfwGetFramebufferSize(g_window, &width, &height);
+	view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
+	view_proj_data.proj = perspective( tr_radians(90.f), (float)width/(float)height, 0.1f, 10000.f );
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
 	{
@@ -260,7 +330,7 @@ int main(int argc, char ** argv)
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
 	    vkal_viewport(vkal_info->command_buffers[image_id],
 			  0, 0,
-			  width, height);
+			  (float)width, (float)height);
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
 			 width, height);
@@ -280,7 +350,7 @@ int main(int argc, char ** argv)
     
     vkal_cleanup();
 
-    glfwDestroyWindow(window);
+    glfwDestroyWindow(g_window);
  
     glfwTerminate();
     

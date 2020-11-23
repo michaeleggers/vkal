@@ -30,3 +30,6 @@
 
 %VULKAN_SDK%/bin/glslc ttf_drawing.vert -o ttf_drawing_vert.spv
 %VULKAN_SDK%/bin/glslc ttf_drawing.frag -o ttf_drawing_frag.spv
+
+%VULKAN_SDK%/bin/glslc q2bsp.vert -o q2bsp_vert.spv
+%VULKAN_SDK%/bin/glslc q2bsp.frag -o q2bsp_frag.spv

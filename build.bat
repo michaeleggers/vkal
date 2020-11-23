@@ -50,7 +50,7 @@ REM clang-cl %clang_flags_debug_easy%  ..\src\examples\model_loading.c ..\src\ex
 REM clang-cl %clang_flags_debug_easy%  ..\src\examples\mesh_skinning.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o clang_dbg_mesh_skinning.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 REM clang-cl %clang_flags_debug_easy_cpp%  ..\src\examples\model_loading_md_glm.cpp ..\src\examples\utils\tr_math.c ..\src\vkal.c ..\src\platform.c -o clang_dbg_model_loading_md_glm.exe /I%vulkan_include% /I%glfw_include% /I%glm_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 REM clang-cl %clang_flags_debug_easy%  ..\src\examples\ttf_drawing.c ..\src\vkal.c ..\src\platform.c ..\src\examples\utils\tr_math.c -o clang_dbg_ttf_drawing.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
-clang-cl %clang_flags_debug_easy%  ..\src\examples\q2bsp.c ..\src\vkal.c ..\src\platform.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\q2bsp.c -o clang_dbg_q2bsp.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
+REM clang-cl %clang_flags_debug_easy%  ..\src\examples\quake2_level.c ..\src\vkal.c ..\src\platform.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\q2bsp.c -o clang_dbg_quake2_level.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 
 REM ### MSVC COMPILE ###
 REM cl %msvc_flags_debug%  ..\src\examples\textures_dynamic_descriptor.c ..\src\examples\utils\tr_math.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_textures_dynamic_descriptor.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
@@ -61,7 +61,7 @@ REM cl %msvc_flags_debug%  ..\src\examples\rendertexture.c ..\src\examples\utils
 REM cl %msvc_flags_debug%  ..\src\examples\model_loading.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_model_loading.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 REM cl %msvc_flags_debug%  ..\src\examples\model_loading_md.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_model_loading_md.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 REM cl %msvc_flags_debug_cpp%  ..\src\examples\model_loading_md_glm.cpp ..\src\examples\utils\tr_math.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_model_loading_md_glm.exe /I%vulkan_include% /I%glfw_include% /I%glm_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
-
+cl %msvc_flags_debug%  ..\src\examples\quake2_level.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\q2bsp.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_quake2_level.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 
 REM ### TCC COMPILE - NOTE: gl.h not found at the moment. not sure why it even wants the gl.h file! ###
 REM tcc %tcc_flags_debug%   ..\src\main.c -o tcc_dbg_main.exe
