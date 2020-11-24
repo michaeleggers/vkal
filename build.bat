@@ -10,6 +10,9 @@ set glfw_lib_64=  ..\src\external\glfw\lib
 
 set glm_include= ..\src\examples\external\glm
 
+set physfs_include= ..\src\examples\external\physfs-3.0.2\src
+set physfs_lib_64_debug= ..\src\examples\external\physfs-3.0.2\build\Debug
+
 set flags_debug=   -std=c99 -m64 -Wall -Wextra -pedantic-errors -fextended-identifiers -Wno-unused-parameter -Wno-unused-variable -Wno-missing-braces -g -D _DEBUG -D VKAL_GLFW -I%vulkan_include% -I%glfw_include%
 set flags_release=   -std=c99 -Wall -Wextra -pedantic-errors -fextended-identifiers
 
@@ -50,7 +53,7 @@ REM clang-cl %clang_flags_debug_easy%  ..\src\examples\model_loading.c ..\src\ex
 REM clang-cl %clang_flags_debug_easy%  ..\src\examples\mesh_skinning.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\model.c ..\src\vkal.c ..\src\platform.c -o clang_dbg_mesh_skinning.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 REM clang-cl %clang_flags_debug_easy_cpp%  ..\src\examples\model_loading_md_glm.cpp ..\src\examples\utils\tr_math.c ..\src\vkal.c ..\src\platform.c -o clang_dbg_model_loading_md_glm.exe /I%vulkan_include% /I%glfw_include% /I%glm_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
 REM clang-cl %clang_flags_debug_easy%  ..\src\examples\ttf_drawing.c ..\src\vkal.c ..\src\platform.c ..\src\examples\utils\tr_math.c -o clang_dbg_ttf_drawing.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
-clang-cl %clang_flags_debug_easy%  ..\src\examples\quake2_level.c ..\src\vkal.c ..\src\platform.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\q2bsp.c -o clang_dbg_quake2_level.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib
+clang-cl %clang_flags_debug_easy%  ..\src\examples\quake2_level.c ..\src\vkal.c ..\src\platform.c ..\src\examples\utils\tr_math.c ..\src\examples\utils\q2bsp.c  -o clang_dbg_quake2_level.exe /I%vulkan_include% /I%glfw_include% /I%physfs_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib %physfs_lib_64_debug%\physfs.lib
 
 REM ### MSVC COMPILE ###
 REM cl %msvc_flags_debug%  ..\src\examples\textures_dynamic_descriptor.c ..\src\examples\utils\tr_math.c ..\src\vkal.c ..\src\platform.c -o msvc_dbg_textures_dynamic_descriptor.exe /I%vulkan_include% /I%glfw_include% /link %vulkan_lib_64%\vulkan-1.lib %glfw_lib_64%\glfw3dll.lib

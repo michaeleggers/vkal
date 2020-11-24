@@ -70,6 +70,24 @@ typedef struct BspPlane
 
 } BspPlane;
 
+typedef struct BspTexinfo
+{
+
+    vec3     u_axis;
+    float    u_offset;
+   
+    vec3     v_axis;
+    float    v_offset;
+
+    uint32_t flags;
+    uint32_t value;
+
+    char     texture_name[32];
+
+    uint32_t next_texinfo;
+
+} BspTexinfo;
+
 typedef struct BspFace
 {
 
@@ -79,7 +97,7 @@ typedef struct BspFace
     uint32_t   first_edge;        // index of the first edge (in the face edge array)
     uint16_t   num_edges;         // number of consecutive edges (in the face edge array)
 	
-    uint16_t   texture_info;      // index of the texture info structure	
+    int16_t    texture_info;      // index of the texture info structure	
    
     uint8_t    lightmap_syles[4]; // styles (bit flags) for the lightmaps
     uint32_t   lightmap_offset;   // offset of the lightmap (in bytes) in the lightmap lump
@@ -136,6 +154,9 @@ typedef struct Q2Bsp
 
     vec3      * vertices;
     uint32_t    vertex_count;
+
+    BspTexinfo * texinfos;
+    uint32_t     texinfo_count;
 } Q2Bsp;
 
 Q2Bsp q2bsp_init(uint8_t * data);
