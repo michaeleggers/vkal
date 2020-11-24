@@ -399,6 +399,7 @@ int main(int argc, char ** argv)
 						    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 						    g_map_texture_count, g_map_textures[ g_map_texture_count ].texture);
 	    printf("%s\n", texture_name);
+	    texture_idx = g_map_texture_count;
 	    g_map_texture_count++;	
 	}
 	
@@ -414,9 +415,9 @@ int main(int argc, char ** argv)
 	    vert.normal.x = -face_verts.normal.x;
 	    vert.normal.y = face_verts.normal.z;
 	    vert.normal.z = face_verts.normal.y;
-	    vert.uv.x = -x * texinfo.u_axis.x + y * texinfo.u_axis.y + z * texinfo.u_axis.z + texinfo.u_offset;
-	    vert.uv.y = -x * texinfo.v_axis.x + y * texinfo.v_axis.y + z * texinfo.v_axis.z + texinfo.v_offset;
-	    vert.texture_id = g_map_texture_count;
+	    vert.uv.x = x * texinfo.u_axis.x + y * texinfo.u_axis.y + z * texinfo.u_axis.z + texinfo.u_offset;
+	    vert.uv.y = x * texinfo.v_axis.x + y * texinfo.v_axis.y + z * texinfo.v_axis.z + texinfo.v_offset;
+	    vert.texture_id = texture_idx;
 	    map_vertices[map_vertex_count++] = vert;
 	}
 	for (uint32_t i = 0; i < face_verts.idx_count; ++i) {
@@ -439,14 +440,6 @@ int main(int argc, char ** argv)
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
     vkal_update_descriptor_set_uniform(descriptor_set[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);
-    
-    /* Texture Data */
-    Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
-    Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
-					  VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
-    free(image.data);
-    vkal_update_descriptor_set_texture(descriptor_set[0], texture);
-    view_proj_data.image_aspect = (float)texture.width/(float)texture.height;
     
     // Main Loop
     while (!glfwWindowShouldClose(g_window))
