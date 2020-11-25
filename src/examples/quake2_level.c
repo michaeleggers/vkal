@@ -394,7 +394,7 @@ int main(int argc, char ** argv)
 	    Image image = load_image_file_from_dir("textures", texture_name);
 	    g_map_textures[g_map_texture_count].texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
 									      VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-									      0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+									      0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST);
 	    vkal_update_descriptor_set_texturearray(descriptor_set[0],
 						    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 						    g_map_texture_count, g_map_textures[ g_map_texture_count ].texture);
@@ -404,11 +404,11 @@ int main(int argc, char ** argv)
 	}
 	
         Q2Tri face_verts = q2bsp_triangulateFace(&bsp, bsp.faces[i]);
-        for (uint32_t i = 0; i < face_verts.vert_count; ++i) {
+        for (uint32_t v = 0; v < face_verts.vert_count; ++v) {
 	    Vertex vert = { 0 };
-	    float x = -face_verts.verts[i].x;
-	    float y =  face_verts.verts[i].z;
-	    float z =  face_verts.verts[i].y;
+	    float x = -face_verts.verts[v].x;
+	    float y =  face_verts.verts[v].z;
+	    float z =  face_verts.verts[v].y;
 	    vert.pos.x = x; 
 	    vert.pos.y = y;
 	    vert.pos.z = z;
@@ -420,12 +420,12 @@ int main(int argc, char ** argv)
 	    vert.texture_id = texture_idx;
 	    map_vertices[map_vertex_count++] = vert;
 	}
-	for (uint32_t i = 0; i < face_verts.idx_count; ++i) {
-	    map_indices[map_index_count++] = face_verts.indices[i];
+	for (uint32_t idx = 0; idx < face_verts.idx_count; ++idx) {
+	    map_indices[map_index_count++] = face_verts.indices[idx];
 	}
     }
     printf("MAP TEXTURE-COUNT: %d\n", g_map_texture_count);
-    uint32_t offset_vertices = vkal_vertex_buffer_add(map_vertices, 2*sizeof(vec3) + sizeof(vec2), map_vertex_count);
+    uint32_t offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
     uint32_t offset_indices  = vkal_index_buffer_add(map_indices, map_index_count);
 
     /* Uniform Buffer for view projection matrices */

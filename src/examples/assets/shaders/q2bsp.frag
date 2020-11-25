@@ -16,6 +16,6 @@ void main()
 {
     vec4 texel = texture(u_textures[ in_texture_id ], in_uv/256.0f);
     float z = in_position.z / in_position.w;
-	//outColor = vec4( (0.5*in_normal+0.5), 1.0);
+	vec3 normal_color = 0.5*in_normal+0.5;
     outColor = vec4( texel.rgb, 1.0);
 }
