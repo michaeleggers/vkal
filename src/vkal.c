@@ -3369,6 +3369,20 @@ void vkal_draw(
     vkCmdDraw(vkal_info.command_buffers[image_id], vertex_count, 1, 0, 0);
 }
 
+void vkal_draw_from_buffers(
+    Buffer vertex_buffer,
+    uint32_t image_id, VkPipeline pipeline,
+    VkDeviceSize vertex_buffer_offset, uint32_t vertex_count)
+{
+    vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);    
+    uint64_t vertex_buffer_offsets[1];
+    vertex_buffer_offsets[0] = vertex_buffer_offset;
+    VkBuffer vertex_buffers[1];
+    vertex_buffers[0] = vertex_buffer.buffer;
+    vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
+    vkCmdDraw(vkal_info.command_buffers[image_id], vertex_count, 1, 0, 0);
+}
+
 void vkal_draw_indexed2(
     VkCommandBuffer command_buffer, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,

@@ -557,6 +557,10 @@ void vkal_draw_indexed_from_buffers(
 void vkal_draw(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize vertex_buffer_offset, uint32_t vertex_count);
+void vkal_draw_from_buffers(
+    Buffer vertex_buffer,
+    uint32_t image_id, VkPipeline pipeline,
+    VkDeviceSize vertex_buffer_offset, uint32_t vertex_count);
 void vkal_draw_indexed2(
     VkCommandBuffer command_buffer, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,

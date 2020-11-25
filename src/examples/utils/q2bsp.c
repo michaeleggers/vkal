@@ -81,7 +81,7 @@ Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face)
     tris.verts   = g_verts;
     tris.normal  = face_normal;
     tris.indices = g_indices;
-    tris.vert_count = 3*num_tris; //(uint32_t)num_edges;
+    tris.vert_count = (uint32_t)num_edges;
     tris.idx_count  = 3*num_tris;
     tris.tri_count  = num_tris;
     

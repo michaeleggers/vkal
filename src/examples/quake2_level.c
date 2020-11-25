@@ -25,6 +25,7 @@
 #define SCREEN_HEIGHT 768
 
 #define MAX_MAP_TEXTURES 1024
+#define	MAX_MAP_FACES	 65536
 
 typedef struct Image
 {
@@ -56,6 +57,13 @@ typedef struct Vertex
     uint32_t texture_id;
 } Vertex;
 
+typedef struct MapFace
+{
+    uint32_t vertex_buffer_offset;
+    uint32_t vertex_count;
+    uint32_t texture_id;
+} MapFace;
+
 typedef struct MapTexture
 {
     Texture texture;
@@ -75,6 +83,12 @@ typedef enum KeyCmd
     MAX_KEYS
 } KeyCmd;
 
+typedef struct VertexBuffer
+{
+    DeviceMemory memory;
+    Buffer       buffer;
+} VertexBuffer;
+
 void camera_dolly(Camera * camera, vec3 translate);
 void camera_yaw(Camera * camera, float angle);
 void camera_pitch(Camera * camera, float angle);
@@ -85,6 +99,8 @@ static Camera camera;
 static int g_keys[MAX_KEYS];
 static MapTexture g_map_textures[MAX_MAP_TEXTURES];
 static uint32_t g_map_texture_count;
+static MapFace  g_map_faces[MAX_MAP_FACES];
+static uint32_t g_map_face_count;
 
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
@@ -258,6 +274,26 @@ void deinit_physfs()
         printf("PHYSFS_deinit() failed!\n  reason: %s.\n", PHYSFS_getLastError());
 }
 
+void create_transient_vertex_buffer(VertexBuffer * vertex_buf)
+{
+    vertex_buf->memory = vkal_allocate_devicememory(3*1024*1024,
+						    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+						    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+						    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+						    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
+						    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    vertex_buf->buffer = vkal_create_buffer(3*1024*1024,
+					    &vertex_buf->memory,
+					    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    vkal_dbg_buffer_name(vertex_buf->buffer, "Vertex Buffer");
+    map_memory(&vertex_buf->buffer, 3*1024*1024, 0);
+}
+
+void update_transient_vertex_buffer(VertexBuffer * vertex_buf, uint32_t offset, Vertex * vertices, uint32_t vertex_count)
+{
+    memcpy( ((Vertex*)(vertex_buf->buffer.mapped)) + offset, vertices, vertex_count*sizeof(Vertex) );      
+}
+
 int main(int argc, char ** argv)
 {
     init_physfs(argv[0]);
@@ -368,66 +404,44 @@ int main(int argc, char ** argv)
 	vkal_info->render_pass, pipeline_layout);
 
     /* Load Quake 2 BSP map */
+    VertexBuffer transient_vertex_buffer;
+    create_transient_vertex_buffer(&transient_vertex_buffer);
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
     p.rfb("../src/examples/assets/maps/base1.bsp", &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
+
     Vertex * map_vertices = (Vertex*)malloc(3*1024*1024*sizeof(Vertex));
     uint16_t * map_indices = (uint16_t*)malloc(1024*1024*sizeof(uint16_t));
     uint32_t map_vertex_count = 0;
     uint32_t map_index_count = 0;
-    for (uint32_t i = 0; i < bsp.face_count; ++i) {
-	int16_t texinfo_idx = bsp.faces[i].texture_info; // TODO: can it be negative??
-	BspTexinfo texinfo = bsp.texinfos[ texinfo_idx ];	
-	char texture_name[32];
-	memcpy(texture_name, texinfo.texture_name, 32*sizeof(char));
-	uint32_t texture_idx = 0;
-	for ( ; texture_idx < g_map_texture_count+1; ++texture_idx) {
-	    if (!strcmp(g_map_textures[ texture_idx ].name, texture_name)) { 
-		goto check_against_texture_count;
-	    }
+    
+    for (uint32_t face_idx = 0; face_idx < bsp.face_count; ++face_idx) {
+	BspFace face = bsp.faces[ face_idx ];
+	Q2Tri   tris = q2bsp_triangulateFace(&bsp, face);
+	uint32_t prev_map_vertex_count = map_vertex_count;
+	for (uint32_t idx = 0; idx < tris.idx_count; ++idx) {
+	    uint16_t vert_index = tris.indices[ idx ];
+	    vec3 pos            = bsp.vertices[ vert_index ];
+	    vec3 normal         = tris.normal;
+	    Vertex v = (Vertex){ 0 };
+	    v.pos.x = -pos.x;
+	    v.pos.y =  pos.z;
+	    v.pos.z =  pos.y;
+	    v.normal.x = -normal.x;
+	    v.normal.y =  normal.z;
+	    v.normal.z =  normal.y;
+	    map_vertices[ map_vertex_count++ ] = v;
 	}
-   check_against_texture_count:	
-	if (texture_idx > g_map_texture_count) {
-	    memcpy(g_map_textures[g_map_texture_count].name, texture_name, 32*sizeof(char));
-	    Image image = load_image_file_from_dir("textures", texture_name);
-	    g_map_textures[g_map_texture_count].texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
-									      VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-									      0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST);
-	    vkal_update_descriptor_set_texturearray(descriptor_set[0],
-						    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-						    g_map_texture_count, g_map_textures[ g_map_texture_count ].texture);
-	    printf("%s\n", texture_name);
-	    texture_idx = g_map_texture_count;
-	    g_map_texture_count++;	
-	}
-	
-        Q2Tri face_verts = q2bsp_triangulateFace(&bsp, bsp.faces[i]);
-        for (uint32_t v = 0; v < face_verts.vert_count; ++v) {
-	    Vertex vert = { 0 };
-	    float x = -face_verts.verts[v].x;
-	    float y =  face_verts.verts[v].z;
-	    float z =  face_verts.verts[v].y;
-	    vert.pos.x = x; 
-	    vert.pos.y = y;
-	    vert.pos.z = z;
-	    vert.normal.x = -face_verts.normal.x;
-	    vert.normal.y = face_verts.normal.z;
-	    vert.normal.z = face_verts.normal.y;
-	    vert.uv.x = x * texinfo.u_axis.x + y * texinfo.u_axis.y + z * texinfo.u_axis.z + texinfo.u_offset;
-	    vert.uv.y = x * texinfo.v_axis.x + y * texinfo.v_axis.y + z * texinfo.v_axis.z + texinfo.v_offset;
-	    vert.texture_id = texture_idx;
-	    map_vertices[map_vertex_count++] = vert;
-	}
-	for (uint32_t idx = 0; idx < face_verts.idx_count; ++idx) {
-	    map_indices[map_index_count++] = face_verts.indices[idx];
-	}
+	g_map_faces[ g_map_face_count ].vertex_buffer_offset = prev_map_vertex_count;
+	g_map_faces[ g_map_face_count ].vertex_count = tris.idx_count;
+	g_map_face_count++;
     }
-    printf("MAP TEXTURE-COUNT: %d\n", g_map_texture_count);
-    uint32_t offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
-    uint32_t offset_indices  = vkal_index_buffer_add(map_indices, map_index_count);
 
+//    uint32_t offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
+//    uint32_t offset_indices  = vkal_index_buffer_add(map_indices, map_index_count);
+    
     /* Uniform Buffer for view projection matrices */
     camera.right = (vec3){ 1.0, 0.0, 0.0 };
     camera.pos = (vec3){ 0, 1000.f, 1000.f };
@@ -479,6 +493,18 @@ int main(int argc, char ** argv)
 	view_proj_data.proj = perspective( tr_radians(90.f), (float)width/(float)height, 0.1f, 10000.f );
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
+        /* Update the vertex buffer */
+	uint32_t vertex_count = 0;
+	uint32_t offset = 0;
+	for (uint32_t face_idx = 0; face_idx < g_map_face_count; ++face_idx) {
+	    MapFace * face = &g_map_faces[ face_idx ];
+	    uint32_t map_verts_offset = face->vertex_buffer_offset;
+	    vertex_count += face->vertex_count;
+	    update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
+	    offset = vertex_count;
+	}	
+
+	
 	{
 	    uint32_t image_id = vkal_get_image();
 
@@ -494,7 +520,11 @@ int main(int argc, char ** argv)
 //	    vkal_draw_indexed(image_id, graphics_pipeline,
 //			      offset_indices, map_index_count,
 //			      offset_vertices);
-	    vkal_draw(image_id, graphics_pipeline, offset_vertices, map_vertex_count);
+//	    vkal_draw(image_id, graphics_pipeline, face->vertex_buffer_offset, face->vertex_count);
+	    vkal_draw_from_buffers( transient_vertex_buffer.buffer,
+				    image_id, graphics_pipeline,
+				    0, vertex_count);		
+	   
 	    vkal_end_renderpass(image_id);	    
 	    vkal_end_command_buffer(image_id);
 	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
@@ -511,6 +541,6 @@ int main(int argc, char ** argv)
     glfwTerminate();
 
     deinit_physfs();
-    
+
     return 0;
 }
