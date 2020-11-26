@@ -21,8 +21,8 @@
 #define TRM_NDC_ZERO_TO_ONE
 #include "utils/tr_math.h"
 
-#define SCREEN_WIDTH  1280
-#define SCREEN_HEIGHT 768
+#define SCREEN_WIDTH  1920
+#define SCREEN_HEIGHT 1080
 
 #define MAX_MAP_TEXTURES 1024
 #define	MAX_MAP_FACES	 65536
@@ -232,6 +232,33 @@ Image load_image_file_from_dir(char * dir, char * file)
     return image;
 }
 
+uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
+{
+    uint32_t i = 0;
+    for ( ; i <= g_map_texture_count; ++i) {
+	if ( !strcmp(texture_name, g_map_textures[ i ].name) ) {
+	    break;
+	}
+    }
+    if (i > g_map_texture_count) {
+	i = g_map_texture_count;
+	Image image = load_image_file_from_dir("textures", texture_name);
+	Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
+					      VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
+					      0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST);
+	vkal_update_descriptor_set_texturearray(
+	    descriptor_set, 
+	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+	    i,
+	    texture);
+	strcpy( g_map_textures[ g_map_texture_count ].name, texture_name );
+	g_map_textures[ g_map_texture_count ].texture = texture;
+	g_map_texture_count++;
+    }
+
+    return i;
+}
+
 void camera_dolly(Camera * camera, vec3 translate)
 {
     camera->pos = vec3_add(camera->pos, vec3_mul(camera->velocity, translate) );
@@ -419,19 +446,29 @@ int main(int argc, char ** argv)
     
     for (uint32_t face_idx = 0; face_idx < bsp.face_count; ++face_idx) {
 	BspFace face = bsp.faces[ face_idx ];
-	Q2Tri   tris = q2bsp_triangulateFace(&bsp, face);
+	BspTexinfo texinfo = bsp.texinfos[ face.texture_info ];
+	uint32_t texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
+	uint32_t tex_width  = g_map_textures[ texture_id ].texture.width;
+	uint32_t tex_height = g_map_textures[ texture_id ].texture.height;
 	uint32_t prev_map_vertex_count = map_vertex_count;
+	Q2Tri   tris = q2bsp_triangulateFace(&bsp, face);
 	for (uint32_t idx = 0; idx < tris.idx_count; ++idx) {
 	    uint16_t vert_index = tris.indices[ idx ];
 	    vec3 pos            = bsp.vertices[ vert_index ];
 	    vec3 normal         = tris.normal;
 	    Vertex v = (Vertex){ 0 };
-	    v.pos.x = -pos.x;
-	    v.pos.y =  pos.z;
-	    v.pos.z =  pos.y;
+	    float x = -pos.x;
+	    float y =  pos.z;
+	    float z =  pos.y;
+	    v.pos.x = x;
+	    v.pos.y = y;
+	    v.pos.z = z;
 	    v.normal.x = -normal.x;
 	    v.normal.y =  normal.z;
 	    v.normal.z =  normal.y;
+	    v.uv.x = (x * texinfo.u_axis.x + y * texinfo.u_axis.z + z * texinfo.u_axis.y + texinfo.u_offset)/(float)(0.25*(float)tex_height);
+	    v.uv.y = (x * texinfo.v_axis.x + y * texinfo.v_axis.z + z * texinfo.v_axis.y + texinfo.v_offset)/(float)(0.25*(float)tex_width);
+	    v.texture_id = texture_id;
 	    map_vertices[ map_vertex_count++ ] = v;
 	}
 	g_map_faces[ g_map_face_count ].vertex_buffer_offset = prev_map_vertex_count;
@@ -439,7 +476,8 @@ int main(int argc, char ** argv)
 	g_map_face_count++;
     }
 
-//    uint32_t offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
+
+    uint32_t offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
 //    uint32_t offset_indices  = vkal_index_buffer_add(map_indices, map_index_count);
     
     /* Uniform Buffer for view projection matrices */
@@ -496,13 +534,18 @@ int main(int argc, char ** argv)
         /* Update the vertex buffer */
 	uint32_t vertex_count = 0;
 	uint32_t offset = 0;
-	for (uint32_t face_idx = 0; face_idx < g_map_face_count; ++face_idx) {
-	    MapFace * face = &g_map_faces[ face_idx ];
-	    uint32_t map_verts_offset = face->vertex_buffer_offset;
-	    vertex_count += face->vertex_count;
-	    update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
-	    offset = vertex_count;
-	}	
+	static int foo = 0;
+
+	if ( 1 ) {
+	    for (uint32_t face_idx = 0; face_idx < g_map_face_count; ++face_idx) {
+		MapFace * face = &g_map_faces[ face_idx ];
+		uint32_t map_verts_offset = face->vertex_buffer_offset;
+		vertex_count += face->vertex_count;
+		update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
+		offset = vertex_count;
+	    }
+	    foo = 1;
+	}
 
 	
 	{
@@ -520,10 +563,10 @@ int main(int argc, char ** argv)
 //	    vkal_draw_indexed(image_id, graphics_pipeline,
 //			      offset_indices, map_index_count,
 //			      offset_vertices);
-//	    vkal_draw(image_id, graphics_pipeline, face->vertex_buffer_offset, face->vertex_count);
-	    vkal_draw_from_buffers( transient_vertex_buffer.buffer,
-				    image_id, graphics_pipeline,
-				    0, vertex_count);		
+//	    vkal_draw(image_id, graphics_pipeline, offset_vertices, map_vertex_count);
+	    vkal_draw_from_buffers(transient_vertex_buffer.buffer,
+				   image_id, graphics_pipeline,
+				   0, vertex_count);		
 	   
 	    vkal_end_renderpass(image_id);	    
 	    vkal_end_command_buffer(image_id);

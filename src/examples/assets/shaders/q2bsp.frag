@@ -14,8 +14,9 @@ layout(set = 0, binding = 1) uniform sampler2D u_textures[];
 
 void main() 
 {
-    vec4 texel = texture(u_textures[ in_texture_id ], in_uv/256.0f);
+    vec4 texel = texture(u_textures[ in_texture_id ], in_uv);
     float z = in_position.z / in_position.w;
 	vec3 normal_color = 0.5*in_normal+0.5;
-    outColor = vec4( normal_color, 1.0);
+    vec3 ambient = vec3(.01, .01, .01);
+    outColor = vec4( texel.rgb + ambient, 1.0);
 }
