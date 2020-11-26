@@ -172,7 +172,7 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    g_window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: texture.c", 0, 0);
+    g_window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Michi's Quake 2 BSP Vulkan Renderer ;)", 0, 0);
     glfwSetKeyCallback(g_window, glfw_key_callback);
 }
 
@@ -466,8 +466,8 @@ int main(int argc, char ** argv)
 	    v.normal.x = -normal.x;
 	    v.normal.y =  normal.z;
 	    v.normal.z =  normal.y;
-	    v.uv.x = (x * texinfo.u_axis.x + y * texinfo.u_axis.z + z * texinfo.u_axis.y + texinfo.u_offset)/(float)(0.25*(float)tex_height);
-	    v.uv.y = (x * texinfo.v_axis.x + y * texinfo.v_axis.z + z * texinfo.v_axis.y + texinfo.v_offset)/(float)(0.25*(float)tex_width);
+	    v.uv.x = (-x * texinfo.u_axis.x + y * texinfo.u_axis.z + z * texinfo.u_axis.y + texinfo.u_offset)/(float)(0.25*(float)tex_width);
+	    v.uv.y = (-x * texinfo.v_axis.x + y * texinfo.v_axis.z + z * texinfo.v_axis.y + texinfo.v_offset)/(float)(0.25*(float)tex_height);
 	    v.texture_id = texture_id;
 	    map_vertices[ map_vertex_count++ ] = v;
 	}
