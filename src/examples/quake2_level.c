@@ -25,6 +25,7 @@
 #define SCREEN_HEIGHT 1080
 
 #define MAX_MAP_TEXTURES 1024
+#define MAX_MAP_VERTS    65536 
 #define	MAX_MAP_FACES	 65536
 
 typedef struct Image
@@ -303,17 +304,17 @@ void deinit_physfs()
 
 void create_transient_vertex_buffer(VertexBuffer * vertex_buf)
 {
-    vertex_buf->memory = vkal_allocate_devicememory(3*1024*1024,
+    vertex_buf->memory = vkal_allocate_devicememory(MAX_MAP_VERTS*sizeof(Vertex),
 						    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
 						    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 						    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
 						    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
 						    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    vertex_buf->buffer = vkal_create_buffer(3*1024*1024,
+    vertex_buf->buffer = vkal_create_buffer(MAX_MAP_VERTS*sizeof(Vertex),
 					    &vertex_buf->memory,
 					    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     vkal_dbg_buffer_name(vertex_buf->buffer, "Vertex Buffer");
-    map_memory(&vertex_buf->buffer, 3*1024*1024, 0);
+    map_memory(&vertex_buf->buffer, MAX_MAP_VERTS*sizeof(Vertex), 0);
 }
 
 void update_transient_vertex_buffer(VertexBuffer * vertex_buf, uint32_t offset, Vertex * vertices, uint32_t vertex_count)
@@ -439,7 +440,7 @@ int main(int argc, char ** argv)
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
 
-    Vertex * map_vertices = (Vertex*)malloc(3*1024*1024*sizeof(Vertex));
+    Vertex * map_vertices = (Vertex*)malloc(MAX_MAP_VERTS*sizeof(Vertex));
     uint16_t * map_indices = (uint16_t*)malloc(1024*1024*sizeof(uint16_t));
     uint32_t map_vertex_count = 0;
     uint32_t map_index_count = 0;

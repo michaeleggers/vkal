@@ -23,11 +23,12 @@ void main()
     /* Fog */
     vec3 fog_color = vec3(0.761, 0.698, 0.502);
     float min_fog_radius = 25.0;
-    float max_fog_radius = 1000.0;
+    float max_fog_radius = 1500.0;
     float dist = length(in_eye_cam_pos_distance);
     float fog_fact = (dist - min_fog_radius) / (max_fog_radius - min_fog_radius);
     fog_fact = clamp(fog_fact, 0.0, 1.0);
     vec3 final_color = mix(texel.rgb, fog_color, fog_fact);
     
     outColor = vec4( final_color, 1.0);
+    
 }
