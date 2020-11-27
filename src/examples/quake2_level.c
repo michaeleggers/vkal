@@ -107,6 +107,8 @@ static Camera camera;
 static int g_keys[MAX_KEYS];
 static MapTexture g_map_textures[MAX_MAP_TEXTURES];
 static uint32_t g_map_texture_count;
+static MapTexture g_sky_textures[MAX_MAP_TEXTURES];
+static uint32_t g_sky_texture_count;
 static MapFace  g_map_faces[MAX_MAP_FACES];
 static uint32_t g_map_face_count;
 
@@ -240,7 +242,7 @@ Image load_image_file_from_dir(char * dir, char * file)
     return image;
 }
 
-uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
+uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name, MapFaceType type)
 {
     uint32_t i = 0;
     for ( ; i <= g_map_texture_count; ++i) {
@@ -255,18 +257,36 @@ uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
 	   we need to make sure the coordinate wraps around the texture (MODE_REPEAT) as the coordinates
 	   will be (most of the time) outside the range [0,1]!
 	*/
-	Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
-					      VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-					      0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST,
-					      VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-	vkal_update_descriptor_set_texturearray(
-	    descriptor_set, 
-	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-	    i,
-	    texture);
-	strcpy( g_map_textures[ g_map_texture_count ].name, texture_name );
-	g_map_textures[ g_map_texture_count ].texture = texture;
-	g_map_texture_count++;
+	if (type == REGULAR) {
+	    Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
+						  VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
+						  0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST,
+						  VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+	    vkal_update_descriptor_set_texturearray(
+		descriptor_set, 
+		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+		i,
+		texture);
+	    strcpy( g_map_textures[ g_map_texture_count ].name, texture_name );
+	    g_map_textures[ g_map_texture_count ].texture = texture;
+	    g_map_texture_count++;
+	}
+	else if (type == SKY) { /* Cubemap Texture */
+	    Texture texture = vkal_create_texture(
+		2,
+		image.data,
+		image.width, image.height, 4,
+		VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, VK_IMAGE_VIEW_TYPE_CUBE,
+		VK_FORMAT_R8G8B8A8_UNORM,
+		0, 1,
+		0, 6,
+		VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+	    vkal_update_descriptor_set_texture(descriptor_set, texture);
+	    strcpy( g_sky_textures[ g_sky_texture_count ].name, texture_name );
+	    g_sky_textures[ g_sky_texture_count ].texture = texture;
+	    g_sky_texture_count++;
+	}
     }
 
     return i;
@@ -423,9 +443,28 @@ int main(int argc, char ** argv)
 	}
     };
     VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 2);
-    
+
+    VkDescriptorSetLayoutBinding set_layout_sky[] = {
+	{
+	    0,
+	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	    1,
+	    VK_SHADER_STAGE_VERTEX_BIT,
+	    0
+	},
+	{
+	    1,
+	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	    1,
+	    VK_SHADER_STAGE_FRAGMENT_BIT,
+	    0
+	}
+    };
+    VkDescriptorSetLayout descriptor_set_layout_sky = vkal_create_descriptor_set_layout(set_layout_sky, 2);
+
     VkDescriptorSetLayout layouts[] = {
-	descriptor_set_layout
+	descriptor_set_layout,
+	descriptor_set_layout_sky
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     VkDescriptorSet * descriptor_set = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
@@ -433,7 +472,7 @@ int main(int argc, char ** argv)
     
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
-	layouts, descriptor_set_layout_count, 
+	layouts, 1, 
 	NULL, 0);
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
@@ -443,6 +482,17 @@ int main(int argc, char ** argv)
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
 
+    VkPipelineLayout pipeline_layout_sky = vkal_create_pipeline_layout(
+	&layouts[1], 1, 
+	NULL, 0);
+    VkPipeline graphics_pipeline_sky = vkal_create_graphics_pipeline(
+	vertex_input_bindings, 1,
+	vertex_attributes, vertex_attribute_count,
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+	VK_FRONT_FACE_CLOCKWISE,
+	vkal_info->render_pass, pipeline_layout_sky);
+    
     /* Load Quake 2 BSP map */
     VertexBuffer transient_vertex_buffer;
     create_transient_vertex_buffer(&transient_vertex_buffer);
@@ -465,9 +515,20 @@ int main(int argc, char ** argv)
 	BspTexinfo texinfo = bsp.texinfos[ face.texture_info ];
 	uint32_t texture_flags = texinfo.flags;
 
-	uint32_t texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
+	uint32_t texture_id;
+	if ( (texture_flags & SURF_SKY) == SURF_SKY) { /* Skybox Face*/
+	    g_map_faces[ g_map_face_count ].type = SKY;
+//	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name, SKY);
+	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name, REGULAR);
+	}
+	else { /* Ordinary Face */
+	    g_map_faces[ g_map_face_count ].type = REGULAR;
+	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name, REGULAR);
+	}
+
 	uint32_t tex_width  = g_map_textures[ texture_id ].texture.width;
 	uint32_t tex_height = g_map_textures[ texture_id ].texture.height;
+
 	uint32_t prev_map_vertex_count = map_vertex_count;
 	Q2Tri   tris = q2bsp_triangulateFace(&bsp, face);
 	for (uint32_t idx = 0; idx < tris.idx_count; ++idx) {
@@ -489,12 +550,7 @@ int main(int argc, char ** argv)
 	    v.texture_id = texture_id;
 	    map_vertices[ map_vertex_count++ ] = v;
 	}
-	if ( (texture_flags & SURF_SKY) == SURF_SKY) { /* Skybox Face*/
-	    g_map_faces[ g_map_face_count ].type = SKY;
-	}
-	else { /* Ordinary Face */
-	    g_map_faces[ g_map_face_count ].type = REGULAR;
-	}
+
 	g_map_faces[ g_map_face_count ].vertex_buffer_offset = prev_map_vertex_count;
 	g_map_faces[ g_map_face_count ].vertex_count = tris.idx_count;
 	g_map_face_count++;
@@ -598,9 +654,9 @@ int main(int argc, char ** argv)
 	    vkal_draw_from_buffers(transient_vertex_buffer.buffer,
 				   image_id, graphics_pipeline,
 				   0, vertex_count);		
-	    vkal_draw_from_buffers(transient_vertex_buffer_sky.buffer,
-				   image_id, graphics_pipeline,
-				   0, vertex_count_sky);		
+//	    vkal_draw_from_buffers(transient_vertex_buffer_sky.buffer,
+//				   image_id, graphics_pipeline,
+//				   0, vertex_count_sky);		
 	   
 	    vkal_end_renderpass(image_id);	    
 	    vkal_end_command_buffer(image_id);
