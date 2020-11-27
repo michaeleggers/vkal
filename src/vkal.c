@@ -1732,7 +1732,8 @@ Texture vkal_create_texture(uint32_t binding,
 			    VkImageCreateFlags flags, VkImageViewType view_type, VkFormat format,
                             uint32_t base_mip_level, uint32_t mip_level_count, 
 			    uint32_t base_array_layer, uint32_t array_layer_count,
-                            VkFilter min_filter, VkFilter mag_filter)
+                            VkFilter min_filter, VkFilter mag_filter,
+			    VkSamplerAddressMode sampler_u, VkSamplerAddressMode sampler_v, VkSamplerAddressMode sampler_w)
 {
     Texture texture = { 0 };
     texture.width = width;
@@ -1758,8 +1759,8 @@ Texture vkal_create_texture(uint32_t binding,
 		      base_array_layer, array_layer_count,
 		      &texture.image_view);
     texture.sampler = create_sampler(min_filter, mag_filter, 
-				     VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT,
-				     VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+				     sampler_u, sampler_v,
+				     sampler_w);
     texture.binding = binding;
 	
     upload_texture(get_image(texture.image), width, height, channels, array_layer_count, texture_data);

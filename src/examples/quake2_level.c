@@ -58,8 +58,15 @@ typedef struct Vertex
     uint32_t texture_id;
 } Vertex;
 
+typedef enum MapFaceType
+{
+    REGULAR,
+    SKY
+} MapFaceType;
+
 typedef struct MapFace
 {
+    MapFaceType type;
     uint32_t vertex_buffer_offset;
     uint32_t vertex_count;
     uint32_t texture_id;
@@ -244,9 +251,14 @@ uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
     if (i > g_map_texture_count) {
 	i = g_map_texture_count;
 	Image image = load_image_file_from_dir("textures", texture_name);
+	/* NOTE: Since the texture coordinates are created in worldspace, mapping the vertex onto a uvw plane
+	   we need to make sure the coordinate wraps around the texture (MODE_REPEAT) as the coordinates
+	   will be (most of the time) outside the range [0,1]!
+	*/
 	Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
 					      VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-					      0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST);
+					      0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST,
+					      VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	vkal_update_descriptor_set_texturearray(
 	    descriptor_set, 
 	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
@@ -434,6 +446,9 @@ int main(int argc, char ** argv)
     /* Load Quake 2 BSP map */
     VertexBuffer transient_vertex_buffer;
     create_transient_vertex_buffer(&transient_vertex_buffer);
+    VertexBuffer transient_vertex_buffer_sky;
+    create_transient_vertex_buffer(&transient_vertex_buffer_sky);
+
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
     p.rfb("../src/examples/assets/maps/base1.bsp", &bsp_data, &bsp_data_size);
@@ -448,6 +463,8 @@ int main(int argc, char ** argv)
     for (uint32_t face_idx = 0; face_idx < bsp.face_count; ++face_idx) {
 	BspFace face = bsp.faces[ face_idx ];
 	BspTexinfo texinfo = bsp.texinfos[ face.texture_info ];
+	uint32_t texture_flags = texinfo.flags;
+
 	uint32_t texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
 	uint32_t tex_width  = g_map_textures[ texture_id ].texture.width;
 	uint32_t tex_height = g_map_textures[ texture_id ].texture.height;
@@ -472,10 +489,17 @@ int main(int argc, char ** argv)
 	    v.texture_id = texture_id;
 	    map_vertices[ map_vertex_count++ ] = v;
 	}
+	if ( (texture_flags & SURF_SKY) == SURF_SKY) { /* Skybox Face*/
+	    g_map_faces[ g_map_face_count ].type = SKY;
+	}
+	else { /* Ordinary Face */
+	    g_map_faces[ g_map_face_count ].type = REGULAR;
+	}
 	g_map_faces[ g_map_face_count ].vertex_buffer_offset = prev_map_vertex_count;
 	g_map_faces[ g_map_face_count ].vertex_count = tris.idx_count;
 	g_map_face_count++;
     }
+
 
 
     uint32_t offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
@@ -534,18 +558,24 @@ int main(int argc, char ** argv)
 
         /* Update the vertex buffer */
 	uint32_t vertex_count = 0;
+	uint32_t vertex_count_sky = 0;
 	uint32_t offset = 0;
-	static int foo = 0;
-
+	uint32_t offset_sky = 0;
 	if ( 1 ) {
 	    for (uint32_t face_idx = 0; face_idx < g_map_face_count; ++face_idx) {
 		MapFace * face = &g_map_faces[ face_idx ];
 		uint32_t map_verts_offset = face->vertex_buffer_offset;
-		vertex_count += face->vertex_count;
-		update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
+		if (face->type == SKY) {
+		    vertex_count_sky += face->vertex_count;
+		    update_transient_vertex_buffer(&transient_vertex_buffer_sky, offset_sky, map_vertices + map_verts_offset, face->vertex_count);
+		}
+		else {
+		    vertex_count += face->vertex_count;
+		    update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
+		}
 		offset = vertex_count;
+		offset_sky = vertex_count_sky;
 	    }
-	    foo = 1;
 	}
 
 	
@@ -568,6 +598,9 @@ int main(int argc, char ** argv)
 	    vkal_draw_from_buffers(transient_vertex_buffer.buffer,
 				   image_id, graphics_pipeline,
 				   0, vertex_count);		
+	    vkal_draw_from_buffers(transient_vertex_buffer_sky.buffer,
+				   image_id, graphics_pipeline,
+				   0, vertex_count_sky);		
 	   
 	    vkal_end_renderpass(image_id);	    
 	    vkal_end_command_buffer(image_id);

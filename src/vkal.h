@@ -534,7 +534,8 @@ Texture vkal_create_texture(uint32_t binding,
 			    VkImageCreateFlags flags, VkImageViewType view_type, VkFormat format,
                             uint32_t base_mip_level, uint32_t mip_level_count, 
 			    uint32_t base_array_layer, uint32_t array_layer_count,
-                            VkFilter min_filter, VkFilter mag_filter);
+                            VkFilter min_filter, VkFilter mag_filter,
+			    VkSamplerAddressMode sampler_u, VkSamplerAddressMode sampler_v, VkSamplerAddressMode sampler_w);
 RenderImage create_render_image(uint32_t width, uint32_t height);
 void vkal_update_descriptor_set_texture(VkDescriptorSet descriptor_set, Texture texture);
 void vkal_update_descriptor_set_render_image(VkDescriptorSet descriptor_set, uint32_t binding,
