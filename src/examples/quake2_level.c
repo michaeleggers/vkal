@@ -111,6 +111,39 @@ static MapTexture g_sky_textures[MAX_MAP_TEXTURES];
 static uint32_t g_sky_texture_count;
 static MapFace  g_map_faces[MAX_MAP_FACES];
 static uint32_t g_map_face_count;
+static Vertex g_skybox_verts[8] =
+{
+    { .pos = { -1, 1, 1 } },
+    { .pos =  { 1, 1, 1 } },
+    { .pos = { 1, -1, 1 } },
+    { .pos = { -1, -1, 1} },
+    { .pos = { -1, 1, -1 } },
+    { .pos = { 1, 1, -1 } },
+    { .pos = { 1, -1, -1 } },
+    { .pos = { -1, -1, -1 } }
+};
+
+static uint16_t g_skybox_indices[36] =
+{
+    // front
+    0, 1, 2,
+    2, 3, 0,
+    // right
+    1, 5, 6,
+    6, 2, 1,
+    // back
+    5, 4, 7,
+    7, 6, 5,
+    // left
+    4, 0, 3,
+    3, 7, 4,
+    // top
+    4, 5, 1,
+    1, 0, 4,
+    // bottom
+    3, 2, 6,
+    6, 7, 3    
+};
 
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
@@ -499,7 +532,7 @@ int main(int argc, char ** argv)
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
@@ -510,7 +543,7 @@ int main(int argc, char ** argv)
     VkPipeline graphics_pipeline_sky = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup_sky, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	shader_setup_sky, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_FRONT_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout_sky);
@@ -583,10 +616,13 @@ int main(int argc, char ** argv)
 
     uint32_t offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
 //    uint32_t offset_indices  = vkal_index_buffer_add(map_indices, map_index_count);
+
+    uint32_t offset_sky_vertices = vkal_vertex_buffer_add(g_skybox_verts, sizeof(Vertex), sizeof(g_skybox_verts)/sizeof(*g_skybox_verts));
+    uint32_t offset_sky_indices  = vkal_index_buffer_add(g_skybox_indices, sizeof(g_skybox_indices)/sizeof(*g_skybox_indices));
     
     /* Uniform Buffer for view projection matrices */
     camera.right = (vec3){ 1.0, 0.0, 0.0 };
-    camera.pos = (vec3){ 0, 1000.f, 1000.f };
+    camera.pos = (vec3){ 0, 0.f, 1000.f };
     camera.center = (vec3){ 0 };
     camera.up = (vec3){ 0, 1, 0 };
     camera.velocity = 10.f;
@@ -643,14 +679,23 @@ int main(int argc, char ** argv)
 	uint32_t vertex_count_sky = 0;
 	uint32_t offset = 0;
 	uint32_t offset_sky = 0;
+	vec3 sky_bb_min = { -1, -1, -1 };
+	vec3 sky_bb_max = { 1, 1, 1 };
 	if ( 1 ) {
 	    for (uint32_t face_idx = 0; face_idx < g_map_face_count; ++face_idx) {
 		MapFace * face = &g_map_faces[ face_idx ];
 		uint32_t map_verts_offset = face->vertex_buffer_offset;
 		if (face->type == SKY) {
-		    vertex_count_sky += face->vertex_count;
-		    update_transient_vertex_buffer(&transient_vertex_buffer_sky, offset_sky, map_vertices + map_verts_offset, face->vertex_count);
-		    offset_sky = vertex_count_sky;
+//		    vertex_count_sky += face->vertex_count;
+//		    update_transient_vertex_buffer(&transient_vertex_buffer_sky, offset_sky, map_vertices + map_verts_offset, face->vertex_count);
+//		    offset_sky = vertex_count_sky;
+		    Vertex * vert = map_vertices + map_verts_offset;
+		    if (vert->pos.x < sky_bb_min.x) sky_bb_min.x = vert->pos.x;
+		    else if (vert->pos.x > sky_bb_max.x) sky_bb_max.x = vert->pos.x;
+		    if (vert->pos.y < sky_bb_min.y) sky_bb_min.y = vert->pos.y;
+		    else if (vert->pos.y > sky_bb_max.y) sky_bb_max.y = vert->pos.y;
+		    if (vert->pos.z < sky_bb_min.z) sky_bb_min.z = vert->pos.z;
+		    else if (vert->pos.z > sky_bb_max.z) sky_bb_max.z = vert->pos.z;		    
 		}
 		else {
 		    vertex_count += face->vertex_count;
@@ -659,7 +704,20 @@ int main(int argc, char ** argv)
 		}
 	    }
 	}
-
+	
+	/* Scale skybox */
+	vec3 scale = vec3_sub( sky_bb_max, sky_bb_min );
+	Vertex skybox[8];
+	memcpy(skybox, g_skybox_verts, 8*sizeof(Vertex));
+	for (uint32_t i = 0; i < 8; ++i) {
+	    if (g_skybox_verts[i].pos.x < 0) skybox[i].pos.x = g_skybox_verts[i].pos.x * 3000.0;
+	    else                             skybox[i].pos.x = g_skybox_verts[i].pos.x * 3000.0;
+	    if (g_skybox_verts[i].pos.y < 0) skybox[i].pos.y = g_skybox_verts[i].pos.y * 3000.0;
+	    else                             skybox[i].pos.y = g_skybox_verts[i].pos.y * 3000.0;
+	    if (g_skybox_verts[i].pos.z < 0) skybox[i].pos.z = g_skybox_verts[i].pos.z * 3000.0;
+	    else                             skybox[i].pos.z = g_skybox_verts[i].pos.z * 3000.0;
+	}
+	update_transient_vertex_buffer(&transient_vertex_buffer_sky, 0, skybox, 8);
 	
 	{
 	    uint32_t image_id = vkal_get_image();
@@ -681,9 +739,13 @@ int main(int argc, char ** argv)
 				   image_id, graphics_pipeline,
 				   0, vertex_count);
 	    vkal_bind_descriptor_set(image_id, &descriptor_set[1], pipeline_layout_sky);
-	    vkal_draw_from_buffers(transient_vertex_buffer_sky.buffer,
-				   image_id, graphics_pipeline_sky,
-				   0, vertex_count_sky);		
+//	    vkal_draw_from_buffers(transient_vertex_buffer_sky.buffer,
+//				   image_id, graphics_pipeline_sky,
+//				   0, vertex_count_sky);
+	    vkal_draw_indexed_from_buffers(
+		vkal_info->index_buffer, offset_sky_indices, 36, transient_vertex_buffer_sky.buffer, 0,
+		image_id, graphics_pipeline_sky);
+
 	   
 	    vkal_end_renderpass(image_id);	    
 	    vkal_end_command_buffer(image_id);

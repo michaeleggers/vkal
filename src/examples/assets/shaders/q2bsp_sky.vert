@@ -33,10 +33,11 @@ void main()
     gl_Position.y = -gl_Position.y; // Hack: vulkan's y is down
     
     out_position = position;
-    out_position.y = -out_position.y;
+    out_position.y = -out_position.y;   
+    
     
     out_cam_pos = u_view_proj.cam_pos;
-    out_cam_pos.y = -out_cam_pos.y;
+    out_cam_pos.y = -out_cam_pos.y;    
     
     out_texture_id = texture_id;
     
