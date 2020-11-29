@@ -27,6 +27,8 @@ Q2Bsp q2bsp_init(uint8_t * data)
     bsp.edge_count = bsp.header->lumps[LT_EDGES].length / sizeof(uint32_t);
     bsp.vertices = (vec3*)(bsp.data + bsp.header->lumps[LT_VERTICES].offset);
     bsp.vertex_count = bsp.header->lumps[LT_VERTICES].length / sizeof(vec3);
+    bsp.vis = (BspVis*)(bsp.data + bsp.header->lumps[LT_VISIBILITY].offset);
+    bsp.vis_count = bsp.header->lumps[LT_VISIBILITY].length / sizeof(BspVis);
     bsp.texinfos = (BspTexinfo*)(bsp.data + bsp.header->lumps[LT_TEX_INFO].offset);
     bsp.texinfo_count = bsp.header->lumps[LT_TEX_INFO].length / sizeof(BspTexinfo);
     return bsp;

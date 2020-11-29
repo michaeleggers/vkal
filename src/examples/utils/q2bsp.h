@@ -71,6 +71,13 @@ typedef struct BspHeader
 } BspHeader;
 
 #pragma pack(push, 1)
+
+typedef struct BspVis
+{
+	int32_t	numclusters;
+	int32_t	bitofs[8][2];	// bitofs[numclusters][2]
+} BspVis;
+
 typedef struct BspPlane
 {
 
@@ -118,7 +125,7 @@ typedef struct BspLeaf
    
     uint32_t   brush_or;          // ?
 	
-    uint16_t   cluster;           // -1 for cluster indicates no visibility information
+    int16_t   cluster;           // -1 for cluster indicates no visibility information
     uint16_t   area;              // ?
 
     vec3_16i   bbox_min;          // bounding box minimums
@@ -167,6 +174,9 @@ typedef struct Q2Bsp
 
     BspTexinfo * texinfos;
     uint32_t     texinfo_count;
+
+    BspVis     * vis;
+    uint32_t     vis_count;
 } Q2Bsp;
 
 Q2Bsp q2bsp_init(uint8_t * data);

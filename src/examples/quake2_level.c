@@ -61,6 +61,7 @@ typedef struct Vertex
 typedef enum MapFaceType
 {
     REGULAR,
+    LIGHT,
     SKY
 } MapFaceType;
 
@@ -288,7 +289,7 @@ uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
 	Image image = load_image_file_from_dir("textures", texture_name);
 	Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
 					      VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-					      0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST,
+					      0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 					      VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	vkal_update_descriptor_set_texturearray(
 	    descriptor_set, 
@@ -532,7 +533,7 @@ int main(int argc, char ** argv)
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
@@ -543,7 +544,7 @@ int main(int argc, char ** argv)
     VkPipeline graphics_pipeline_sky = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup_sky, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_FRONT_BIT, VK_POLYGON_MODE_FILL, 
+	shader_setup_sky, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout_sky);
@@ -553,13 +554,19 @@ int main(int argc, char ** argv)
     create_transient_vertex_buffer(&transient_vertex_buffer);
     VertexBuffer transient_vertex_buffer_sky;
     create_transient_vertex_buffer(&transient_vertex_buffer_sky);
+    VertexBuffer transient_vertex_buffer_light;
+    create_transient_vertex_buffer(&transient_vertex_buffer_light);
 
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
     p.rfb("../src/examples/assets/maps/base1.bsp", &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
-
+    printf("BSP Vis Count: %d\n", bsp.vis_count);
+    for (uint32_t i = 0; i < bsp.leaf_count; ++i) {
+	printf("Cluster index: %d\n", bsp.leaves[i].cluster);
+    }
+    
     Vertex * map_vertices = (Vertex*)malloc(MAX_MAP_VERTS*sizeof(Vertex));
     uint16_t * map_indices = (uint16_t*)malloc(1024*1024*sizeof(uint16_t));
     uint32_t map_vertex_count = 0;
@@ -577,6 +584,12 @@ int main(int argc, char ** argv)
 	    texture_id = register_sky_texture(descriptor_set[1], texinfo.texture_name);
 	    tex_width  = g_sky_textures[ texture_id ].texture.width;
 	    tex_height = g_sky_textures[ texture_id ].texture.height;
+	}
+	else if ( (texture_flags & SURF_LIGHT) == SURF_LIGHT) { /* Light Face*/
+	    g_map_faces[ g_map_face_count ].type = REGULAR;
+	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
+	    tex_width  = g_map_textures[ texture_id ].texture.width;
+	    tex_height = g_map_textures[ texture_id ].texture.height;
 	}
 	else { /* Ordinary Face */
 	    g_map_faces[ g_map_face_count ].type = REGULAR;
@@ -686,16 +699,9 @@ int main(int argc, char ** argv)
 		MapFace * face = &g_map_faces[ face_idx ];
 		uint32_t map_verts_offset = face->vertex_buffer_offset;
 		if (face->type == SKY) {
-//		    vertex_count_sky += face->vertex_count;
-//		    update_transient_vertex_buffer(&transient_vertex_buffer_sky, offset_sky, map_vertices + map_verts_offset, face->vertex_count);
-//		    offset_sky = vertex_count_sky;
-		    Vertex * vert = map_vertices + map_verts_offset;
-		    if (vert->pos.x < sky_bb_min.x) sky_bb_min.x = vert->pos.x;
-		    else if (vert->pos.x > sky_bb_max.x) sky_bb_max.x = vert->pos.x;
-		    if (vert->pos.y < sky_bb_min.y) sky_bb_min.y = vert->pos.y;
-		    else if (vert->pos.y > sky_bb_max.y) sky_bb_max.y = vert->pos.y;
-		    if (vert->pos.z < sky_bb_min.z) sky_bb_min.z = vert->pos.z;
-		    else if (vert->pos.z > sky_bb_max.z) sky_bb_max.z = vert->pos.z;		    
+		    vertex_count_sky += face->vertex_count;
+		    update_transient_vertex_buffer(&transient_vertex_buffer_sky, offset_sky, map_vertices + map_verts_offset, face->vertex_count);
+		    offset_sky = vertex_count_sky;
 		}
 		else {
 		    vertex_count += face->vertex_count;
@@ -704,21 +710,7 @@ int main(int argc, char ** argv)
 		}
 	    }
 	}
-	
-	/* Scale skybox */
-	vec3 scale = vec3_sub( sky_bb_max, sky_bb_min );
-	Vertex skybox[8];
-	memcpy(skybox, g_skybox_verts, 8*sizeof(Vertex));
-	for (uint32_t i = 0; i < 8; ++i) {
-	    if (g_skybox_verts[i].pos.x < 0) skybox[i].pos.x = g_skybox_verts[i].pos.x * 3000.0;
-	    else                             skybox[i].pos.x = g_skybox_verts[i].pos.x * 3000.0;
-	    if (g_skybox_verts[i].pos.y < 0) skybox[i].pos.y = g_skybox_verts[i].pos.y * 3000.0;
-	    else                             skybox[i].pos.y = g_skybox_verts[i].pos.y * 3000.0;
-	    if (g_skybox_verts[i].pos.z < 0) skybox[i].pos.z = g_skybox_verts[i].pos.z * 3000.0;
-	    else                             skybox[i].pos.z = g_skybox_verts[i].pos.z * 3000.0;
-	}
-	update_transient_vertex_buffer(&transient_vertex_buffer_sky, 0, skybox, 8);
-	
+		
 	{
 	    uint32_t image_id = vkal_get_image();
 
@@ -739,12 +731,12 @@ int main(int argc, char ** argv)
 				   image_id, graphics_pipeline,
 				   0, vertex_count);
 	    vkal_bind_descriptor_set(image_id, &descriptor_set[1], pipeline_layout_sky);
-//	    vkal_draw_from_buffers(transient_vertex_buffer_sky.buffer,
-//				   image_id, graphics_pipeline_sky,
-//				   0, vertex_count_sky);
-	    vkal_draw_indexed_from_buffers(
-		vkal_info->index_buffer, offset_sky_indices, 36, transient_vertex_buffer_sky.buffer, 0,
-		image_id, graphics_pipeline_sky);
+	    vkal_draw_from_buffers(transient_vertex_buffer_sky.buffer,
+				   image_id, graphics_pipeline_sky,
+				   0, vertex_count_sky);
+//	    vkal_draw_indexed_from_buffers(
+//		vkal_info->index_buffer, offset_sky_indices, 36, transient_vertex_buffer_sky.buffer, 0,
+//		image_id, graphics_pipeline_sky);
 
 	   
 	    vkal_end_renderpass(image_id);	    
