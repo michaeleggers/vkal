@@ -72,10 +72,15 @@ typedef struct BspHeader
 
 #pragma pack(push, 1)
 
+typedef struct BspVisOffset
+{
+    uint32_t pvs;
+    uint32_t phs;
+} BspVisOffset;
+
 typedef struct BspVis
 {
-	int32_t	numclusters;
-	int32_t	bitofs[8][2];	// bitofs[numclusters][2]
+    uint32_t	   numclusters;
 } BspVis;
 
 typedef struct BspPlane
@@ -175,8 +180,8 @@ typedef struct Q2Bsp
     BspTexinfo * texinfos;
     uint32_t     texinfo_count;
 
-    BspVis     * vis;
-    uint32_t     vis_count;
+    BspVis         * vis;
+    BspVisOffset   * vis_offsets; // there are as many of those as numclusters
 } Q2Bsp;
 
 Q2Bsp q2bsp_init(uint8_t * data);

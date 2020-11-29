@@ -562,10 +562,15 @@ int main(int argc, char ** argv)
     p.rfb("../src/examples/assets/maps/base1.bsp", &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
-    printf("BSP Vis Count: %d\n", bsp.vis_count);
+    printf("BSP Cluster Count: %d\n", bsp.vis->numclusters);
     for (uint32_t i = 0; i < bsp.leaf_count; ++i) {
-	printf("Cluster index: %d\n", bsp.leaves[i].cluster);
+//	printf("Cluster index: %d\n", bsp.leaves[i].cluster);
+//	if (bsp.leaves[i].cluster > bsp.vis->numclusters) getchar();
     }
+    for (uint32_t i = 0; i < bsp.vis->numclusters; ++i) {
+	printf("vis offset: %d\n", bsp.vis_offsets[i].pvs);
+    }
+    
     
     Vertex * map_vertices = (Vertex*)malloc(MAX_MAP_VERTS*sizeof(Vertex));
     uint16_t * map_indices = (uint16_t*)malloc(1024*1024*sizeof(uint16_t));
