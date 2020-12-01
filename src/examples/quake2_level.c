@@ -27,6 +27,7 @@
 #define MAX_MAP_TEXTURES 1024
 #define MAX_MAP_VERTS    65536 
 #define	MAX_MAP_FACES	 65536
+#define MAX_MAP_LEAVES   65536
 
 typedef struct Image
 {
@@ -289,7 +290,7 @@ uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
 	Image image = load_image_file_from_dir("textures", texture_name);
 	Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
 					      VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-					      0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+					      0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST,
 					      VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	vkal_update_descriptor_set_texturearray(
 	    descriptor_set, 
@@ -402,6 +403,55 @@ void create_transient_vertex_buffer(VertexBuffer * vertex_buf)
 void update_transient_vertex_buffer(VertexBuffer * vertex_buf, uint32_t offset, Vertex * vertices, uint32_t vertex_count)
 {
     memcpy( ((Vertex*)(vertex_buf->buffer.mapped)) + offset, vertices, vertex_count*sizeof(Vertex) );      
+}
+
+int isVisible(uint8_t * pvs, int i)
+{
+		
+    // i>>3 = i/8    
+    // i&7  = i%8
+	    
+    return pvs[i>>3] & (1<<(i&7));	    
+}
+
+uint8_t * Mod_DecompressVis (uint8_t * in, Q2Bsp * bsp)
+{
+    static uint8_t	decompressed[MAX_MAP_LEAVES/8];
+    int		c;
+    uint8_t	* out;
+    int		row;
+
+    row = (bsp->vis->numclusters+7)>>3;	
+    out = decompressed;
+
+    if (!in)
+    {	// no vis info, so make all visible
+	while (row)
+	{
+	    *out++ = 0xff;
+	    row--;
+	}
+	return decompressed;		
+    }
+
+    do
+    {
+	if (*in)
+	{
+	    *out++ = *in++;
+	    continue;
+	}
+	
+	c = in[1];
+	in += 2;
+	while (c)
+	{
+	    *out++ = 0;
+	    c--;
+	}
+    } while (out - decompressed < row);
+	
+    return decompressed;
 }
 
 int main(int argc, char ** argv)
@@ -569,14 +619,14 @@ int main(int argc, char ** argv)
     }
     for (uint32_t i = 0; i < bsp.vis->numclusters; ++i) {
 	printf("vis offset: %d\n", bsp.vis_offsets[i].pvs);
-    }
-    
+    }    
     
     Vertex * map_vertices = (Vertex*)malloc(MAX_MAP_VERTS*sizeof(Vertex));
     uint16_t * map_indices = (uint16_t*)malloc(1024*1024*sizeof(uint16_t));
     uint32_t map_vertex_count = 0;
     uint32_t map_index_count = 0;
-    
+
+    /* Precompute all faces so they are ready to be sent to GPU */
     for (uint32_t face_idx = 0; face_idx < bsp.face_count; ++face_idx) {
 	BspFace face = bsp.faces[ face_idx ];
 	BspTexinfo texinfo = bsp.texinfos[ face.texture_info ];
@@ -628,9 +678,7 @@ int main(int argc, char ** argv)
 	g_map_faces[ g_map_face_count ].vertex_buffer_offset = prev_map_vertex_count;
 	g_map_faces[ g_map_face_count ].vertex_count = tris.idx_count;
 	g_map_face_count++;
-    }
-
-
+	} // end for face_idx
 
     uint32_t offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
 //    uint32_t offset_indices  = vkal_index_buffer_add(map_indices, map_index_count);
@@ -639,10 +687,11 @@ int main(int argc, char ** argv)
     uint32_t offset_sky_indices  = vkal_index_buffer_add(g_skybox_indices, sizeof(g_skybox_indices)/sizeof(*g_skybox_indices));
     
     /* Uniform Buffer for view projection matrices */
-    camera.right = (vec3){ 1.0, 0.0, 0.0 };
-    camera.pos = (vec3){ 0, 0.f, 1000.f };
+    camera.pos = (vec3){ 2, 46, 42 };
     camera.center = (vec3){ 0 };
+    vec3 f = vec3_normalize(vec3_sub(camera.center, camera.pos));
     camera.up = (vec3){ 0, 1, 0 };
+    camera.right = vec3_normalize(vec3_cross(f, camera.up));
     camera.velocity = 10.f;
     ViewProjection view_proj_data;
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
@@ -692,30 +741,73 @@ int main(int argc, char ** argv)
 	view_proj_data.cam_pos = camera.pos;
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
-        /* Update the vertex buffer */
+
+
+        /* Walk BSP to check in which cluster we are */
+	BspNode * node = bsp.nodes;
+	BspLeaf current_leaf;
+	while (1) {
+	    BspPlane plane = bsp.planes[ node->plane ];
+	    vec3 plane_abc = (vec3){ -plane.normal.x, plane.normal.z, plane.normal.y };
+	    float front_or_back = vec3_dot( camera.pos, plane_abc ) - plane.distance;
+	    if (front_or_back > 0) {
+		int32_t front_child = node->front_child;
+		if (front_child < 0) {
+		    current_leaf = bsp.leaves[ -(front_child + 1) ];
+		    break;
+		}
+		node = &bsp.nodes[ node->front_child ];
+	    }
+	    else {
+	        int32_t back_child = node->back_child;
+		if (back_child < 0) {
+		    current_leaf = bsp.leaves[ -(back_child + 1) ];
+		    break;
+		}
+		node = &bsp.nodes[ node->back_child ];
+	    }
+	}
+	int cluster_id = current_leaf.cluster;
+	printf("%d\n", cluster_id);
+
+	/* Update the vertex buffer */
 	uint32_t vertex_count = 0;
 	uint32_t vertex_count_sky = 0;
 	uint32_t offset = 0;
 	uint32_t offset_sky = 0;
-	vec3 sky_bb_min = { -1, -1, -1 };
-	vec3 sky_bb_max = { 1, 1, 1 };
-	if ( 1 ) {
-	    for (uint32_t face_idx = 0; face_idx < g_map_face_count; ++face_idx) {
-		MapFace * face = &g_map_faces[ face_idx ];
-		uint32_t map_verts_offset = face->vertex_buffer_offset;
-		if (face->type == SKY) {
-		    vertex_count_sky += face->vertex_count;
-		    update_transient_vertex_buffer(&transient_vertex_buffer_sky, offset_sky, map_vertices + map_verts_offset, face->vertex_count);
-		    offset_sky = vertex_count_sky;
-		}
-		else {
-		    vertex_count += face->vertex_count;
-		    update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
-		    offset = vertex_count;
+	if (cluster_id >= 0) {
+	    /* Go throug the leaves and select all within cluster 0 to be rendered */
+	    /* Get compressed PVS for cluster 0 */
+	    uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
+	    uint8_t * c_pvs = ((uint8_t*)(bsp.vis)) + c_pvs_idx;
+	    uint8_t * pvs = Mod_DecompressVis(c_pvs, &bsp);
+	    for (uint32_t i = 0; i < bsp.leaf_count; ++i) {
+		BspLeaf leaf = bsp.leaves[ i ];
+//	    printf("%d\n", leaf.cluster);
+		if ( isVisible(pvs, leaf.cluster) ) {
+		    for (uint32_t leaf_face_idx = leaf.first_leaf_face; leaf_face_idx < (leaf.first_leaf_face + leaf.num_leaf_faces); ++leaf_face_idx) {
+			uint32_t face_idx = bsp.leaf_face_table[ leaf_face_idx ];
+			MapFace * face = &g_map_faces[ face_idx ];
+			uint32_t map_verts_offset = face->vertex_buffer_offset;
+			if (face->type == SKY) {
+			    vertex_count_sky += face->vertex_count;
+			    update_transient_vertex_buffer(&transient_vertex_buffer_sky, offset_sky, map_vertices + map_verts_offset, face->vertex_count);
+			    offset_sky = vertex_count_sky;
+			}
+			else {
+			    vertex_count += face->vertex_count;
+			    update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
+			    offset = vertex_count;
+			}
+		    }
 		}
 	    }
 	}
-		
+	else {
+	    vertex_count = map_vertex_count;
+	    update_transient_vertex_buffer(&transient_vertex_buffer, 0, map_vertices, vertex_count);
+	}
+	
 	{
 	    uint32_t image_id = vkal_get_image();
 

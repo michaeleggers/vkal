@@ -13,6 +13,8 @@ Q2Bsp q2bsp_init(uint8_t * data)
     bsp.data = data;
 
     bsp.header = (BspHeader*)bsp.data;
+    bsp.nodes = (BspNode*)(bsp.data + bsp.header->lumps[LT_NODES].offset);
+    bsp.node_count = bsp.header->lumps[LT_NODES].length / sizeof(BspNode);
     bsp.entities = (char*)(bsp.data + bsp.header->lumps[LT_ENTITIES].offset);
     bsp.planes = (BspPlane*)(bsp.data + bsp.header->lumps[LT_PLANES].offset);
     bsp.plane_count = bsp.header->lumps[LT_PLANES].length / sizeof(BspPlane);

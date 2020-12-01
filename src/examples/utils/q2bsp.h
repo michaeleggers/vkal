@@ -72,6 +72,40 @@ typedef struct BspHeader
 
 #pragma pack(push, 1)
 
+typedef struct BspNode
+{
+
+    uint32_t   plane;             // index of the splitting plane (in the plane array)
+    
+    int32_t    front_child;       // index of the front child node or leaf
+    int32_t    back_child;        // index of the back child node or leaf
+   
+    vec3_16i  bbox_min;          // minimum x, y and z of the bounding box
+    vec3_16i  bbox_max;          // maximum x, y and z of the bounding box
+	
+    uint16_t   first_face;        // index of the first face (in the face array)
+    uint16_t   num_faces;         // number of consecutive edges (in the face array)
+} BspNode;
+
+typedef struct BspLeaf
+{
+   
+    uint32_t   brush_or;          // ?
+	
+    int16_t   cluster;           // -1 for cluster indicates no visibility information
+    uint16_t   area;              // ?
+
+    vec3_16i   bbox_min;          // bounding box minimums
+    vec3_16i   bbox_max;          // bounding box maximums
+
+    uint16_t   first_leaf_face;   // index of the first face (in the face leaf array)
+    uint16_t   num_leaf_faces;    // number of consecutive faces (in the face leaf array)
+
+    uint16_t   first_leaf_brush;  // ?
+    uint16_t   num_leaf_brushes;  // ?
+
+} BspLeaf;
+
 typedef struct BspVisOffset
 {
     uint32_t pvs;
@@ -125,24 +159,6 @@ typedef struct BspFace
     uint32_t   lightmap_offset;   // offset of the lightmap (in bytes) in the lightmap lump
 } BspFace;
 
-typedef struct BspLeaf
-{
-   
-    uint32_t   brush_or;          // ?
-	
-    int16_t   cluster;           // -1 for cluster indicates no visibility information
-    uint16_t   area;              // ?
-
-    vec3_16i   bbox_min;          // bounding box minimums
-    vec3_16i   bbox_max;          // bounding box maximums
-
-    uint16_t   first_leaf_face;   // index of the first face (in the face leaf array)
-    uint16_t   num_leaf_faces;    // number of consecutive faces (in the face leaf array)
-
-    uint16_t   first_leaf_brush;  // ?
-    uint16_t   num_leaf_brushes;  // ?
-
-} BspLeaf;
 
 #pragma pack(pop)
 
@@ -153,6 +169,9 @@ typedef struct Q2Bsp
 
     BspHeader * header;
 
+    BspNode   * nodes;
+    uint32_t    node_count;
+    
     char      * entities;
 
     BspPlane  * planes;
