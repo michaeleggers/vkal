@@ -18,6 +18,8 @@ Q2Bsp q2bsp_init(uint8_t * data)
     bsp.entities = (char*)(bsp.data + bsp.header->lumps[LT_ENTITIES].offset);
     bsp.planes = (BspPlane*)(bsp.data + bsp.header->lumps[LT_PLANES].offset);
     bsp.plane_count = bsp.header->lumps[LT_PLANES].length / sizeof(BspPlane);
+    bsp.sub_models = (BspSubModel*)(bsp.data + bsp.header->lumps[LT_MODELS].offset);
+    bsp.sub_model_count = bsp.header->lumps[LT_MODELS].length / sizeof(BspSubModel);
     bsp.faces = (BspFace*)(bsp.data + bsp.header->lumps[LT_FACES].offset);
     bsp.face_count = bsp.header->lumps[LT_FACES].length / sizeof(BspFace);
     bsp.leaves = (BspLeaf*)(bsp.data + bsp.header->lumps[LT_LEAVES].offset);

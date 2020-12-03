@@ -63,7 +63,8 @@ typedef enum MapFaceType
 {
     REGULAR,
     LIGHT,
-    SKY
+    SKY,
+    NODRAW
 } MapFaceType;
 
 typedef struct MapFace
@@ -606,20 +607,19 @@ int main(int argc, char ** argv)
     create_transient_vertex_buffer(&transient_vertex_buffer_sky);
     VertexBuffer transient_vertex_buffer_light;
     create_transient_vertex_buffer(&transient_vertex_buffer_light);
-
+    VertexBuffer transient_vertex_buffer_sub_models;
+    create_transient_vertex_buffer(&transient_vertex_buffer_sub_models);
+    
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
     p.rfb("../src/examples/assets/maps/base1.bsp", &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
+    FILE * f_map_entities = fopen("entities.txt", "w");
+    fprintf(f_map_entities, "%s", bsp.entities);
+    fclose(f_map_entities);
     printf("BSP Cluster Count: %d\n", bsp.vis->numclusters);
-    for (uint32_t i = 0; i < bsp.leaf_count; ++i) {
-//	printf("Cluster index: %d\n", bsp.leaves[i].cluster);
-//	if (bsp.leaves[i].cluster > bsp.vis->numclusters) getchar();
-    }
-    for (uint32_t i = 0; i < bsp.vis->numclusters; ++i) {
-	printf("vis offset: %d\n", bsp.vis_offsets[i].pvs);
-    }    
+    printf("BSP Brush Model Count: %d\n", bsp.sub_model_count);
     
     Vertex * map_vertices = (Vertex*)malloc(MAX_MAP_VERTS*sizeof(Vertex));
     uint16_t * map_indices = (uint16_t*)malloc(1024*1024*sizeof(uint16_t));
@@ -641,12 +641,18 @@ int main(int argc, char ** argv)
 	    tex_height = g_sky_textures[ texture_id ].texture.height;
 	}
 	else if ( (texture_flags & SURF_LIGHT) == SURF_LIGHT) { /* Light Face*/
-	    g_map_faces[ g_map_face_count ].type = REGULAR;
+	    g_map_faces[ g_map_face_count ].type = LIGHT;
 	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
 	    tex_width  = g_map_textures[ texture_id ].texture.width;
 	    tex_height = g_map_textures[ texture_id ].texture.height;
 	}
-	else { /* Ordinary Face */
+	else if ( (texture_flags & SURF_NODRAW) == SURF_NODRAW) { /* Don't draw. Probably Trigger boxes, etc. */
+	    g_map_faces[ g_map_face_count ].type = NODRAW;
+	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
+	    tex_width  = g_map_textures[ texture_id ].texture.width;
+	    tex_height = g_map_textures[ texture_id ].texture.height;
+	}
+	else {
 	    g_map_faces[ g_map_face_count ].type = REGULAR;
 	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
 	    tex_width  = g_map_textures[ texture_id ].texture.width;
@@ -768,7 +774,7 @@ int main(int argc, char ** argv)
 	    }
 	}
 	int cluster_id = current_leaf.cluster;
-	printf("%d\n", cluster_id);
+//	printf("%d\n", cluster_id);
 
 	/* Update the vertex buffer */
 	uint32_t vertex_count = 0;
@@ -783,7 +789,6 @@ int main(int argc, char ** argv)
 	    uint8_t * pvs = Mod_DecompressVis(c_pvs, &bsp);
 	    for (uint32_t i = 0; i < bsp.leaf_count; ++i) {
 		BspLeaf leaf = bsp.leaves[ i ];
-//	    printf("%d\n", leaf.cluster);
 		if ( isVisible(pvs, leaf.cluster) ) {
 		    for (uint32_t leaf_face_idx = leaf.first_leaf_face; leaf_face_idx < (leaf.first_leaf_face + leaf.num_leaf_faces); ++leaf_face_idx) {
 			uint32_t face_idx = bsp.leaf_face_table[ leaf_face_idx ];
@@ -794,7 +799,7 @@ int main(int argc, char ** argv)
 			    update_transient_vertex_buffer(&transient_vertex_buffer_sky, offset_sky, map_vertices + map_verts_offset, face->vertex_count);
 			    offset_sky = vertex_count_sky;
 			}
-			else {
+			else if (face->type == REGULAR) {
 			    vertex_count += face->vertex_count;
 			    update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
 			    offset = vertex_count;
@@ -806,6 +811,21 @@ int main(int argc, char ** argv)
 	else {
 	    vertex_count = map_vertex_count;
 	    update_transient_vertex_buffer(&transient_vertex_buffer, 0, map_vertices, vertex_count);
+	}
+
+	/* Always draw Submodels ( = Brush Models) */
+	uint32_t sub_models_vertex_count = 0;
+	uint32_t sub_models_offset = 0;
+	for (uint32_t sub_model_idx = 1; sub_model_idx < bsp.sub_model_count; ++sub_model_idx) {
+	    int first_face = bsp.sub_models[ sub_model_idx ].firstface;
+	    int face_count = bsp.sub_models[ sub_model_idx ].numfaces;
+	    for (uint32_t face_idx = (uint32_t)first_face; face_idx < (uint32_t)first_face + (uint32_t)face_count; ++face_idx) {
+		MapFace * face = &g_map_faces[ face_idx ];
+		uint32_t map_verts_offset = face->vertex_buffer_offset;
+		sub_models_vertex_count += face->vertex_count;
+		update_transient_vertex_buffer(&transient_vertex_buffer_sub_models, sub_models_offset, map_vertices + map_verts_offset, face->vertex_count);
+		sub_models_offset = sub_models_vertex_count;
+	    }
 	}
 	
 	{
@@ -824,9 +844,17 @@ int main(int argc, char ** argv)
 //			      offset_indices, map_index_count,
 //			      offset_vertices);
 //	    vkal_draw(image_id, graphics_pipeline, offset_vertices, map_vertex_count);
-	    vkal_draw_from_buffers(transient_vertex_buffer.buffer,
+	    /* Draw Map */
+//	    vkal_draw_from_buffers(transient_vertex_buffer.buffer,
+//				   image_id, graphics_pipeline,
+//				   0, vertex_count);
+	    
+	    /* Draw Sub Models (Brush Models) */
+	    vkal_draw_from_buffers(transient_vertex_buffer_sub_models.buffer,
 				   image_id, graphics_pipeline,
-				   0, vertex_count);
+				   0, sub_models_vertex_count);	    
+
+	    /* Draw Skybox */
 	    vkal_bind_descriptor_set(image_id, &descriptor_set[1], pipeline_layout_sky);
 	    vkal_draw_from_buffers(transient_vertex_buffer_sky.buffer,
 				   image_id, graphics_pipeline_sky,

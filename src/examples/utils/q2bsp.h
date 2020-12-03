@@ -43,7 +43,7 @@ typedef enum LumpType {
     LT_LEAF_BRUSH_TABLE,        // ?	
     LT_EDGES,                   // Edge array	
     LT_FACE_EDGE_TABLE,         // Index lookup table for referencing the edge array from a face	
-    LT_MODELS,                  // ?	
+    LT_MODELS,                  // Brush Models that get indexed by an entity from the LT_ENTITIES char array, eg: "model" "*17* means that at index no 17, the brush model is to be found.	
     LT_BRUSHES,                 // ?	
     LT_BRUSH_SIDES,             // ?	
     LT_POP,                     // ?	
@@ -126,6 +126,15 @@ typedef struct BspPlane
 
 } BspPlane;
 
+typedef struct BspSubModel
+{
+    float	min[3], max[3];
+    float	origin[3];		// for sounds or lights
+    int		headnode;
+    int		firstface, numfaces;	// submodels just draw faces TODO: Can the faceindex be negative?
+					// without walking the bsp tree
+} BspSubModel;
+
 typedef struct BspTexinfo
 {
 
@@ -177,6 +186,8 @@ typedef struct Q2Bsp
     BspPlane  * planes;
     uint32_t    plane_count;
 
+    BspSubModel * sub_models;
+    uint32_t    sub_model_count;
     BspFace   * faces;
     uint32_t    face_count;
 
