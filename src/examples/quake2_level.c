@@ -57,6 +57,7 @@ typedef struct Vertex
     vec3     normal;
     vec2     uv;
     uint32_t texture_id;
+    uint32_t surface_flags;
 } Vertex;
 
 typedef enum MapFaceType
@@ -64,6 +65,8 @@ typedef enum MapFaceType
     REGULAR,
     LIGHT,
     SKY,
+    TRANS33,
+    TRANS66,
     NODRAW
 } MapFaceType;
 
@@ -260,6 +263,9 @@ Image load_image_file_from_dir(char * dir, char * file)
     PHYSFS_File * phys_file = PHYSFS_openRead(searchpath);
     if ( !phys_file ) {
 	printf("PHYSFS_openRead() failed!\n  reason: %s.\n", PHYSFS_getLastError());
+	printf("Warning: Image File not found: %s\n", searchpath);
+	getchar();
+	exit(-1);
     }    
     uint64_t file_length = PHYSFS_fileLength(phys_file);
     void * buffer = malloc(file_length);
@@ -516,11 +522,17 @@ int main(int argc, char ** argv)
     ShaderStageSetup shader_setup_sky = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
+
+    p.rfb("../src/examples/assets/shaders/q2bsp_trans_vert.spv", &vertex_byte_code, &vertex_code_size);
+    p.rfb("../src/examples/assets/shaders/q2bsp_trans_frag.spv", &fragment_byte_code, &fragment_code_size);
+    ShaderStageSetup shader_setup_trans = vkal_create_shaders(
+	vertex_byte_code, vertex_code_size, 
+	fragment_byte_code, fragment_code_size);
     
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
 	{
-	    { 0, 2*sizeof(vec3) + sizeof(vec2) + sizeof(uint32_t), VK_VERTEX_INPUT_RATE_VERTEX }
+	    { 0, 2*sizeof(vec3) + sizeof(vec2) + sizeof(uint32_t) + sizeof(uint32_t), VK_VERTEX_INPUT_RATE_VERTEX }
 	};
     
     VkVertexInputAttributeDescription vertex_attributes[] =
@@ -528,7 +540,8 @@ int main(int argc, char ** argv)
 	    { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },               // pos
 	    { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(vec3) },    // color
 	    { 2, 0, VK_FORMAT_R32G32_SFLOAT,    2*sizeof(vec3) },  // UV
-	    { 3, 0, VK_FORMAT_A8B8G8R8_UINT_PACK32 ,    2*sizeof(vec3) + sizeof(vec2) },  // TEXTURE ID
+	    { 3, 0, VK_FORMAT_A8B8G8R8_UINT_PACK32 ,    2*sizeof(vec3) + sizeof(vec2) },                     // TEXTURE ID
+	    { 4, 0, VK_FORMAT_A8B8G8R8_UINT_PACK32 ,    2*sizeof(vec3) + sizeof(vec2) + sizeof(uint32_t) },  // SURFACE FLAGS
 	};
     uint32_t vertex_attribute_count = sizeof(vertex_attributes)/sizeof(*vertex_attributes);
 
@@ -544,7 +557,7 @@ int main(int argc, char ** argv)
 	{
 	    1,
 	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	    107,
+	    1024, /* Max Textures */
 	    VK_SHADER_STAGE_FRAGMENT_BIT,
 	    0
 	}
@@ -576,6 +589,22 @@ int main(int argc, char ** argv)
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     VkDescriptorSet * descriptor_set = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
     vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_set);
+
+    /* Create dummy Texture to make sure every descriptor is initialized */
+
+    Image dummy_img = load_image_file_from_dir("textures", "michi");
+    Texture dummy_texture = vkal_create_texture(1, dummy_img.data, dummy_img.width, dummy_img.height, 4, 0,
+						VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
+						0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST,
+						VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+    for (uint32_t i = 0; i < 1024; ++i) {
+	vkal_update_descriptor_set_texturearray(
+	    descriptor_set[0], 
+	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+	    i,
+	    dummy_texture);
+
+    }
     
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
@@ -589,6 +618,19 @@ int main(int argc, char ** argv)
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
 
+    /* Pipeline for Transparent surfaces */
+    VkPipelineLayout pipeline_layout_trans = vkal_create_pipeline_layout(
+	layouts, 1, 
+	NULL, 0);
+    VkPipeline graphics_pipeline_trans = vkal_create_graphics_pipeline(
+	vertex_input_bindings, 1,
+	vertex_attributes, vertex_attribute_count,
+	shader_setup_trans, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+	VK_FRONT_FACE_CLOCKWISE,
+	vkal_info->render_pass, pipeline_layout_trans);
+
+    /* Pipeline for Skybox */
     VkPipelineLayout pipeline_layout_sky = vkal_create_pipeline_layout(
 	&layouts[1], 1, 
 	NULL, 0);
@@ -605,14 +647,16 @@ int main(int argc, char ** argv)
     create_transient_vertex_buffer(&transient_vertex_buffer);
     VertexBuffer transient_vertex_buffer_sky;
     create_transient_vertex_buffer(&transient_vertex_buffer_sky);
-    VertexBuffer transient_vertex_buffer_light;
-    create_transient_vertex_buffer(&transient_vertex_buffer_light);
+    VertexBuffer transient_vertex_buffer_lights;
+    create_transient_vertex_buffer(&transient_vertex_buffer_lights);
     VertexBuffer transient_vertex_buffer_sub_models;
     create_transient_vertex_buffer(&transient_vertex_buffer_sub_models);
+    VertexBuffer transient_vertex_buffer_trans;
+    create_transient_vertex_buffer(&transient_vertex_buffer_trans);
     
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
-    p.rfb("../src/examples/assets/maps/base1.bsp", &bsp_data, &bsp_data_size);
+    p.rfb("../src/examples/assets/maps/michi2.bsp", &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
     FILE * f_map_entities = fopen("entities.txt", "w");
@@ -640,7 +684,7 @@ int main(int argc, char ** argv)
 	    tex_width  = g_sky_textures[ texture_id ].texture.width;
 	    tex_height = g_sky_textures[ texture_id ].texture.height;
 	}
-	else if ( (texture_flags & SURF_LIGHT) == SURF_LIGHT) { /* Light Face*/
+	else if ( (texture_flags & SURF_LIGHT) == texture_flags) { /* Light Face*/
 	    g_map_faces[ g_map_face_count ].type = LIGHT;
 	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
 	    tex_width  = g_map_textures[ texture_id ].texture.width;
@@ -648,6 +692,12 @@ int main(int argc, char ** argv)
 	}
 	else if ( (texture_flags & SURF_NODRAW) == SURF_NODRAW) { /* Don't draw. Probably Trigger boxes, etc. */
 	    g_map_faces[ g_map_face_count ].type = NODRAW;
+	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
+	    tex_width  = g_map_textures[ texture_id ].texture.width;
+	    tex_height = g_map_textures[ texture_id ].texture.height;
+	}
+	else if ( (texture_flags & SURF_TRANS66) == SURF_TRANS66) { /* 66% transparent surface */
+	    g_map_faces[ g_map_face_count ].type = TRANS66;
 	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
 	    tex_width  = g_map_textures[ texture_id ].texture.width;
 	    tex_height = g_map_textures[ texture_id ].texture.height;
@@ -678,6 +728,7 @@ int main(int argc, char ** argv)
 	    v.uv.x = (-x * texinfo.u_axis.x + y * texinfo.u_axis.z + z * texinfo.u_axis.y + texinfo.u_offset)/(float)(0.25*(float)tex_width);
 	    v.uv.y = (-x * texinfo.v_axis.x + y * texinfo.v_axis.z + z * texinfo.v_axis.y + texinfo.v_offset)/(float)(0.25*(float)tex_height);
 	    v.texture_id = texture_id;
+	    v.surface_flags = texture_flags;
 	    map_vertices[ map_vertex_count++ ] = v;
 	}
 
@@ -779,8 +830,12 @@ int main(int argc, char ** argv)
 	/* Update the vertex buffer */
 	uint32_t vertex_count = 0;
 	uint32_t vertex_count_sky = 0;
+	uint32_t vertex_count_lights = 0;
+	uint32_t vertex_count_trans = 0;
 	uint32_t offset = 0;
 	uint32_t offset_sky = 0;
+	uint32_t offset_lights = 0;
+	uint32_t offset_trans = 0;
 	if (cluster_id >= 0) {
 	    /* Go throug the leaves and select all within cluster 0 to be rendered */
 	    /* Get compressed PVS for cluster 0 */
@@ -804,6 +859,18 @@ int main(int argc, char ** argv)
 			    update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
 			    offset = vertex_count;
 			}
+			else if (face->type == LIGHT) {
+			    vertex_count_lights += face->vertex_count;
+			    update_transient_vertex_buffer(&transient_vertex_buffer_lights, offset_lights, map_vertices + map_verts_offset,
+							   face->vertex_count);
+			    offset_lights = vertex_count_lights;
+			}
+			else if (face->type == TRANS66) {
+			    vertex_count_trans += face->vertex_count;
+			    update_transient_vertex_buffer(&transient_vertex_buffer_trans, offset_trans, map_vertices + map_verts_offset,
+							   face->vertex_count);
+			    offset_trans = vertex_count_trans;
+			}
 		    }
 		}
 	    }
@@ -816,15 +883,17 @@ int main(int argc, char ** argv)
 	/* Always draw Submodels ( = Brush Models) */
 	uint32_t sub_models_vertex_count = 0;
 	uint32_t sub_models_offset = 0;
-	for (uint32_t sub_model_idx = 1; sub_model_idx < bsp.sub_model_count; ++sub_model_idx) {
+	for (uint32_t sub_model_idx = 1; sub_model_idx < bsp.sub_model_count; ++sub_model_idx) { // start at idx=0 because 0 is the whole map!
 	    int first_face = bsp.sub_models[ sub_model_idx ].firstface;
 	    int face_count = bsp.sub_models[ sub_model_idx ].numfaces;
 	    for (uint32_t face_idx = (uint32_t)first_face; face_idx < (uint32_t)first_face + (uint32_t)face_count; ++face_idx) {
 		MapFace * face = &g_map_faces[ face_idx ];
-		uint32_t map_verts_offset = face->vertex_buffer_offset;
-		sub_models_vertex_count += face->vertex_count;
-		update_transient_vertex_buffer(&transient_vertex_buffer_sub_models, sub_models_offset, map_vertices + map_verts_offset, face->vertex_count);
-		sub_models_offset = sub_models_vertex_count;
+		if (face->type != NODRAW) {
+		    uint32_t map_verts_offset = face->vertex_buffer_offset;
+		    sub_models_vertex_count += face->vertex_count;
+		    update_transient_vertex_buffer(&transient_vertex_buffer_sub_models, sub_models_offset, map_vertices + map_verts_offset, face->vertex_count);
+		    sub_models_offset = sub_models_vertex_count;
+		}
 	    }
 	}
 	
@@ -845,20 +914,32 @@ int main(int argc, char ** argv)
 //			      offset_vertices);
 //	    vkal_draw(image_id, graphics_pipeline, offset_vertices, map_vertex_count);
 	    /* Draw Map */
-//	    vkal_draw_from_buffers(transient_vertex_buffer.buffer,
-//				   image_id, graphics_pipeline,
-//				   0, vertex_count);
+	    vkal_draw_from_buffers(transient_vertex_buffer.buffer,
+				   image_id, graphics_pipeline,
+				   0, vertex_count);
 	    
 	    /* Draw Sub Models (Brush Models) */
 	    vkal_draw_from_buffers(transient_vertex_buffer_sub_models.buffer,
 				   image_id, graphics_pipeline,
-				   0, sub_models_vertex_count);	    
+				   0, sub_models_vertex_count);
+
+	    /* Draw Lights */
+	    vkal_draw_from_buffers(transient_vertex_buffer_lights.buffer,
+				   image_id, graphics_pipeline,
+				   0, vertex_count_lights);
 
 	    /* Draw Skybox */
 	    vkal_bind_descriptor_set(image_id, &descriptor_set[1], pipeline_layout_sky);
 	    vkal_draw_from_buffers(transient_vertex_buffer_sky.buffer,
 				   image_id, graphics_pipeline_sky,
 				   0, vertex_count_sky);
+
+	    /* Draw Transparent */
+	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout_trans);
+	    vkal_draw_from_buffers(transient_vertex_buffer_trans.buffer,
+				   image_id, graphics_pipeline_trans,
+				   0, vertex_count_trans);
+
 //	    vkal_draw_indexed_from_buffers(
 //		vkal_info->index_buffer, offset_sky_indices, 36, transient_vertex_buffer_sky.buffer, 0,
 //		image_id, graphics_pipeline_sky);

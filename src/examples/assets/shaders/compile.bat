@@ -36,3 +36,6 @@
 
 %VULKAN_SDK%/bin/glslc q2bsp_sky.vert -o q2bsp_sky_vert.spv
 %VULKAN_SDK%/bin/glslc q2bsp_sky.frag -o q2bsp_sky_frag.spv
+
+%VULKAN_SDK%/bin/glslc q2bsp_trans.vert -o q2bsp_trans_vert.spv
+%VULKAN_SDK%/bin/glslc q2bsp_trans.frag -o q2bsp_trans_frag.spv

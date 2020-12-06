@@ -92,7 +92,7 @@ typedef struct BspLeaf
    
     uint32_t   brush_or;          // ?
 	
-    int16_t   cluster;           // -1 for cluster indicates no visibility information
+    int16_t    cluster;           // -1 for cluster indicates no visibility information
     uint16_t   area;              // ?
 
     vec3_16i   bbox_min;          // bounding box minimums

@@ -40,5 +40,5 @@ void main()
     fog_fact = clamp(fog_fact, 0.0, 1.0);
     vec3 final_color = mix(texel.rgb, fog_color, fog_fact);
 
-    outColor = vec4( final_color, 1.0);
+    outColor = vec4( final_color, 0.66);
 }
