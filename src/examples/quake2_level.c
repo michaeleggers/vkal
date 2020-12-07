@@ -361,6 +361,8 @@ void camera_yaw(Camera * camera, float angle)
     vec3 forward = vec3_sub(camera->center, camera->pos);
     mat4 rot = rotate(camera->right, angle);
     forward = vec4_as_vec3( mat4_x_vec4(rot, vec3_to_vec4(forward, 1.0)) );
+    float fwd_dot_up = vec3_dot( vec3_normalize(forward), (vec3){0, 1, 0} );
+    if ( fabs(fwd_dot_up) > 0.9999 ) return;
     camera->center = vec3_add( camera->pos, forward );
 //    camera->up = vec3_normalize( vec3_cross(camera->right, new_forward3) );    
 }
@@ -613,7 +615,7 @@ int main(int argc, char ** argv)
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
@@ -656,7 +658,7 @@ int main(int argc, char ** argv)
     
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
-    p.rfb("../src/examples/assets/maps/michi2.bsp", &bsp_data, &bsp_data_size);
+    p.rfb("../src/examples/assets/maps/base1.bsp", &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
     FILE * f_map_entities = fopen("entities.txt", "w");
@@ -836,6 +838,7 @@ int main(int argc, char ** argv)
 	uint32_t offset_sky = 0;
 	uint32_t offset_lights = 0;
 	uint32_t offset_trans = 0;
+	#if 0
 	if (cluster_id >= 0) {
 	    /* Go throug the leaves and select all within cluster 0 to be rendered */
 	    /* Get compressed PVS for cluster 0 */
@@ -878,11 +881,25 @@ int main(int argc, char ** argv)
 	else {
 	    vertex_count = map_vertex_count;
 	    update_transient_vertex_buffer(&transient_vertex_buffer, 0, map_vertices, vertex_count);
+	}	
+	#endif
+
+	for (uint32_t i = 0; i < bsp.node_count; ++i) {
+	    uint16_t face_idx = bsp.nodes[ i ].first_face;
+	    uint16_t num_faces = bsp.nodes[ i ].num_faces;
+	    for (uint16_t f = face_idx; f < face_idx + num_faces; ++f) {
+		MapFace * face = &g_map_faces[ face_idx ];
+		uint32_t map_verts_offset = face->vertex_buffer_offset;
+		vertex_count += face->vertex_count;
+		update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
+		offset = vertex_count;
+	    }
 	}
 
 	/* Always draw Submodels ( = Brush Models) */
 	uint32_t sub_models_vertex_count = 0;
 	uint32_t sub_models_offset = 0;
+#if 0
 	for (uint32_t sub_model_idx = 1; sub_model_idx < bsp.sub_model_count; ++sub_model_idx) { // start at idx=0 because 0 is the whole map!
 	    int first_face = bsp.sub_models[ sub_model_idx ].firstface;
 	    int face_count = bsp.sub_models[ sub_model_idx ].numfaces;
@@ -896,6 +913,7 @@ int main(int argc, char ** argv)
 		}
 	    }
 	}
+#endif
 	
 	{
 	    uint32_t image_id = vkal_get_image();
