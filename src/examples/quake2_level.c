@@ -572,29 +572,53 @@ void draw_leaf(Q2Bsp bsp, BspLeaf leaf)
     }
 }
 
-void draw_marked_leaves(Q2Bsp bsp, BspNode * node, uint8_t * pvs)
+void draw_marked_leaves(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3 pos)
 {
     int front_child = node->front_child;
     int back_child  = node->back_child;
+    BspPlane plane = bsp.planes[ node->plane ];
+    vec3 plane_abc = (vec3){ -plane.normal.x, plane.normal.z, plane.normal.y };
+    float front_or_back = vec3_dot( pos, plane_abc ) - plane.distance;
     
-    if (front_child < 0) { // leaf
-	BspLeaf leaf = bsp.leaves[ -(front_child + 1) ];
-	if (isVisible(pvs, leaf.cluster)) {
-	    draw_leaf(bsp, leaf);
+    if (front_or_back < 0) { // viewpos on backside of node -> traverse front child
+	if (front_child < 0) {
+	    BspLeaf leaf = bsp.leaves[ -(front_child + 1) ];
+	    if (isVisible(pvs, leaf.cluster)) {
+		draw_leaf(bsp, leaf);
+	    }       
+	}
+	else {
+	    draw_marked_leaves( bsp, &bsp.nodes[ front_child ], pvs, pos );	    
+	}
+	if (back_child < 0) {
+	    BspLeaf leaf = bsp.leaves[ -(back_child + 1) ];
+	    if (isVisible(pvs, leaf.cluster)) {
+		draw_leaf(bsp, leaf);
+	    }
+	}
+	else {
+	    draw_marked_leaves( bsp, &bsp.nodes[ back_child ], pvs, pos );	    
 	}
     }
     else {
-	draw_marked_leaves( bsp, &bsp.nodes[ front_child ], pvs );
-    }
-
-    if (back_child < 0) { // leaf
-	BspLeaf leaf = bsp.leaves[ -(back_child + 1) ];
-	if (isVisible(pvs, leaf.cluster)) {
-	    draw_leaf(bsp, leaf);
+	if (back_child < 0) {
+	    BspLeaf leaf = bsp.leaves[ -(back_child + 1) ];
+	    if (isVisible(pvs, leaf.cluster)) {
+		draw_leaf(bsp, leaf);
+	    }       
 	}
-    }
-    else {
-	draw_marked_leaves( bsp, &bsp.nodes[ back_child ], pvs );
+	else {
+	    draw_marked_leaves( bsp, &bsp.nodes[ back_child ], pvs, pos );	    
+	}
+	if (front_child < 0) {
+	    BspLeaf leaf = bsp.leaves[ -(front_child + 1) ];
+	    if (isVisible(pvs, leaf.cluster)) {
+		draw_leaf(bsp, leaf);
+	    }
+	}
+	else {
+	    draw_marked_leaves( bsp, &bsp.nodes[ front_child ], pvs, pos );	    
+	}
     }
 }
 
@@ -828,7 +852,7 @@ int main(int argc, char ** argv)
     
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
-    p.rfb("../src/examples/assets/maps/michi2.bsp", &bsp_data, &bsp_data_size);
+    p.rfb("../src/examples/assets/maps/michi3.bsp", &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
     MapModel mapmodel = init_mapmodel(bsp);
@@ -978,18 +1002,20 @@ int main(int argc, char ** argv)
 //	printf("%d\n", cluster_id);
 
 	begin_drawing();
-	
+
+#if 1
 	/* Update the vertex buffer */
 	if (cluster_id >= 0) {
 	    uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
 	    uint8_t * c_pvs = ((uint8_t*)(bsp.vis)) + c_pvs_idx;
 	    uint8_t * pvs = Mod_DecompressVis(c_pvs, &bsp);
-	    draw_marked_leaves(bsp, bsp.nodes, pvs);
+	    draw_marked_leaves(bsp, bsp.nodes, pvs, camera.pos);
 	}
 	else {
 	    vertex_count = map_vertex_count;
 	    update_transient_vertex_buffer(&transient_vertex_buffer, 0, map_vertices, vertex_count);
 	}	
+#endif
 	
 	{
 	    uint32_t image_id = vkal_get_image();
@@ -1007,6 +1033,8 @@ int main(int argc, char ** argv)
 //			      offset_indices, map_index_count,
 //			      offset_vertices);
 //	    vkal_draw(image_id, graphics_pipeline, offset_vertices, map_vertex_count);
+
+#if 1
 	    /* Draw Map */
 	    vkal_draw_from_buffers(transient_vertex_buffer.buffer,
 				   image_id, graphics_pipeline,
@@ -1033,7 +1061,8 @@ int main(int argc, char ** argv)
 //		vkal_info->index_buffer, offset_sky_indices, 36, transient_vertex_buffer_sky.buffer, 0,
 //		image_id, graphics_pipeline_sky);
 
-	   
+#endif
+	    
 	    vkal_end_renderpass(image_id);	    
 	    vkal_end_command_buffer(image_id);
 	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
