@@ -658,7 +658,7 @@ int main(int argc, char ** argv)
     
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
-    p.rfb("../src/examples/assets/maps/base1.bsp", &bsp_data, &bsp_data_size);
+    p.rfb("../src/examples/assets/maps/michi2.bsp", &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
     FILE * f_map_entities = fopen("entities.txt", "w");
@@ -686,7 +686,7 @@ int main(int argc, char ** argv)
 	    tex_width  = g_sky_textures[ texture_id ].texture.width;
 	    tex_height = g_sky_textures[ texture_id ].texture.height;
 	}
-	else if ( (texture_flags & SURF_LIGHT) == texture_flags) { /* Light Face*/
+	else if ( (texture_flags & SURF_LIGHT) == SURF_LIGHT) { /* Light Face*/
 	    g_map_faces[ g_map_face_count ].type = LIGHT;
 	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
 	    tex_width  = g_map_textures[ texture_id ].texture.width;
@@ -838,7 +838,6 @@ int main(int argc, char ** argv)
 	uint32_t offset_sky = 0;
 	uint32_t offset_lights = 0;
 	uint32_t offset_trans = 0;
-	#if 0
 	if (cluster_id >= 0) {
 	    /* Go throug the leaves and select all within cluster 0 to be rendered */
 	    /* Get compressed PVS for cluster 0 */
@@ -882,8 +881,8 @@ int main(int argc, char ** argv)
 	    vertex_count = map_vertex_count;
 	    update_transient_vertex_buffer(&transient_vertex_buffer, 0, map_vertices, vertex_count);
 	}	
-	#endif
 
+#if 0
 	for (uint32_t i = 0; i < bsp.node_count; ++i) {
 	    uint16_t face_idx = bsp.nodes[ i ].first_face;
 	    uint16_t num_faces = bsp.nodes[ i ].num_faces;
@@ -895,7 +894,8 @@ int main(int argc, char ** argv)
 		offset = vertex_count;
 	    }
 	}
-
+#endif
+	
 	/* Always draw Submodels ( = Brush Models) */
 	uint32_t sub_models_vertex_count = 0;
 	uint32_t sub_models_offset = 0;
@@ -953,9 +953,9 @@ int main(int argc, char ** argv)
 				   0, vertex_count_sky);
 
 	    /* Draw Transparent */
-	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout_trans);
+	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
 	    vkal_draw_from_buffers(transient_vertex_buffer_trans.buffer,
-				   image_id, graphics_pipeline_trans,
+				   image_id, graphics_pipeline,
 				   0, vertex_count_trans);
 
 //	    vkal_draw_indexed_from_buffers(

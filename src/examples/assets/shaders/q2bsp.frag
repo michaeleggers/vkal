@@ -39,6 +39,11 @@ void main()
     float fog_fact = (dist - min_fog_radius) / (max_fog_radius - min_fog_radius);
     fog_fact = clamp(fog_fact, 0.0, 1.0);
     vec3 final_color = mix(texel.rgb, fog_color, fog_fact);
-
-    outColor = vec4( final_color, 1.0);
+    
+    if ( (in_surface_flags & SURF_TRANS66) == SURF_TRANS66) {
+        outColor = vec4( final_color, 0.33);
+    }
+    else {
+        outColor = vec4( final_color, 1.0);
+    }
 }
