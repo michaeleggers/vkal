@@ -103,6 +103,34 @@ typedef struct VertexBuffer
     Buffer       buffer;
 } VertexBuffer;
 
+typedef struct m_BspLeaf
+{
+    uint32_t   brush_or;          // ?
+	
+    int16_t    cluster;           // -1 for cluster indicates no visibility information
+    uint16_t   area;              // ?
+
+    vec3_16i   bbox_min;          // bounding box minimums
+    vec3_16i   bbox_max;          // bounding box maximums
+
+    uint16_t   first_leaf_face;   // index of the first face (in the face leaf array)
+    uint16_t   num_leaf_faces;    // number of consecutive faces (in the face leaf array)
+
+    uint16_t   first_leaf_brush;  // ?
+    uint16_t   num_leaf_brushes;  // ?
+
+    int        visframe;
+} m_BspLeaf;
+
+typedef struct MapModel
+{
+    BspNode * nodes;
+    uint32_t node_count;
+
+    m_BspLeaf * leaves;
+    uint32_t leaf_count;
+} MapModel;
+
 void camera_dolly(Camera * camera, vec3 translate);
 void camera_yaw(Camera * camera, float angle);
 void camera_pitch(Camera * camera, float angle);
@@ -117,6 +145,27 @@ static MapTexture g_sky_textures[MAX_MAP_TEXTURES];
 static uint32_t g_sky_texture_count;
 static MapFace  g_map_faces[MAX_MAP_FACES];
 static uint32_t g_map_face_count;
+static Vertex * map_vertices;
+
+/* Reset those every frame */
+static uint32_t vertex_count = 0;
+static uint32_t vertex_count_sky = 0;
+static uint32_t vertex_count_lights = 0;
+static uint32_t vertex_count_trans = 0;
+static uint32_t offset = 0;
+static uint32_t offset_sky = 0;
+static uint32_t offset_lights = 0;
+static uint32_t offset_trans = 0;
+
+/* Renderer current frame */
+static int r_framecount;
+
+static VertexBuffer transient_vertex_buffer;
+static VertexBuffer transient_vertex_buffer_sky;
+static VertexBuffer transient_vertex_buffer_lights;
+static VertexBuffer transient_vertex_buffer_sub_models;
+static VertexBuffer transient_vertex_buffer_trans;
+
 static Vertex g_skybox_verts[8] =
 {
     { .pos = { -1, 1, 1 } },
@@ -463,6 +512,132 @@ uint8_t * Mod_DecompressVis (uint8_t * in, Q2Bsp * bsp)
     return decompressed;
 }
 
+int point_in_leaf(Q2Bsp bsp, vec3 pos)
+{
+    BspNode * node = bsp.nodes;
+    BspLeaf current_leaf;
+    while (1) {
+	BspPlane plane = bsp.planes[ node->plane ];
+	vec3 plane_abc = (vec3){ -plane.normal.x, plane.normal.z, plane.normal.y };
+	float front_or_back = vec3_dot( pos, plane_abc ) - plane.distance;
+	if (front_or_back > 0) {
+	    int32_t front_child = node->front_child;
+	    if (front_child < 0) {
+		current_leaf = bsp.leaves[ -(front_child + 1) ];
+		break;
+	    }
+	    node = &bsp.nodes[ node->front_child ];
+	}
+	else {
+	    int32_t back_child = node->back_child;
+	    if (back_child < 0) {
+		current_leaf = bsp.leaves[ -(back_child + 1) ];
+		break;
+	    }
+	    node = &bsp.nodes[ node->back_child ];
+	}
+    }
+    return current_leaf.cluster;
+}
+
+
+void draw_leaf(Q2Bsp bsp, BspLeaf leaf)
+{
+    for (uint32_t leaf_face_idx = leaf.first_leaf_face; leaf_face_idx < (leaf.first_leaf_face + leaf.num_leaf_faces); ++leaf_face_idx) {
+	uint32_t face_idx = bsp.leaf_face_table[ leaf_face_idx ];
+	MapFace * face = &g_map_faces[ face_idx ];
+	uint32_t map_verts_offset = face->vertex_buffer_offset;
+	if (face->type == SKY) {
+	    vertex_count_sky += face->vertex_count;
+	    update_transient_vertex_buffer(&transient_vertex_buffer_sky, offset_sky, map_vertices + map_verts_offset, face->vertex_count);
+	    offset_sky = vertex_count_sky;
+	}
+	else if (face->type == REGULAR) {
+	    vertex_count += face->vertex_count;
+	    update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
+	    offset = vertex_count;
+	}
+	else if (face->type == LIGHT) {
+	    vertex_count_lights += face->vertex_count;
+	    update_transient_vertex_buffer(&transient_vertex_buffer_lights, offset_lights, map_vertices + map_verts_offset,
+					   face->vertex_count);
+	    offset_lights = vertex_count_lights;
+	}
+	else if (face->type == TRANS66) {
+	    vertex_count_trans += face->vertex_count;
+	    update_transient_vertex_buffer(&transient_vertex_buffer_trans, offset_trans, map_vertices + map_verts_offset,
+					   face->vertex_count);
+	    offset_trans = vertex_count_trans;
+	}
+    }
+}
+
+void draw_marked_leaves(Q2Bsp bsp, BspNode * node, uint8_t * pvs)
+{
+    int front_child = node->front_child;
+    int back_child  = node->back_child;
+    
+    if (front_child < 0) { // leaf
+	BspLeaf leaf = bsp.leaves[ -(front_child + 1) ];
+	if (isVisible(pvs, leaf.cluster)) {
+	    draw_leaf(bsp, leaf);
+	}
+    }
+    else {
+	draw_marked_leaves( bsp, &bsp.nodes[ front_child ], pvs );
+    }
+
+    if (back_child < 0) { // leaf
+	BspLeaf leaf = bsp.leaves[ -(back_child + 1) ];
+	if (isVisible(pvs, leaf.cluster)) {
+	    draw_leaf(bsp, leaf);
+	}
+    }
+    else {
+	draw_marked_leaves( bsp, &bsp.nodes[ back_child ], pvs );
+    }
+}
+
+void begin_drawing(void)
+{
+     vertex_count = 0;
+     vertex_count_sky = 0;
+     vertex_count_lights = 0;
+     vertex_count_trans = 0;
+     offset = 0;
+     offset_sky = 0;
+     offset_lights = 0;
+     offset_trans = 0;
+}
+
+MapModel init_mapmodel(Q2Bsp bsp)
+{
+    MapModel map_model = { 0 };
+    map_model.nodes = (BspNode*)malloc(bsp.node_count * sizeof(BspNode));
+    map_model.node_count = bsp.node_count;
+    memcpy(map_model.nodes, bsp.nodes, bsp.node_count * sizeof(BspNode));
+    
+    map_model.leaves = (m_BspLeaf*)malloc(bsp.leaf_count * sizeof(m_BspLeaf));
+    map_model.leaf_count = bsp.leaf_count;
+    m_BspLeaf * m_leaf = map_model.leaves;
+    BspLeaf   * d_leaf = bsp.leaves;
+    for (uint32_t i = 0; i < bsp.leaf_count; ++i) {
+	*( (BspLeaf*)m_leaf ) = *d_leaf;
+	m_leaf->visframe = -1;
+	m_leaf++; d_leaf++;
+    }
+    return map_model;
+}
+
+void deinit_mapmodel(MapModel map_model)
+{
+    assert(map_model.nodes != NULL);
+    free(map_model.nodes);
+
+    assert(map_model.leaves != NULL);
+    free(map_model.leaves);
+}
+
 int main(int argc, char ** argv)
 {
     init_physfs(argv[0]);
@@ -615,7 +790,7 @@ int main(int argc, char ** argv)
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
@@ -645,15 +820,10 @@ int main(int argc, char ** argv)
 	vkal_info->render_pass, pipeline_layout_sky);
     
     /* Load Quake 2 BSP map */
-    VertexBuffer transient_vertex_buffer;
     create_transient_vertex_buffer(&transient_vertex_buffer);
-    VertexBuffer transient_vertex_buffer_sky;
     create_transient_vertex_buffer(&transient_vertex_buffer_sky);
-    VertexBuffer transient_vertex_buffer_lights;
     create_transient_vertex_buffer(&transient_vertex_buffer_lights);
-    VertexBuffer transient_vertex_buffer_sub_models;
     create_transient_vertex_buffer(&transient_vertex_buffer_sub_models);
-    VertexBuffer transient_vertex_buffer_trans;
     create_transient_vertex_buffer(&transient_vertex_buffer_trans);
     
     uint8_t * bsp_data = NULL;
@@ -661,13 +831,14 @@ int main(int argc, char ** argv)
     p.rfb("../src/examples/assets/maps/michi2.bsp", &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
+    MapModel mapmodel = init_mapmodel(bsp);
     FILE * f_map_entities = fopen("entities.txt", "w");
     fprintf(f_map_entities, "%s", bsp.entities);
     fclose(f_map_entities);
     printf("BSP Cluster Count: %d\n", bsp.vis->numclusters);
     printf("BSP Brush Model Count: %d\n", bsp.sub_model_count);
     
-    Vertex * map_vertices = (Vertex*)malloc(MAX_MAP_VERTS*sizeof(Vertex));
+    map_vertices = (Vertex*)malloc(MAX_MAP_VERTS*sizeof(Vertex));
     uint16_t * map_indices = (uint16_t*)malloc(1024*1024*sizeof(uint16_t));
     uint32_t map_vertex_count = 0;
     uint32_t map_index_count = 0;
@@ -803,117 +974,22 @@ int main(int argc, char ** argv)
 
 
         /* Walk BSP to check in which cluster we are */
-	BspNode * node = bsp.nodes;
-	BspLeaf current_leaf;
-	while (1) {
-	    BspPlane plane = bsp.planes[ node->plane ];
-	    vec3 plane_abc = (vec3){ -plane.normal.x, plane.normal.z, plane.normal.y };
-	    float front_or_back = vec3_dot( camera.pos, plane_abc ) - plane.distance;
-	    if (front_or_back > 0) {
-		int32_t front_child = node->front_child;
-		if (front_child < 0) {
-		    current_leaf = bsp.leaves[ -(front_child + 1) ];
-		    break;
-		}
-		node = &bsp.nodes[ node->front_child ];
-	    }
-	    else {
-	        int32_t back_child = node->back_child;
-		if (back_child < 0) {
-		    current_leaf = bsp.leaves[ -(back_child + 1) ];
-		    break;
-		}
-		node = &bsp.nodes[ node->back_child ];
-	    }
-	}
-	int cluster_id = current_leaf.cluster;
+	int cluster_id = point_in_leaf(bsp, camera.pos);
 //	printf("%d\n", cluster_id);
 
+	begin_drawing();
+	
 	/* Update the vertex buffer */
-	uint32_t vertex_count = 0;
-	uint32_t vertex_count_sky = 0;
-	uint32_t vertex_count_lights = 0;
-	uint32_t vertex_count_trans = 0;
-	uint32_t offset = 0;
-	uint32_t offset_sky = 0;
-	uint32_t offset_lights = 0;
-	uint32_t offset_trans = 0;
 	if (cluster_id >= 0) {
-	    /* Go throug the leaves and select all within cluster 0 to be rendered */
-	    /* Get compressed PVS for cluster 0 */
 	    uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
 	    uint8_t * c_pvs = ((uint8_t*)(bsp.vis)) + c_pvs_idx;
 	    uint8_t * pvs = Mod_DecompressVis(c_pvs, &bsp);
-	    for (uint32_t i = 0; i < bsp.leaf_count; ++i) {
-		BspLeaf leaf = bsp.leaves[ i ];
-		if ( isVisible(pvs, leaf.cluster) ) {
-		    for (uint32_t leaf_face_idx = leaf.first_leaf_face; leaf_face_idx < (leaf.first_leaf_face + leaf.num_leaf_faces); ++leaf_face_idx) {
-			uint32_t face_idx = bsp.leaf_face_table[ leaf_face_idx ];
-			MapFace * face = &g_map_faces[ face_idx ];
-			uint32_t map_verts_offset = face->vertex_buffer_offset;
-			if (face->type == SKY) {
-			    vertex_count_sky += face->vertex_count;
-			    update_transient_vertex_buffer(&transient_vertex_buffer_sky, offset_sky, map_vertices + map_verts_offset, face->vertex_count);
-			    offset_sky = vertex_count_sky;
-			}
-			else if (face->type == REGULAR) {
-			    vertex_count += face->vertex_count;
-			    update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
-			    offset = vertex_count;
-			}
-			else if (face->type == LIGHT) {
-			    vertex_count_lights += face->vertex_count;
-			    update_transient_vertex_buffer(&transient_vertex_buffer_lights, offset_lights, map_vertices + map_verts_offset,
-							   face->vertex_count);
-			    offset_lights = vertex_count_lights;
-			}
-			else if (face->type == TRANS66) {
-			    vertex_count_trans += face->vertex_count;
-			    update_transient_vertex_buffer(&transient_vertex_buffer_trans, offset_trans, map_vertices + map_verts_offset,
-							   face->vertex_count);
-			    offset_trans = vertex_count_trans;
-			}
-		    }
-		}
-	    }
+	    draw_marked_leaves(bsp, bsp.nodes, pvs);
 	}
 	else {
 	    vertex_count = map_vertex_count;
 	    update_transient_vertex_buffer(&transient_vertex_buffer, 0, map_vertices, vertex_count);
 	}	
-
-#if 0
-	for (uint32_t i = 0; i < bsp.node_count; ++i) {
-	    uint16_t face_idx = bsp.nodes[ i ].first_face;
-	    uint16_t num_faces = bsp.nodes[ i ].num_faces;
-	    for (uint16_t f = face_idx; f < face_idx + num_faces; ++f) {
-		MapFace * face = &g_map_faces[ face_idx ];
-		uint32_t map_verts_offset = face->vertex_buffer_offset;
-		vertex_count += face->vertex_count;
-		update_transient_vertex_buffer(&transient_vertex_buffer, offset, map_vertices + map_verts_offset, face->vertex_count);
-		offset = vertex_count;
-	    }
-	}
-#endif
-	
-	/* Always draw Submodels ( = Brush Models) */
-	uint32_t sub_models_vertex_count = 0;
-	uint32_t sub_models_offset = 0;
-#if 0
-	for (uint32_t sub_model_idx = 1; sub_model_idx < bsp.sub_model_count; ++sub_model_idx) { // start at idx=0 because 0 is the whole map!
-	    int first_face = bsp.sub_models[ sub_model_idx ].firstface;
-	    int face_count = bsp.sub_models[ sub_model_idx ].numfaces;
-	    for (uint32_t face_idx = (uint32_t)first_face; face_idx < (uint32_t)first_face + (uint32_t)face_count; ++face_idx) {
-		MapFace * face = &g_map_faces[ face_idx ];
-		if (face->type != NODRAW) {
-		    uint32_t map_verts_offset = face->vertex_buffer_offset;
-		    sub_models_vertex_count += face->vertex_count;
-		    update_transient_vertex_buffer(&transient_vertex_buffer_sub_models, sub_models_offset, map_vertices + map_verts_offset, face->vertex_count);
-		    sub_models_offset = sub_models_vertex_count;
-		}
-	    }
-	}
-#endif
 	
 	{
 	    uint32_t image_id = vkal_get_image();
@@ -935,12 +1011,7 @@ int main(int argc, char ** argv)
 	    vkal_draw_from_buffers(transient_vertex_buffer.buffer,
 				   image_id, graphics_pipeline,
 				   0, vertex_count);
-	    
-	    /* Draw Sub Models (Brush Models) */
-	    vkal_draw_from_buffers(transient_vertex_buffer_sub_models.buffer,
-				   image_id, graphics_pipeline,
-				   0, sub_models_vertex_count);
-
+	   
 	    /* Draw Lights */
 	    vkal_draw_from_buffers(transient_vertex_buffer_lights.buffer,
 				   image_id, graphics_pipeline,
@@ -969,8 +1040,12 @@ int main(int argc, char ** argv)
 	    vkal_queue_submit(command_buffers1, 1);
 
 	    vkal_present(image_id);
+
+	    r_framecount++;
 	}
     }
+
+    deinit_mapmodel(mapmodel);
     
     vkal_cleanup();
 
