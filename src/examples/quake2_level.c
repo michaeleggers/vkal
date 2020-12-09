@@ -74,8 +74,11 @@ typedef struct MapFace
 {
     MapFaceType type;
     uint32_t vertex_buffer_offset;
+    uint32_t vk_vertex_buffer_offset;
     uint32_t vertex_count;
     uint32_t texture_id;
+    uint32_t side;
+    int      visframe;
 } MapFace;
 
 typedef struct MapTexture
@@ -145,7 +148,9 @@ static MapTexture g_sky_textures[MAX_MAP_TEXTURES];
 static uint32_t g_sky_texture_count;
 static MapFace  g_map_faces[MAX_MAP_FACES];
 static uint32_t g_map_face_count;
+
 static Vertex * map_vertices;
+static uint32_t offset_vertices;
 
 /* Reset those every frame */
 static uint32_t vertex_count = 0;
@@ -160,12 +165,24 @@ static uint32_t offset_trans = 0;
 /* Renderer current frame */
 static int r_framecount;
 
+static MapModel mapmodel;
+
 static VertexBuffer transient_vertex_buffer;
 static VertexBuffer transient_vertex_buffer_sky;
 static VertexBuffer transient_vertex_buffer_lights;
 static VertexBuffer transient_vertex_buffer_sub_models;
 static VertexBuffer transient_vertex_buffer_trans;
 
+/* Vulkan Stuff */
+static VkPipelineLayout pipeline_layout_sky;
+static VkPipeline       graphics_pipeline_sky;
+
+static VkPipelineLayout pipeline_layout;
+static VkPipeline       graphics_pipeline;
+
+static VkDescriptorSet * descriptor_set;
+
+/* Static geometry, such as a cube */
 static Vertex g_skybox_verts[8] =
 {
     { .pos = { -1, 1, 1 } },
@@ -270,7 +287,18 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+    GLFWmonitor* primary = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(primary);
+    
+    glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+    glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+    glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+    glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+
+//    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
     g_window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Michi's Quake 2 BSP Vulkan Renderer ;)", 0, 0);
+
     glfwSetKeyCallback(g_window, glfw_key_callback);
 }
 
@@ -622,6 +650,86 @@ void draw_marked_leaves(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3 pos)
     }
 }
 
+void draw_leaf_immediate(Q2Bsp bsp, m_BspLeaf * leaf, uint32_t side, uint32_t image_id)
+{
+    for (uint32_t leaf_face_idx = leaf->first_leaf_face; leaf_face_idx < (leaf->first_leaf_face + leaf->num_leaf_faces); ++leaf_face_idx) {
+	uint32_t face_idx = bsp.leaf_face_table[ leaf_face_idx ];
+	MapFace * face = &g_map_faces[ face_idx ];
+	if (face->visframe == r_framecount) continue;
+	face->visframe = r_framecount;
+	uint32_t map_verts_offset = face->vk_vertex_buffer_offset;
+	if (face->type == SKY) {
+	    vkal_bind_descriptor_set(image_id, &descriptor_set[1], pipeline_layout_sky);
+	    vkal_draw(image_id, graphics_pipeline_sky, map_verts_offset, face->vertex_count);
+	}
+	else if (face->type == REGULAR) {
+	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
+	    vkal_draw(image_id, graphics_pipeline, map_verts_offset, face->vertex_count);
+	}
+	else if (face->type == LIGHT) {
+	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
+	    vkal_draw(image_id, graphics_pipeline, map_verts_offset, face->vertex_count);
+	}
+	else if (face->type == TRANS66) {
+	    printf("%d, ", face_idx);
+	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
+	    vkal_draw(image_id, graphics_pipeline, map_verts_offset, face->vertex_count);
+	}
+    }
+}
+
+void draw_marked_leaves_immediate(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3 pos, uint32_t image_id)
+{
+    int front_child = node->front_child;
+    int back_child  = node->back_child;
+    BspPlane plane = bsp.planes[ node->plane ];
+    vec3 plane_abc = (vec3){ -plane.normal.x, plane.normal.z, plane.normal.y };
+    float front_or_back = vec3_dot( pos, plane_abc ) - plane.distance;
+    uint32_t side;
+    
+    if (front_or_back < 0) { // viewpos on backside of node -> traverse front child
+	if (front_child < 0) {
+	    m_BspLeaf * leaf = &mapmodel.leaves[ -(front_child + 1) ];
+	    if (isVisible(pvs, leaf->cluster)) {
+		draw_leaf_immediate(bsp, leaf, 1, image_id);
+	    }       
+	}
+	else {
+	    draw_marked_leaves_immediate( bsp, &bsp.nodes[ front_child ], pvs, pos, image_id );	    
+	}
+	if (back_child < 0) {
+	    m_BspLeaf * leaf = &mapmodel.leaves[ -(back_child + 1) ];
+	    if (isVisible(pvs, leaf->cluster)) {
+		draw_leaf_immediate(bsp, leaf, 1, image_id);
+	    }
+	}
+	else {
+	    draw_marked_leaves_immediate( bsp, &bsp.nodes[ back_child ], pvs, pos, image_id );	    
+	}
+    }
+    else {
+	if (back_child < 0) {
+	    m_BspLeaf * leaf = &mapmodel.leaves[ -(back_child + 1) ];
+	    if (isVisible(pvs, leaf->cluster)) {
+		draw_leaf_immediate(bsp, leaf, 0, image_id);
+	    }       
+	}
+	else {
+	    draw_marked_leaves_immediate( bsp, &bsp.nodes[ back_child ], pvs, pos, image_id );	    
+	}
+	if (front_child < 0) {
+	    m_BspLeaf * leaf = &mapmodel.leaves[ -(front_child + 1) ];
+	    if (isVisible(pvs, leaf->cluster)) {
+		draw_leaf_immediate(bsp, leaf, 0, image_id);
+	    }
+	}
+	else {
+	    draw_marked_leaves_immediate( bsp, &bsp.nodes[ front_child ], pvs, pos, image_id );	    
+	}
+    }
+}
+
+
 void begin_drawing(void)
 {
      vertex_count = 0;
@@ -788,11 +896,10 @@ int main(int argc, char ** argv)
 	descriptor_set_layout_sky
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
-    VkDescriptorSet * descriptor_set = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
+    descriptor_set = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
     vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_set);
 
     /* Create dummy Texture to make sure every descriptor is initialized */
-
     Image dummy_img = load_image_file_from_dir("textures", "michi");
     Texture dummy_texture = vkal_create_texture(1, dummy_img.data, dummy_img.width, dummy_img.height, 4, 0,
 						VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
@@ -808,10 +915,10 @@ int main(int argc, char ** argv)
     }
     
     /* Pipeline */
-    VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
+    pipeline_layout = vkal_create_pipeline_layout(
 	layouts, 1, 
 	NULL, 0);
-    VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
+    graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
 	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
@@ -832,10 +939,10 @@ int main(int argc, char ** argv)
 	vkal_info->render_pass, pipeline_layout_trans);
 
     /* Pipeline for Skybox */
-    VkPipelineLayout pipeline_layout_sky = vkal_create_pipeline_layout(
+    pipeline_layout_sky = vkal_create_pipeline_layout(
 	&layouts[1], 1, 
 	NULL, 0);
-    VkPipeline graphics_pipeline_sky = vkal_create_graphics_pipeline(
+    graphics_pipeline_sky = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
 	shader_setup_sky, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
@@ -855,7 +962,7 @@ int main(int argc, char ** argv)
     p.rfb("../src/examples/assets/maps/michi3.bsp", &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
-    MapModel mapmodel = init_mapmodel(bsp);
+    mapmodel = init_mapmodel(bsp);
     FILE * f_map_entities = fopen("entities.txt", "w");
     fprintf(f_map_entities, "%s", bsp.entities);
     fclose(f_map_entities);
@@ -922,8 +1029,9 @@ int main(int argc, char ** argv)
 	    v.normal.x = -normal.x;
 	    v.normal.y =  normal.z;
 	    v.normal.z =  normal.y;
-	    v.uv.x = (-x * texinfo.u_axis.x + y * texinfo.u_axis.z + z * texinfo.u_axis.y + texinfo.u_offset)/(float)(0.25*(float)tex_width);
-	    v.uv.y = (-x * texinfo.v_axis.x + y * texinfo.v_axis.z + z * texinfo.v_axis.y + texinfo.v_offset)/(float)(0.25*(float)tex_height);
+	    float scale = 1.0; //0.25; 0.25 for yamagi texture pack
+	    v.uv.x = (-x * texinfo.u_axis.x + y * texinfo.u_axis.z + z * texinfo.u_axis.y + texinfo.u_offset)/(float)(scale*(float)tex_width);
+	    v.uv.y = (-x * texinfo.v_axis.x + y * texinfo.v_axis.z + z * texinfo.v_axis.y + texinfo.v_offset)/(float)(scale*(float)tex_height);
 	    v.texture_id = texture_id;
 	    v.surface_flags = texture_flags;
 	    map_vertices[ map_vertex_count++ ] = v;
@@ -931,10 +1039,12 @@ int main(int argc, char ** argv)
 
 	g_map_faces[ g_map_face_count ].vertex_buffer_offset = prev_map_vertex_count;
 	g_map_faces[ g_map_face_count ].vertex_count = tris.idx_count;
+	g_map_faces[ g_map_face_count ].vk_vertex_buffer_offset = vkal_vertex_buffer_add(map_vertices + prev_map_vertex_count, sizeof(Vertex), tris.idx_count);
+	g_map_faces[ g_map_face_count ].side = face.plane_side;
 	g_map_face_count++;
 	} // end for face_idx
 
-    uint32_t offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
+//    offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
 //    uint32_t offset_indices  = vkal_index_buffer_add(map_indices, map_index_count);
 
     uint32_t offset_sky_vertices = vkal_vertex_buffer_add(g_skybox_verts, sizeof(Vertex), sizeof(g_skybox_verts)/sizeof(*g_skybox_verts));
@@ -997,13 +1107,15 @@ int main(int argc, char ** argv)
 
 
 
+
         /* Walk BSP to check in which cluster we are */
 	int cluster_id = point_in_leaf(bsp, camera.pos);
-//	printf("%d\n", cluster_id);
+	printf("%d\n", cluster_id);
 
 	begin_drawing();
 
-#if 1
+//	vkDeviceWaitIdle(vkal_info->device);
+#if 0
 	/* Update the vertex buffer */
 	if (cluster_id >= 0) {
 	    uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
@@ -1016,7 +1128,7 @@ int main(int argc, char ** argv)
 	    update_transient_vertex_buffer(&transient_vertex_buffer, 0, map_vertices, vertex_count);
 	}	
 #endif
-	
+
 	{
 	    uint32_t image_id = vkal_get_image();
 
@@ -1028,13 +1140,20 @@ int main(int argc, char ** argv)
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
 			 width, height);
-	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
+//	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
 //	    vkal_draw_indexed(image_id, graphics_pipeline,
 //			      offset_indices, map_index_count,
 //			      offset_vertices);
 //	    vkal_draw(image_id, graphics_pipeline, offset_vertices, map_vertex_count);
+	    printf("START FRAME\n----------------------\n");
+	    if (cluster_id >= 0) {
+		uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
+		uint8_t * c_pvs = ((uint8_t*)(bsp.vis)) + c_pvs_idx;
+		uint8_t * pvs = Mod_DecompressVis(c_pvs, &bsp);
+		draw_marked_leaves_immediate(bsp, bsp.nodes, pvs, camera.pos, image_id);
+	    }	    
 
-#if 1
+#if 0
 	    /* Draw Map */
 	    vkal_draw_from_buffers(transient_vertex_buffer.buffer,
 				   image_id, graphics_pipeline,
@@ -1071,6 +1190,7 @@ int main(int argc, char ** argv)
 	    vkal_present(image_id);
 
 	    r_framecount++;
+	    printf("END FRAME\n----------------------\n");
 	}
     }
 

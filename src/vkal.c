@@ -3498,7 +3498,6 @@ void vkal_present(uint32_t image_id)
     }
     
     vkal_info.frames_rendered = (vkal_info.frames_rendered+1) % VKAL_MAX_IMAGES_IN_FLIGHT;
-//    vkQueueWaitIdle(vkal_info.graphics_queue);
 }
 
 void create_default_semaphores(void)

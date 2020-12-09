@@ -33,9 +33,10 @@ void main()
     vec3 ambient = vec3(.01, .01, .01);
     
     /* Fog */
-    vec3 fog_color = vec3(0.761, 0.698, 0.502);
-    float min_fog_radius = 25.0;
-    float max_fog_radius = 1500.0;
+    //vec3 fog_color = vec3(0.761, 0.698, 0.502); // sand color
+    vec3 fog_color = vec3(0.161, 0.118, 0.112);
+    float min_fog_radius = 50.0;
+    float max_fog_radius = 2500.0;
     float dist = length(in_eye_cam_pos_distance);
     float fog_fact = (dist - min_fog_radius) / (max_fog_radius - min_fog_radius);
     fog_fact = clamp(fog_fact, 0.0, 1.0);
