@@ -26,7 +26,7 @@ layout(set = 0, binding = 1) uniform sampler2D u_textures[];
 
 void main() 
 {
-#if 1
+
     vec4 texel = texture(u_textures[ in_texture_id ], in_uv);
     float z = in_position.z / in_position.w;
 	vec3 normal_color = 0.5*in_normal+0.5;
@@ -48,6 +48,6 @@ void main()
     else {
         outColor = vec4( final_color, 1.0);
     }
-    #endif
-    //outColor = vec4( 0.5*in_normal + 0.5, 1.0);
+    
+    //outColor = vec4( 0.5*in_normal + 0.5, 0.66);
 }

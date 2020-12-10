@@ -650,25 +650,41 @@ void draw_marked_leaves(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3 pos)
     }
 }
 
-void draw_leaf_immediate(Q2Bsp bsp, m_BspLeaf * leaf, uint32_t side, uint32_t image_id)
+
+static BspNode * g_current_node;
+void draw_leaf_immediate(Q2Bsp bsp, m_BspLeaf * leaf, uint32_t side, vec3 pos, uint32_t image_id)
 {
     for (uint32_t leaf_face_idx = leaf->first_leaf_face; leaf_face_idx < (leaf->first_leaf_face + leaf->num_leaf_faces); ++leaf_face_idx) {
 	uint32_t face_idx = bsp.leaf_face_table[ leaf_face_idx ];
 	MapFace * face = &g_map_faces[ face_idx ];
-	if (face->visframe == r_framecount) continue;
+
+	BspPlane face_plane = bsp.planes[ bsp.faces[ face_idx ].plane ];
+	vec3 plane_abc = (vec3){ -face_plane.normal.x, face_plane.normal.z, face_plane.normal.y };
+	float front_or_back = vec3_dot( pos, plane_abc ) - face_plane.distance;
+	if ( (front_or_back < 0)  ) {
+	    side = 1; 
+	}
+	else {
+	    side = 0;
+	}
+	if ( side != face->side ) continue;
+	   
+	
+//	if (face->visframe == r_framecount) continue;
+//	if (face->side == side) continue;
 	face->visframe = r_framecount;
 	uint32_t map_verts_offset = face->vk_vertex_buffer_offset;
 	if (face->type == SKY) {
-	    vkal_bind_descriptor_set(image_id, &descriptor_set[1], pipeline_layout_sky);
-	    vkal_draw(image_id, graphics_pipeline_sky, map_verts_offset, face->vertex_count);
+//	    vkal_bind_descriptor_set(image_id, &descriptor_set[1], pipeline_layout_sky);
+//	    vkal_draw(image_id, graphics_pipeline_sky, map_verts_offset, face->vertex_count);
 	}
 	else if (face->type == REGULAR) {
-	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
-	    vkal_draw(image_id, graphics_pipeline, map_verts_offset, face->vertex_count);
+//	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
+//	    vkal_draw(image_id, graphics_pipeline, map_verts_offset, face->vertex_count);
 	}
 	else if (face->type == LIGHT) {
-	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
-	    vkal_draw(image_id, graphics_pipeline, map_verts_offset, face->vertex_count);
+//	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
+//	    vkal_draw(image_id, graphics_pipeline, map_verts_offset, face->vertex_count);
 	}
 	else if (face->type == TRANS66) {
 	    printf("%d, ", face_idx);
@@ -676,10 +692,12 @@ void draw_leaf_immediate(Q2Bsp bsp, m_BspLeaf * leaf, uint32_t side, uint32_t im
 	    vkal_draw(image_id, graphics_pipeline, map_verts_offset, face->vertex_count);
 	}
     }
+
 }
 
 void draw_marked_leaves_immediate(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3 pos, uint32_t image_id)
 {
+    g_current_node = node;
     int front_child = node->front_child;
     int back_child  = node->back_child;
     BspPlane plane = bsp.planes[ node->plane ];
@@ -691,7 +709,7 @@ void draw_marked_leaves_immediate(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3
 	if (front_child < 0) {
 	    m_BspLeaf * leaf = &mapmodel.leaves[ -(front_child + 1) ];
 	    if (isVisible(pvs, leaf->cluster)) {
-		draw_leaf_immediate(bsp, leaf, 1, image_id);
+		draw_leaf_immediate(bsp, leaf, 1, pos, image_id);
 	    }       
 	}
 	else {
@@ -700,7 +718,7 @@ void draw_marked_leaves_immediate(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3
 	if (back_child < 0) {
 	    m_BspLeaf * leaf = &mapmodel.leaves[ -(back_child + 1) ];
 	    if (isVisible(pvs, leaf->cluster)) {
-		draw_leaf_immediate(bsp, leaf, 1, image_id);
+		draw_leaf_immediate(bsp, leaf, 1, pos, image_id);
 	    }
 	}
 	else {
@@ -711,7 +729,7 @@ void draw_marked_leaves_immediate(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3
 	if (back_child < 0) {
 	    m_BspLeaf * leaf = &mapmodel.leaves[ -(back_child + 1) ];
 	    if (isVisible(pvs, leaf->cluster)) {
-		draw_leaf_immediate(bsp, leaf, 0, image_id);
+		draw_leaf_immediate(bsp, leaf, 0, pos, image_id);
 	    }       
 	}
 	else {
@@ -720,7 +738,7 @@ void draw_marked_leaves_immediate(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3
 	if (front_child < 0) {
 	    m_BspLeaf * leaf = &mapmodel.leaves[ -(front_child + 1) ];
 	    if (isVisible(pvs, leaf->cluster)) {
-		draw_leaf_immediate(bsp, leaf, 0, image_id);
+		draw_leaf_immediate(bsp, leaf, 0, pos, image_id);
 	    }
 	}
 	else {
@@ -912,7 +930,7 @@ int main(int argc, char ** argv)
 	    i,
 	    dummy_texture);
 
-    }
+   } 
     
     /* Pipeline */
     pipeline_layout = vkal_create_pipeline_layout(
@@ -921,7 +939,7 @@ int main(int argc, char ** argv)
     graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
