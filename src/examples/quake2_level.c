@@ -441,10 +441,7 @@ void init_physfs(char const * argv0)
         printf("PHYSFS_init() failed!\n  reason: %s.\n", PHYSFS_getLastError());
         exit(-1);
     }
-    
-    if ( !PHYSFS_mount("q2_textures.zip", "/", 0) ) {
-	printf("PHYSFS_mount() failed!\n  reason: %s.\n", PHYSFS_getLastError());
-    }
+
 }
 
 void deinit_physfs()
@@ -770,6 +767,12 @@ void deinit_mapmodel(MapModel map_model)
     free(map_model.leaves);
 }
 
+void concat_str(uint8_t * str1, uint8_t * str2, uint8_t * out_result)
+{
+	strcpy(out_result, str1);
+	strcat(out_result, str2);
+}
+
 int main(int argc, char ** argv)
 {
 	
@@ -779,6 +782,12 @@ int main(int argc, char ** argv)
     
 	uint8_t exe_dir[128];	
 	p.gep(exe_dir, 128);
+
+	uint8_t textures_dir[128];
+	concat_str(exe_dir, "/q2_textures.zip", textures_dir);	
+	if (!PHYSFS_mount(textures_dir, "/", 0)) {
+		printf("PHYSFS_mount() failed!\n  reason: %s.\n", PHYSFS_getLastError());
+	}
 
     char * device_extensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -820,24 +829,31 @@ int main(int argc, char ** argv)
     VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
     
     /* Shader Setup */
-    uint8_t * vertex_byte_code = 0;
+	uint8_t shader_path[128];    
+	uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.rfb("../src/examples/assets/shaders/q2bsp_vert.spv", &vertex_byte_code, &vertex_code_size);
+	concat_str(exe_dir, "/../shaders/q2bsp_vert.spv", shader_path);
+    p.rfb(shader_path, &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.rfb("../src/examples/assets/shaders/q2bsp_frag.spv", &fragment_byte_code, &fragment_code_size);
+	concat_str(exe_dir, "/../shaders/q2bsp_frag.spv", shader_path);
+    p.rfb(shader_path, &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
 
-    p.rfb("../src/examples/assets/shaders/q2bsp_sky_vert.spv", &vertex_byte_code, &vertex_code_size);
-    p.rfb("../src/examples/assets/shaders/q2bsp_sky_frag.spv", &fragment_byte_code, &fragment_code_size);
+	concat_str(exe_dir, "/../shaders/q2bsp_sky_vert.spv", shader_path);
+    p.rfb(shader_path, &vertex_byte_code, &vertex_code_size);
+	concat_str(exe_dir, "/../shaders/q2bsp_sky_frag.spv", shader_path);
+    p.rfb(shader_path, &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup_sky = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
-
-    p.rfb("../src/examples/assets/shaders/q2bsp_trans_vert.spv", &vertex_byte_code, &vertex_code_size);
-    p.rfb("../src/examples/assets/shaders/q2bsp_trans_frag.spv", &fragment_byte_code, &fragment_code_size);
+	
+	concat_str(exe_dir, "/../shaders/q2bsp_trans_vert.spv", shader_path);
+    p.rfb(shader_path, &vertex_byte_code, &vertex_code_size);
+	concat_str(exe_dir, "/../shaders/q2bsp_trans_frag.spv", shader_path);
+    p.rfb(shader_path, &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup_trans = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -963,7 +979,9 @@ int main(int argc, char ** argv)
     
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
-    p.rfb("../src/examples/assets/maps/michi3.bsp", &bsp_data, &bsp_data_size);
+	uint8_t map_path[128];
+	concat_str(exe_dir, "/../maps/michi3.bsp", map_path);
+    p.rfb(map_path, &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
     printf("BSP LEAF COUNT: %d\n", bsp.leaf_count);
