@@ -32,7 +32,7 @@ void win32_read_file_binary(char const * filename, uint8_t ** out_buffer, int * 
 		NULL
 	);
 	if (fileHandle == INVALID_HANDLE_VALUE)
-		printf("unable to open file!\n");
+		printf("unable to open file: %s\n", filename);
 
 	DWORD filesize = GetFileSize(fileHandle, NULL);
 
@@ -55,6 +55,7 @@ void win32_read_file_binary(char const * filename, uint8_t ** out_buffer, int * 
 		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 			errorMsgBuf, (sizeof(errorMsgBuf) / sizeof(char)), NULL);
+
 		printf("%s\n", errorMsgBuf);
 	}
 	else
@@ -63,6 +64,36 @@ void win32_read_file_binary(char const * filename, uint8_t ** out_buffer, int * 
 		*out_size = filesize;
 	}
 	CloseHandle(fileHandle);
+}
+
+void win32_get_exe_path(uint8_t * out_buffer, int out_size)
+{
+	//if (!GetModuleFileNameA(
+	//	NULL,
+	//	out_buffer,
+	//	out_size
+	//)) {
+	//	DWORD error = GetLastError();
+	//	char errorMsgBuf[256];
+	//	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+	//		NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+	//		errorMsgBuf, (sizeof(errorMsgBuf) / sizeof(char)), NULL);
+
+	//	printf("%s\n", errorMsgBuf);
+	//}
+
+	if (!GetCurrentDirectory(
+		out_size,
+		out_buffer
+	)) {
+		DWORD error = GetLastError();
+		char errorMsgBuf[256];
+		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			errorMsgBuf, (sizeof(errorMsgBuf) / sizeof(char)), NULL);
+
+		printf("%s\n", errorMsgBuf);
+	}
 }
 
 void * win32_initialize_memory(uint32_t size)
@@ -89,6 +120,7 @@ void init_platform(Platform * p)
 	/* Platform specific */
 #ifdef _WIN32
 	p->rfb = win32_read_file_binary;
+	p->gep = win32_get_exe_path;
 	p->initialize_memory = win32_initialize_memory;
 	
 	

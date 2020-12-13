@@ -1,7 +1,12 @@
  (set-background-color "#dbdbdb")
  (set-frame-font "Consolas 11" nil t)
+
+ ;(push (substitute-in-file-name "./") custom-theme-load-path)
+;(load-theme 'borland-blue t)
+
  (setq c-default-style "linux"
       c-basic-offset 4)
+
  
 ; (setq backup-directory-alist `(("." . "~/.saves")))
 (blink-cursor-mode 0) ; disable cursor blinking

@@ -4,10 +4,12 @@
 #include <stdint.h>
 
 typedef void(*READ_FILE_BINARY)(char const * filename, uint8_t ** out_buffer, int * out_size);
+typedef void(*GET_EXE_PATH)(uint8_t * out_buffer, int * out_size);
 typedef void*(*INITIALIZE_MEMORY)(uint32_t size);
 typedef struct Platform
 {
-	READ_FILE_BINARY rfb;
+	READ_FILE_BINARY  rfb;
+	GET_EXE_PATH      gep;
 	INITIALIZE_MEMORY initialize_memory;
 } Platform;
 

@@ -3,6 +3,12 @@
 
 #include "tr_math.h"
 
+
+#define MAX_QPATH              128
+//////////////////////////////////////////////////////////
+// File BSP representation
+//////////////////////////////////////////////////////////
+
 /* Flags of BspTexinfo */
 #define	SURF_LIGHT		0x1		// value will hold the light strength
 #define	SURF_SLICK		0x2		// effects game physics
@@ -213,6 +219,127 @@ typedef struct Q2Bsp
     BspVis         * vis;
     BspVisOffset   * vis_offsets; // there are as many of those as numclusters
 } Q2Bsp;
+
+
+//////////////////////////////////////////////////////////
+// Runtime BSP representation
+//////////////////////////////////////////////////////////
+
+typedef enum MapFaceType
+{
+    REGULAR,
+    LIGHT,
+    SKY,
+    TRANS33,
+    TRANS66,
+    NODRAW
+} MapFaceType;
+
+typedef struct MapFace
+{
+    MapFaceType type;
+    uint32_t    vertex_buffer_offset;
+    uint32_t    vk_vertex_buffer_offset;
+    uint32_t    vertex_count;
+    uint32_t    texture_id;
+    uint32_t    side;
+    int         visframe;
+} MapFace;
+
+typedef struct Leaf
+{
+    int cluster;
+    int area;
+
+    MapFace ** firstmarksurface;
+    int        nummarksurfaces;
+} Leaf;
+
+typedef struct Node Node;
+typedef struct _Node
+{
+    BspPlane * plane;
+    Node * front;
+    Node * back;
+    uint16_t firstsurface;
+    uint16_t numsurfaces;
+} _Node;
+
+typedef enum NodeType { NODE, LEAF } NodeType;
+struct Node
+{    
+    int visframe;
+    vec3_16i bbox_min;
+    vec3_16i bbox_max;
+    
+    Node * parent;
+ 
+    NodeType type;
+    union content {
+	_Node node;
+	Leaf  leaf;
+    } content;
+};
+
+
+typedef enum {mod_bad, mod_brush, mod_sprite, mod_alias } modtype_t;
+typedef struct BspWorldModel
+{
+    char		name[MAX_QPATH];
+
+    int			registration_sequence;
+
+    int			flags;
+
+//
+// volume occupied by the model graphics
+//		
+    vec3		mins, maxs;
+    float		radius;
+
+
+//
+// brush model
+//
+    int			firstmodelsurface, nummodelsurfaces;
+
+    int		        numsubmodels;
+    BspSubModel	        *submodels;
+
+    int			numplanes;
+    BspPlane    	*planes;
+
+    uint32_t		leaf_count;		// number of visible leafs, not counting 0
+    Node 		*leaves;
+
+    int		        numvertexes;
+    vec3	        *vertices;
+
+    int		        numedges;
+    uint32_t	        *edges;
+
+    int		        numnodes;
+    int		        firstnode;
+    Node                *nodes;
+
+    int		        numtexinfo;
+    BspTexinfo          *texinfos;
+    
+    int		        numsurfaces;
+    MapFace         	*surfaces;
+
+    int			numsurfedges;
+    int			*surfedges;
+    
+    int			nummarksurfaces;
+    MapFace             **marksurfaces;
+    
+    BspVis              *vis;
+    BspVisOffset        *vis_offsets; // there are as many of those as numclusters
+    
+    uint8_t		*lightdata;
+} BspWorldModel;
+
 
 Q2Bsp q2bsp_init(uint8_t * data);
 Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face);

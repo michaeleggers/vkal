@@ -21,6 +21,7 @@
 #define TRM_NDC_ZERO_TO_ONE
 #include "utils/tr_math.h"
 
+
 #define SCREEN_WIDTH  1920
 #define SCREEN_HEIGHT 1080
 
@@ -60,26 +61,7 @@ typedef struct Vertex
     uint32_t surface_flags;
 } Vertex;
 
-typedef enum MapFaceType
-{
-    REGULAR,
-    LIGHT,
-    SKY,
-    TRANS33,
-    TRANS66,
-    NODRAW
-} MapFaceType;
 
-typedef struct MapFace
-{
-    MapFaceType type;
-    uint32_t vertex_buffer_offset;
-    uint32_t vk_vertex_buffer_offset;
-    uint32_t vertex_count;
-    uint32_t texture_id;
-    uint32_t side;
-    int      visframe;
-} MapFace;
 
 typedef struct MapTexture
 {
@@ -661,18 +643,17 @@ void draw_leaf_immediate(Q2Bsp bsp, m_BspLeaf * leaf, uint32_t side, vec3 pos, u
 	BspPlane face_plane = bsp.planes[ bsp.faces[ face_idx ].plane ];
 	vec3 plane_abc = (vec3){ -face_plane.normal.x, face_plane.normal.z, face_plane.normal.y };
 	float front_or_back = vec3_dot( pos, plane_abc ) - face_plane.distance;
+	uint32_t face_plane_side;
 	if ( (front_or_back < 0)  ) {
-	    side = 1; 
+	    face_plane_side = 1; 
 	}
 	else {
-	    side = 0;
+	    face_plane_side = 0;
 	}
-	if ( side != face->side ) continue;
-	   
-	
-//	if (face->visframe == r_framecount) continue;
-//	if (face->side == side) continue;
+	if ( face_plane_side != face->side ) continue;	  	
+	if (face->visframe == r_framecount) continue;
 	face->visframe = r_framecount;
+	
 	uint32_t map_verts_offset = face->vk_vertex_buffer_offset;
 	if (face->type == SKY) {
 //	    vkal_bind_descriptor_set(image_id, &descriptor_set[1], pipeline_layout_sky);
@@ -687,7 +668,7 @@ void draw_leaf_immediate(Q2Bsp bsp, m_BspLeaf * leaf, uint32_t side, vec3 pos, u
 //	    vkal_draw(image_id, graphics_pipeline, map_verts_offset, face->vertex_count);
 	}
 	else if (face->type == TRANS66) {
-	    printf("%d, ", face_idx);
+	    //printf("%d, ", face_idx);
 	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
 	    vkal_draw(image_id, graphics_pipeline, map_verts_offset, face->vertex_count);
 	}
@@ -706,10 +687,11 @@ void draw_marked_leaves_immediate(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3
     uint32_t side;
     
     if (front_or_back < 0) { // viewpos on backside of node -> traverse front child
+	side = 1;
 	if (front_child < 0) {
 	    m_BspLeaf * leaf = &mapmodel.leaves[ -(front_child + 1) ];
 	    if (isVisible(pvs, leaf->cluster)) {
-		draw_leaf_immediate(bsp, leaf, 1, pos, image_id);
+		draw_leaf_immediate(bsp, leaf, 0, pos, image_id);
 	    }       
 	}
 	else {
@@ -726,10 +708,11 @@ void draw_marked_leaves_immediate(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3
 	}
     }
     else {
+	side = 0;
 	if (back_child < 0) {
 	    m_BspLeaf * leaf = &mapmodel.leaves[ -(back_child + 1) ];
 	    if (isVisible(pvs, leaf->cluster)) {
-		draw_leaf_immediate(bsp, leaf, 0, pos, image_id);
+		draw_leaf_immediate(bsp, leaf, 1, pos, image_id);
 	    }       
 	}
 	else {
@@ -746,7 +729,6 @@ void draw_marked_leaves_immediate(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3
 	}
     }
 }
-
 
 void begin_drawing(void)
 {
@@ -790,10 +772,14 @@ void deinit_mapmodel(MapModel map_model)
 
 int main(int argc, char ** argv)
 {
+	
     init_physfs(argv[0]);
     init_window();
     init_platform(&p);
     
+	uint8_t exe_dir[128];	
+	p.gep(exe_dir, 128);
+
     char * device_extensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	VK_KHR_MAINTENANCE3_EXTENSION_NAME
@@ -951,7 +937,7 @@ int main(int argc, char ** argv)
     VkPipeline graphics_pipeline_trans = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup_trans, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	shader_setup_trans, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout_trans);
@@ -963,7 +949,7 @@ int main(int argc, char ** argv)
     graphics_pipeline_sky = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup_sky, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	shader_setup_sky, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout_sky);
@@ -980,6 +966,28 @@ int main(int argc, char ** argv)
     p.rfb("../src/examples/assets/maps/michi3.bsp", &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
+    printf("BSP LEAF COUNT: %d\n", bsp.leaf_count);
+    for (uint32_t i = 0; i < bsp.leaf_count; ++i) {
+	printf("LEAF %d\n", i);
+	printf("    first leaf face: %d\n", bsp.leaves[ i ].first_leaf_face);
+	printf("    num leaf faces : %d\n", bsp.leaves[ i ].num_leaf_faces);
+    }
+    int num_trans_faces = 0;
+    printf("\n\nBSP FACES TRANSPARENT:\n");
+    for (uint32_t i = 0; i < bsp.face_count; ++i) {
+	BspFace face = bsp.faces[ i ];
+	BspTexinfo texinfo = bsp.texinfos[ face.texture_info ];
+	if ( (texinfo.flags & SURF_TRANS66) == SURF_TRANS66 ) {
+	    num_trans_faces++;
+	    printf("FACE %d\n", i);
+	    printf("    first face edge: %d\n", bsp.faces[ i ].first_edge);
+	    printf("    num face edges : %d\n", bsp.faces[ i ].num_edges);
+	}
+    }
+    printf("num trans faces: %d\n", num_trans_faces);
+    
+    printf("\n\nBSP NODE COUNT: %d\n", bsp.node_count);
+    
     mapmodel = init_mapmodel(bsp);
     FILE * f_map_entities = fopen("entities.txt", "w");
     fprintf(f_map_entities, "%s", bsp.entities);
@@ -1065,8 +1073,8 @@ int main(int argc, char ** argv)
 //    offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
 //    uint32_t offset_indices  = vkal_index_buffer_add(map_indices, map_index_count);
 
-    uint32_t offset_sky_vertices = vkal_vertex_buffer_add(g_skybox_verts, sizeof(Vertex), sizeof(g_skybox_verts)/sizeof(*g_skybox_verts));
-    uint32_t offset_sky_indices  = vkal_index_buffer_add(g_skybox_indices, sizeof(g_skybox_indices)/sizeof(*g_skybox_indices));
+//    uint32_t offset_sky_vertices = vkal_vertex_buffer_add(g_skybox_verts, sizeof(Vertex), sizeof(g_skybox_verts)/sizeof(*g_skybox_verts));
+//    uint32_t offset_sky_indices  = vkal_index_buffer_add(g_skybox_indices, sizeof(g_skybox_indices)/sizeof(*g_skybox_indices));
     
     /* Uniform Buffer for view projection matrices */
     camera.pos = (vec3){ 2, 46, 42 };
@@ -1122,13 +1130,11 @@ int main(int argc, char ** argv)
 	view_proj_data.proj    = perspective( tr_radians(90.f), (float)width/(float)height, 0.1f, 10000.f );
 	view_proj_data.cam_pos = camera.pos;
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
-
-
-
+	
 
         /* Walk BSP to check in which cluster we are */
 	int cluster_id = point_in_leaf(bsp, camera.pos);
-	printf("%d\n", cluster_id);
+//	printf("%d\n", cluster_id);
 
 	begin_drawing();
 
@@ -1163,7 +1169,7 @@ int main(int argc, char ** argv)
 //			      offset_indices, map_index_count,
 //			      offset_vertices);
 //	    vkal_draw(image_id, graphics_pipeline, offset_vertices, map_vertex_count);
-	    printf("START FRAME\n----------------------\n");
+
 	    if (cluster_id >= 0) {
 		uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
 		uint8_t * c_pvs = ((uint8_t*)(bsp.vis)) + c_pvs_idx;
@@ -1208,7 +1214,8 @@ int main(int argc, char ** argv)
 	    vkal_present(image_id);
 
 	    r_framecount++;
-	    printf("END FRAME\n----------------------\n");
+
+	    vkDeviceWaitIdle(vkal_info->device);
 	}
     }
 

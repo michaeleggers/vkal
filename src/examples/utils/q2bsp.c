@@ -3,6 +3,11 @@
 
 #include "q2bsp.h"
 
+
+BspWorldModel g_worldmodel;
+
+// Some buffers used in q2bsp_triangulateFace() function.
+// TODO: Maybe replace thouse?
 static vec3     g_verts[1024];
 static uint16_t g_indices[1024];
 static uint16_t g_tmp_indices[1024];
@@ -92,4 +97,28 @@ Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face)
     tris.tri_count  = num_tris;
     
     return tris;
+}
+
+void load_faces(Q2Bsp bsp)
+{
+    
+}
+
+void load_leaves(Q2Bsp bsp)
+{
+    BspLeaf * in  = bsp.leaves;
+    Node * out = (Node*)malloc(bsp.leaf_count * sizeof(Node));
+
+    g_worldmodel.leaves     = out;
+    g_worldmodel.leaf_count = bsp.leaf_count;
+    
+    for (uint32_t i = 0; i < g_worldmodel.leaf_count; i++, in++, out++) {
+	out->type = LEAF;
+	out->bbox_min = in->bbox_min;
+	out->bbox_max = in->bbox_max;
+	out->content.leaf.cluster = in->cluster;
+	out->content.leaf.area = in->area;
+	out->content.leaf.firstmarksurface = g_worldmodel.marksurfaces + in->first_leaf_face;
+	out->content.leaf.nummarksurfaces  = in->num_leaf_faces;
+    }
 }
