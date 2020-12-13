@@ -122,6 +122,7 @@ void camera_pitch(Camera * camera, float angle);
 
 static GLFWwindow * g_window;
 static Platform p;
+static  uint8_t g_exe_dir[128];
 static Camera camera;
 static int g_keys[MAX_KEYS];
 static MapTexture g_map_textures[MAX_MAP_TEXTURES];
@@ -198,6 +199,13 @@ static uint16_t g_skybox_indices[36] =
     3, 2, 6,
     6, 7, 3    
 };
+
+
+void concat_str(uint8_t * str1, uint8_t * str2, uint8_t * out_result)
+{
+	strcpy(out_result, str1);
+	strcat(out_result, str2);
+}
 
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
@@ -341,6 +349,14 @@ Image load_image_file_from_dir(char * dir, char * file)
     free(buffer);
     
     return image;
+}
+
+void load_shader_from_dir(char * dir, char * file, uint8_t ** out_byte_code, int * out_code_size)
+{
+	uint8_t shader_path[128];
+	concat_str(g_exe_dir, dir,  shader_path);
+	concat_str(shader_path, file, shader_path);
+	p.rfb(shader_path, out_byte_code, out_code_size);
 }
 
 uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
@@ -767,12 +783,6 @@ void deinit_mapmodel(MapModel map_model)
     free(map_model.leaves);
 }
 
-void concat_str(uint8_t * str1, uint8_t * str2, uint8_t * out_result)
-{
-	strcpy(out_result, str1);
-	strcat(out_result, str2);
-}
-
 int main(int argc, char ** argv)
 {
 	
@@ -780,11 +790,10 @@ int main(int argc, char ** argv)
     init_window();
     init_platform(&p);
     
-	uint8_t exe_dir[128];	
-	p.gep(exe_dir, 128);
+	p.gep(g_exe_dir, 128);
 
 	uint8_t textures_dir[128];
-	concat_str(exe_dir, "/q2_textures.zip", textures_dir);	
+	concat_str(g_exe_dir, "/q2_textures.zip", textures_dir);	
 	if (!PHYSFS_mount(textures_dir, "/", 0)) {
 		printf("PHYSFS_mount() failed!\n  reason: %s.\n", PHYSFS_getLastError());
 	}
@@ -830,30 +839,26 @@ int main(int argc, char ** argv)
     
     /* Shader Setup */
 	uint8_t shader_path[128];    
+
 	uint8_t * vertex_byte_code = 0;
-    int vertex_code_size;
-	concat_str(exe_dir, "/../shaders/q2bsp_vert.spv", shader_path);
-    p.rfb(shader_path, &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
+    int vertex_code_size;
     int fragment_code_size;
-	concat_str(exe_dir, "/../shaders/q2bsp_frag.spv", shader_path);
-    p.rfb(shader_path, &fragment_byte_code, &fragment_code_size);
+	
+	load_shader_from_dir("/assets/shaders/", "q2bsp_vert.spv", &vertex_byte_code, &vertex_code_size);	
+	load_shader_from_dir("/assets/shaders/", "q2bsp_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
 
-	concat_str(exe_dir, "/../shaders/q2bsp_sky_vert.spv", shader_path);
-    p.rfb(shader_path, &vertex_byte_code, &vertex_code_size);
-	concat_str(exe_dir, "/../shaders/q2bsp_sky_frag.spv", shader_path);
-    p.rfb(shader_path, &fragment_byte_code, &fragment_code_size);
+	load_shader_from_dir("/assets/shaders/", "q2bsp_sky_vert.spv", &vertex_byte_code, &vertex_code_size);
+	load_shader_from_dir("/assets/shaders/", "q2bsp_sky_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup_sky = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
 	
-	concat_str(exe_dir, "/../shaders/q2bsp_trans_vert.spv", shader_path);
-    p.rfb(shader_path, &vertex_byte_code, &vertex_code_size);
-	concat_str(exe_dir, "/../shaders/q2bsp_trans_frag.spv", shader_path);
-    p.rfb(shader_path, &fragment_byte_code, &fragment_code_size);
+	load_shader_from_dir("/assets/shaders/", "q2bsp_trans_vert.spv", &vertex_byte_code, &vertex_code_size);
+	load_shader_from_dir("/assets/shaders/", "q2bsp_trans_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup_trans = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -980,7 +985,7 @@ int main(int argc, char ** argv)
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
 	uint8_t map_path[128];
-	concat_str(exe_dir, "/../maps/michi3.bsp", map_path);
+	concat_str(g_exe_dir, "/assets/maps/michi3.bsp", map_path);
     p.rfb(map_path, &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);

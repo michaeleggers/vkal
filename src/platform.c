@@ -66,7 +66,7 @@ void win32_read_file_binary(char const * filename, uint8_t ** out_buffer, int * 
 	CloseHandle(fileHandle);
 }
 
-void win32_get_exe_path(uint8_t * out_buffer, int out_size)
+void win32_get_exe_path(uint8_t * out_buffer, int buffer_size)
 {
 	//if (!GetModuleFileNameA(
 	//	NULL,
@@ -83,7 +83,7 @@ void win32_get_exe_path(uint8_t * out_buffer, int out_size)
 	//}
 
 	if (!GetCurrentDirectory(
-		out_size,
+		buffer_size,
 		out_buffer
 	)) {
 		DWORD error = GetLastError();

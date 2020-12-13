@@ -542,6 +542,5 @@ vec4 vec3_to_vec4(vec3 v3, float w)
 
 vec3 vec4_as_vec3(vec4 v4)
 {
-    vec3 v3;
-    return *( (vec3*)&v4 );
+	return *( (vec3*)&v4 );
 }
