@@ -66,7 +66,7 @@ void win32_read_file(char const * filename, uint8_t ** out_buffer, int * out_siz
 	CloseHandle(fileHandle);
 }
 
-void win32_get_exe_path(uint8_t * out_buffer, int buffer_size)
+void win32_get_exe_path(char * out_buffer, int buffer_size)
 {
 	DWORD len = GetModuleFileNameA(NULL, out_buffer, buffer_size);
 	if ( !len ) {
@@ -80,7 +80,7 @@ void win32_get_exe_path(uint8_t * out_buffer, int buffer_size)
 	}
 
 	// strip actual name of the .exe
-	uint8_t * last = out_buffer + len;
+	char * last = out_buffer + len;
 	while ( *last != '\\') {
 		*last-- = '\0';
 	}	
@@ -124,13 +124,12 @@ void init_platform(Platform * p)
 	/* Platform specific */
 #ifdef _WIN32
 	p->read_file = win32_read_file;
-	p->gep = win32_get_exe_path;
-	p->initialize_memory = win32_initialize_memory;
-	
-	
+	p->get_exe_path = win32_get_exe_path;
+	p->initialize_memory = win32_initialize_memory;	
 
 #elif __APPLE__
-	p->read_file = mac_read_file;
+	p->read_file    = mac_read_file;
+	p->get_exe_path = mac_get_exe_path;
 
 #elif __linux__
 

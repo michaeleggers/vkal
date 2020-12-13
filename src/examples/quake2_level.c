@@ -122,8 +122,8 @@ void camera_pitch(Camera * camera, float angle);
 
 static GLFWwindow * g_window;
 static Platform p;
-static  uint8_t g_exe_dir[128];
-static Camera camera;
+static char g_exe_dir[128];
+static Camera g_camera;
 static int g_keys[MAX_KEYS];
 static MapTexture g_map_textures[MAX_MAP_TEXTURES];
 static uint32_t g_map_texture_count;
@@ -791,7 +791,7 @@ int main(int argc, char ** argv)
     init_window();
     init_platform(&p);
     
-	p.gep(g_exe_dir, 128);
+	p.get_exe_path(g_exe_dir, 128);
 
 	uint8_t textures_dir[128];
 	concat_str(g_exe_dir, "q2_textures.zip", textures_dir);	
@@ -1101,14 +1101,14 @@ int main(int argc, char ** argv)
 //    uint32_t offset_sky_indices  = vkal_index_buffer_add(g_skybox_indices, sizeof(g_skybox_indices)/sizeof(*g_skybox_indices));
     
     /* Uniform Buffer for view projection matrices */
-    camera.pos = (vec3){ 2, 46, 42 };
-    camera.center = (vec3){ 0 };
-    vec3 f = vec3_normalize(vec3_sub(camera.center, camera.pos));
-    camera.up = (vec3){ 0, 1, 0 };
-    camera.right = vec3_normalize(vec3_cross(f, camera.up));
-    camera.velocity = 10.f;
+    g_camera.pos = (vec3){ 2, 46, 42 };
+    g_camera.center = (vec3){ 0 };
+    vec3 f = vec3_normalize(vec3_sub(g_camera.center, g_camera.pos));
+    g_camera.up = (vec3){ 0, 1, 0 };
+    g_camera.right = vec3_normalize(vec3_cross(f, g_camera.up));
+    g_camera.velocity = 10.f;
     ViewProjection view_proj_data;
-    view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
+    view_proj_data.view = look_at(g_camera.pos, g_camera.center, g_camera.up);
     view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
 
@@ -1122,42 +1122,42 @@ int main(int argc, char ** argv)
 	glfwPollEvents();
 
 	if (g_keys[W]) {
-	    vec3 forward = vec3_normalize( vec3_sub(camera.center, camera.pos) );
-	    camera_dolly(&camera, forward);
+	    vec3 forward = vec3_normalize( vec3_sub(g_camera.center, g_camera.pos) );
+	    camera_dolly(&g_camera, forward);
 	}
 	if (g_keys[S]) {
-	    vec3 forward = vec3_normalize( vec3_sub(camera.center, camera.pos) );
-	    camera_dolly(&camera, vec3_mul(-1, forward) );
+	    vec3 forward = vec3_normalize( vec3_sub(g_camera.center, g_camera.pos) );
+	    camera_dolly(&g_camera, vec3_mul(-1, forward) );
 	}
 	if (g_keys[A]) {
-	    camera_dolly(&camera, vec3_mul(-1, camera.right) );
+	    camera_dolly(&g_camera, vec3_mul(-1, g_camera.right) );
 	}
 	if (g_keys[D]) {
-	    camera_dolly(&camera, camera.right);
+	    camera_dolly(&g_camera, g_camera.right);
 	}
 	if (g_keys[UP]) {
-	    camera_yaw(&camera, tr_radians(-2.0f) );	    
+	    camera_yaw(&g_camera, tr_radians(-2.0f) );	    
 	}
 	if (g_keys[DOWN]) {
-	    camera_yaw(&camera, tr_radians(2.0f) );
+	    camera_yaw(&g_camera, tr_radians(2.0f) );
 	}
 	if (g_keys[LEFT]) {
-	    camera_pitch(&camera, tr_radians(2.0f) );
+	    camera_pitch(&g_camera, tr_radians(2.0f) );
 	}
 	if (g_keys[RIGHT]) {
-	    camera_pitch(&camera, tr_radians(-2.0f) );
+	    camera_pitch(&g_camera, tr_radians(-2.0f) );
 	}
 	
 	int width, height;
 	glfwGetFramebufferSize(g_window, &width, &height);
-	view_proj_data.view    = look_at(camera.pos, camera.center, camera.up);
+	view_proj_data.view    = look_at(g_camera.pos, g_camera.center, g_camera.up);
 	view_proj_data.proj    = perspective( tr_radians(90.f), (float)width/(float)height, 0.1f, 10000.f );
-	view_proj_data.cam_pos = camera.pos;
+	view_proj_data.cam_pos = g_camera.pos;
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 	
 
         /* Walk BSP to check in which cluster we are */
-	int cluster_id = point_in_leaf(bsp, camera.pos);
+	int cluster_id = point_in_leaf(bsp, g_camera.pos);
 //	printf("%d\n", cluster_id);
 
 	begin_drawing();
@@ -1169,7 +1169,7 @@ int main(int argc, char ** argv)
 	    uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
 	    uint8_t * c_pvs = ((uint8_t*)(bsp.vis)) + c_pvs_idx;
 	    uint8_t * pvs = Mod_DecompressVis(c_pvs, &bsp);
-	    draw_marked_leaves(bsp, bsp.nodes, pvs, camera.pos);
+	    draw_marked_leaves(bsp, bsp.nodes, pvs, g_camera.pos);
 	}
 	else {
 	    vertex_count = map_vertex_count;
@@ -1198,7 +1198,7 @@ int main(int argc, char ** argv)
 		uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
 		uint8_t * c_pvs = ((uint8_t*)(bsp.vis)) + c_pvs_idx;
 		uint8_t * pvs = Mod_DecompressVis(c_pvs, &bsp);
-		draw_marked_leaves_immediate(bsp, bsp.nodes, pvs, camera.pos, image_id);
+		draw_marked_leaves_immediate(bsp, bsp.nodes, pvs, g_camera.pos, image_id);
 	    }	    
 
 #if 0
