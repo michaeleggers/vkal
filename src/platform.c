@@ -12,7 +12,7 @@
 
 #include <Windows.h>
 
-void win32_read_file_binary(char const * filename, uint8_t ** out_buffer, int * out_size)
+void win32_read_file(char const * filename, uint8_t ** out_buffer, int * out_size)
 {
 	//FILE * file = 0;
 	//fopen_s(&file, filename, "rb");
@@ -68,10 +68,27 @@ void win32_read_file_binary(char const * filename, uint8_t ** out_buffer, int * 
 
 void win32_get_exe_path(uint8_t * out_buffer, int buffer_size)
 {
-	//if (!GetModuleFileNameA(
-	//	NULL,
-	//	out_buffer,
-	//	out_size
+	DWORD len = GetModuleFileNameA(NULL, out_buffer, buffer_size);
+	if ( !len ) {
+		DWORD error = GetLastError();
+		char errorMsgBuf[256];
+		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			errorMsgBuf, (sizeof(errorMsgBuf) / sizeof(char)), NULL);
+
+		printf("%s\n", errorMsgBuf);
+	}
+
+	// strip actual name of the .exe
+	uint8_t * last = out_buffer + len;
+	while ( *last != '\\') {
+		*last-- = '\0';
+	}	
+
+	// NOTE: GetCurrentDirectory returns path from WHERE the exe was called from.
+	//if (!GetCurrentDirectory(
+	//	buffer_size,
+	//	out_buffer
 	//)) {
 	//	DWORD error = GetLastError();
 	//	char errorMsgBuf[256];
@@ -81,19 +98,6 @@ void win32_get_exe_path(uint8_t * out_buffer, int buffer_size)
 
 	//	printf("%s\n", errorMsgBuf);
 	//}
-
-	if (!GetCurrentDirectory(
-		buffer_size,
-		out_buffer
-	)) {
-		DWORD error = GetLastError();
-		char errorMsgBuf[256];
-		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			errorMsgBuf, (sizeof(errorMsgBuf) / sizeof(char)), NULL);
-
-		printf("%s\n", errorMsgBuf);
-	}
 }
 
 void * win32_initialize_memory(uint32_t size)
@@ -119,14 +123,14 @@ void init_platform(Platform * p)
 {
 	/* Platform specific */
 #ifdef _WIN32
-	p->rfb = win32_read_file_binary;
+	p->read_file = win32_read_file;
 	p->gep = win32_get_exe_path;
 	p->initialize_memory = win32_initialize_memory;
 	
 	
 
 #elif __APPLE__
-	p->rfb = mac_read_file_binary;
+	p->read_file = mac_read_file;
 
 #elif __linux__
 

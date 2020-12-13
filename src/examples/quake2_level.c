@@ -313,6 +313,7 @@ int string_length(char * string)
     return len;
 }
 
+// TODO: do not use malloc here. use preallocated scratch buffer or something like that!
 Image load_image_file_from_dir(char * dir, char * file)
 {
     Image image = (Image){ 0 };
@@ -356,7 +357,7 @@ void load_shader_from_dir(char * dir, char * file, uint8_t ** out_byte_code, int
 	uint8_t shader_path[128];
 	concat_str(g_exe_dir, dir,  shader_path);
 	concat_str(shader_path, file, shader_path);
-	p.rfb(shader_path, out_byte_code, out_code_size);
+	p.read_file(shader_path, out_byte_code, out_code_size);
 }
 
 uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
@@ -793,7 +794,7 @@ int main(int argc, char ** argv)
 	p.gep(g_exe_dir, 128);
 
 	uint8_t textures_dir[128];
-	concat_str(g_exe_dir, "/q2_textures.zip", textures_dir);	
+	concat_str(g_exe_dir, "q2_textures.zip", textures_dir);	
 	if (!PHYSFS_mount(textures_dir, "/", 0)) {
 		printf("PHYSFS_mount() failed!\n  reason: %s.\n", PHYSFS_getLastError());
 	}
@@ -845,20 +846,20 @@ int main(int argc, char ** argv)
     int vertex_code_size;
     int fragment_code_size;
 	
-	load_shader_from_dir("/assets/shaders/", "q2bsp_vert.spv", &vertex_byte_code, &vertex_code_size);	
-	load_shader_from_dir("/assets/shaders/", "q2bsp_frag.spv", &fragment_byte_code, &fragment_code_size);
+	load_shader_from_dir("assets/shaders/", "q2bsp_vert.spv", &vertex_byte_code, &vertex_code_size);	
+	load_shader_from_dir("assets/shaders/", "q2bsp_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
 
-	load_shader_from_dir("/assets/shaders/", "q2bsp_sky_vert.spv", &vertex_byte_code, &vertex_code_size);
-	load_shader_from_dir("/assets/shaders/", "q2bsp_sky_frag.spv", &fragment_byte_code, &fragment_code_size);
+	load_shader_from_dir("assets/shaders/", "q2bsp_sky_vert.spv", &vertex_byte_code, &vertex_code_size);
+	load_shader_from_dir("assets/shaders/", "q2bsp_sky_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup_sky = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
 	
-	load_shader_from_dir("/assets/shaders/", "q2bsp_trans_vert.spv", &vertex_byte_code, &vertex_code_size);
-	load_shader_from_dir("/assets/shaders/", "q2bsp_trans_frag.spv", &fragment_byte_code, &fragment_code_size);
+	load_shader_from_dir("assets/shaders/", "q2bsp_trans_vert.spv", &vertex_byte_code, &vertex_code_size);
+	load_shader_from_dir("assets/shaders/", "q2bsp_trans_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup_trans = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -986,7 +987,7 @@ int main(int argc, char ** argv)
     int bsp_data_size;
 	uint8_t map_path[128];
 	concat_str(g_exe_dir, "/assets/maps/michi3.bsp", map_path);
-    p.rfb(map_path, &bsp_data, &bsp_data_size);
+    p.read_file(map_path, &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     Q2Bsp bsp = q2bsp_init(bsp_data);
     printf("BSP LEAF COUNT: %d\n", bsp.leaf_count);

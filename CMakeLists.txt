@@ -8,9 +8,9 @@ cmake_minimum_required(VERSION 3.12)
 find_package(Vulkan REQUIRED)
 
 
-##########################################
-# Libraries
-##########################################
+###########################################################
+# Libraries, VKAL and its dependencies (GLFW, SDL2,...)
+###########################################################
 
 # GLFW
 add_library(glfw SHARED IMPORTED) 
@@ -18,16 +18,9 @@ set_property(TARGET glfw PROPERTY
              IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/external/glfw/lib/glfw3.dll)
 set_property(TARGET glfw PROPERTY 
              IMPORTED_IMPLIB ${CMAKE_SOURCE_DIR}/src/external/glfw/lib/glfw3dll.lib )
-
-
-#PhysFS
-add_library(physfs SHARED IMPORTED)
-set_property( TARGET physfs PROPERTY 
-              IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/examples/external/physfs-3.0.2/build/Debug/physfs.dll )
-set_property( TARGET physfs PROPERTY 
-              IMPORTED_IMPLIB ${CMAKE_SOURCE_DIR}/src/examples/external/physfs-3.0.2/build/Debug/physfs.lib )
+SET_PROPERTY(TARGET glfw PROPERTY FOLDER "Libraries")
               
-# Vulkan Abstraction Layer
+# Vulkan Abstraction Layer (VKAL)
 add_compile_definitions(VKAL_GLFW)
 add_library(libvkal
     src/vkal.c
@@ -42,10 +35,21 @@ target_link_libraries(libvkal PUBLIC
 )
 SET_PROPERTY(TARGET libvkal PROPERTY FOLDER "Libraries")
 
+###########################################################
+# Libraries, Examples
+###########################################################
 
-##########################################
-# Executables
-##########################################
+#PhysFS
+add_library(physfs SHARED IMPORTED)
+set_property( TARGET physfs PROPERTY 
+              IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/examples/external/physfs-3.0.2/build/Debug/physfs.dll )
+set_property( TARGET physfs PROPERTY 
+              IMPORTED_IMPLIB ${CMAKE_SOURCE_DIR}/src/examples/external/physfs-3.0.2/build/Debug/physfs.lib )
+SET_PROPERTY(TARGET physfs PROPERTY FOLDER "Libraries")
+
+###########################################################
+# Example Executables
+###########################################################
 
 add_executable(Quake2Level
     src/examples/quake2_level.c
@@ -57,12 +61,9 @@ add_executable(Quake2Level
 target_include_directories(Quake2Level
     PUBLIC src/examples/external/stb  src/examples/external/physfs-3.0.2/src src/external/glfw/
 )
-set_property(TARGET Quake2Level PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src/examples/")
 target_link_libraries(Quake2Level 
     PUBLIC libvkal
     PRIVATE glfw
     PRIVATE physfs
 )
-
-
-SET_PROPERTY(TARGET Quake2Level PROPERTY FOLDER "Examples")
+set_property(TARGET Quake2Level PROPERTY FOLDER "Examples")
