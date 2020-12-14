@@ -2,15 +2,22 @@
 #include <stdlib.h>
 
 #include "q2bsp.h"
+#include "../q2_io.h"
+#include "../q2_common.h"
+
+#include "../../platform.h"
 
 
-BspWorldModel g_worldmodel;
+extern Platform p;
+
+BspWorldModel   g_worldmodel;
 
 // Some buffers used in q2bsp_triangulateFace() function.
 // TODO: Maybe replace thouse?
 static vec3     g_verts[1024];
 static uint16_t g_indices[1024];
 static uint16_t g_tmp_indices[1024];
+
 
 Q2Bsp q2bsp_init(uint8_t * data)
 {
@@ -41,6 +48,12 @@ Q2Bsp q2bsp_init(uint8_t * data)
     bsp.texinfos = (BspTexinfo*)(bsp.data + bsp.header->lumps[LT_TEX_INFO].offset);
     bsp.texinfo_count = bsp.header->lumps[LT_TEX_INFO].length / sizeof(BspTexinfo);
     return bsp;
+}
+
+void init_worldmodel(Q2Bsp bsp, VkDescriptorSet descriptor_set)
+{
+	g_worldmodel.descriptor_set = descriptor_set;
+	load_faces( bsp );
 }
 
 Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face)
@@ -99,9 +112,82 @@ Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face)
     return tris;
 }
 
+uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
+{
+	uint32_t i = 0;
+	for ( ; i <= g_worldmodel.texture_count; ++i) {
+		if ( !strcmp(texture_name, g_worldmodel.textures[ i ].name) ) {
+			break;
+		}
+	}
+	if (i > g_worldmodel.texture_count) {
+		i = g_worldmodel.texture_count;
+		Image image = load_image_file_from_dir("textures", texture_name);
+		Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
+			VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
+			0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST,
+			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+		vkal_update_descriptor_set_texturearray(
+			descriptor_set, 
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+			i,
+			texture);
+		strcpy( g_worldmodel.textures[ g_worldmodel.texture_count ].name, texture_name );
+		g_worldmodel.textures[ g_worldmodel.texture_count ].texture = texture;
+		g_worldmodel.texture_count++;
+	}
+
+	return i;
+}
+
 void load_faces(Q2Bsp bsp)
 {
-    
+	g_worldmodel.map_vertices     = (Vertex*)malloc(MAX_MAP_VERTS * sizeof(Vertex));
+	g_worldmodel.map_vertex_count = 0;
+	BspFace * in  = bsp.faces;
+	MapFace * out = (MapFace*)malloc(bsp.face_count * sizeof(MapFace));
+	
+	g_worldmodel.surfaces    = out;
+	g_worldmodel.numsurfaces = bsp.face_count;
+
+	for (uint32_t i = 0; i < g_worldmodel.numsurfaces; i++, in++, out++) {
+		int16_t texinfo_idx = in->texture_info; // TODO: can be negative?
+		BspTexinfo texinfo = bsp.texinfos[ texinfo_idx ];
+		uint32_t tex_width, tex_height;
+
+		out->texture_id = register_texture( g_worldmodel.descriptor_set, texinfo.texture_name );
+		tex_width  = g_worldmodel.textures[ out->texture_id ].texture.width;
+		tex_height = g_worldmodel.textures[ out->texture_id ].texture.height;
+		uint32_t prev_map_vert_count = g_worldmodel.map_vertex_count;
+		Q2Tri tris = q2bsp_triangulateFace(&bsp, *in);
+		for (uint32_t idx = 0; idx < tris.idx_count; ++idx) {
+			uint16_t vert_index = tris.indices[ idx ];
+			vec3 pos = bsp.vertices[ vert_index ];
+			vec3 normal = tris.normal;
+			Vertex v = (Vertex){ 0 };
+			float x = -pos.x;
+			float y = pos.z;
+			float z = pos.y;
+			v.pos.x = x;
+			v.pos.y = y;
+			v.pos.z = z;
+			v.normal.x = -normal.x;
+			v.normal.y = normal.z;
+			v.normal.z = normal.y;
+			float scale = 1.0;
+			v.uv.x = (-x * texinfo.u_axis.x + y * texinfo.u_axis.z + z * texinfo.u_axis.y + texinfo.u_offset)/(float)(scale*(float)tex_width);
+			v.uv.y = (-x * texinfo.v_axis.x + y * texinfo.v_axis.z + z * texinfo.v_axis.y + texinfo.v_offset)/(float)(scale*(float)tex_height);
+			v.texture_id = out->texture_id; // TODO: passing tex-index via vert-attribute probably not supported on all devices.
+			v.surface_flags = texinfo.flags;
+			g_worldmodel.map_vertices[ g_worldmodel.map_vertex_count++ ] = v;
+		}
+
+		out->side = in->plane_side;
+		out->vk_vertex_buffer_offset = vkal_vertex_buffer_add( 
+			g_worldmodel.map_vertices + prev_map_vert_count,
+			sizeof(Vertex), tris.idx_count );
+		out->vertex_count = tris.idx_count;
+	}
 }
 
 void load_leaves(Q2Bsp bsp)
@@ -113,12 +199,12 @@ void load_leaves(Q2Bsp bsp)
     g_worldmodel.leaf_count = bsp.leaf_count;
     
     for (uint32_t i = 0; i < g_worldmodel.leaf_count; i++, in++, out++) {
-	out->type = LEAF;
-	out->bbox_min = in->bbox_min;
-	out->bbox_max = in->bbox_max;
-	out->content.leaf.cluster = in->cluster;
-	out->content.leaf.area = in->area;
-	out->content.leaf.firstmarksurface = g_worldmodel.marksurfaces + in->first_leaf_face;
-	out->content.leaf.nummarksurfaces  = in->num_leaf_faces;
+		out->type = LEAF;
+		out->bbox_min = in->bbox_min;
+		out->bbox_max = in->bbox_max;
+		out->content.leaf.cluster = in->cluster;
+		out->content.leaf.area = in->area;
+		out->content.leaf.firstmarksurface = g_worldmodel.marksurfaces + in->first_leaf_face;
+		out->content.leaf.nummarksurfaces  = in->num_leaf_faces;
     }
 }

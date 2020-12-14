@@ -16,8 +16,13 @@
 #include "../platform.h"
 #include "utils/tr_math.h"
 #include "utils/q2bsp.h"
+#include "q2_common.h"
+#include "q2_io.h"
+#include "utils/q2bsp.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stb_image.h"
+
 #define TRM_NDC_ZERO_TO_ONE
 #include "utils/tr_math.h"
 
@@ -25,16 +30,6 @@
 #define SCREEN_WIDTH  1920
 #define SCREEN_HEIGHT 1080
 
-#define MAX_MAP_TEXTURES 1024
-#define MAX_MAP_VERTS    65536 
-#define	MAX_MAP_FACES	 65536
-#define MAX_MAP_LEAVES   65536
-
-typedef struct Image
-{
-    uint32_t width, height, channels;
-    unsigned char * data;
-} Image;
 
 typedef struct ViewProjection
 {
@@ -52,22 +47,7 @@ typedef struct Camera
     float velocity;
 } Camera;
 
-typedef struct Vertex
-{
-    vec3     pos;
-    vec3     normal;
-    vec2     uv;
-    uint32_t texture_id;
-    uint32_t surface_flags;
-} Vertex;
 
-
-
-typedef struct MapTexture
-{
-    Texture texture;
-    char    name[32];
-} MapTexture;
 
 typedef enum KeyCmd
 {
@@ -121,7 +101,7 @@ void camera_yaw(Camera * camera, float angle);
 void camera_pitch(Camera * camera, float angle);
 
 static GLFWwindow * g_window;
-static Platform p;
+Platform p;
 static char g_exe_dir[128];
 static Camera g_camera;
 static int g_keys[MAX_KEYS];
@@ -305,52 +285,7 @@ Image load_image_file(char const * file)
     return image;
 }
 
-int string_length(char * string)
-{
-    int len = 0;
-    char * c = string;
-    while (*c != '\0') { c++; len++; }
-    return len;
-}
 
-// TODO: do not use malloc here. use preallocated scratch buffer or something like that!
-Image load_image_file_from_dir(char * dir, char * file)
-{
-    Image image = (Image){ 0 };
-
-    /* Build search path within archive */
-    char searchpath[64] = { '\0' };
-    int dir_len = string_length(dir);
-    strcpy(searchpath, dir);
-    searchpath[dir_len++] = '/';
-    int file_name_len = string_length(file);
-    strcpy(searchpath + dir_len, file);
-    strcpy(searchpath + dir_len + file_name_len, ".tga");
-
-    /* Use PhysFS to load file data */
-    PHYSFS_File * phys_file = PHYSFS_openRead(searchpath);
-    if ( !phys_file ) {
-	printf("PHYSFS_openRead() failed!\n  reason: %s.\n", PHYSFS_getLastError());
-	printf("Warning: Image File not found: %s\n", searchpath);
-	getchar();
-	exit(-1);
-    }    
-    uint64_t file_length = PHYSFS_fileLength(phys_file);
-    void * buffer = malloc(file_length);
-    PHYSFS_readBytes(phys_file, buffer, file_length);
-
-    /* Finally, load the image from the memory buffer */
-    int x, y, n;
-    image.data = stbi_load_from_memory(buffer, (int)file_length, &x, &y, &n, 4);    
-    assert(image.data != NULL);
-    image.width    = x;
-    image.height   = y;
-    image.channels = n;
-
-    free(buffer);
-    
-    return image;
-}
 
 void load_shader_from_dir(char * dir, char * file, uint8_t ** out_byte_code, int * out_code_size)
 {
@@ -358,34 +293,6 @@ void load_shader_from_dir(char * dir, char * file, uint8_t ** out_byte_code, int
 	concat_str(g_exe_dir, dir,  shader_path);
 	concat_str(shader_path, file, shader_path);
 	p.read_file(shader_path, out_byte_code, out_code_size);
-}
-
-uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
-{
-    uint32_t i = 0;
-    for ( ; i <= g_map_texture_count; ++i) {
-	if ( !strcmp(texture_name, g_map_textures[ i ].name) ) {
-	    break;
-	}
-    }
-    if (i > g_map_texture_count) {
-	i = g_map_texture_count;
-	Image image = load_image_file_from_dir("textures", texture_name);
-	Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
-					      VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-					      0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST,
-					      VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-	vkal_update_descriptor_set_texturearray(
-	    descriptor_set, 
-	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-	    i,
-	    texture);
-	strcpy( g_map_textures[ g_map_texture_count ].name, texture_name );
-	g_map_textures[ g_map_texture_count ].texture = texture;
-	g_map_texture_count++;
-    }
-
-    return i;
 }
 
 uint32_t register_sky_texture(VkDescriptorSet descriptor_set, char * texture_name)
@@ -1094,6 +1001,8 @@ int main(int argc, char ** argv)
 	g_map_face_count++;
 	} // end for face_idx
 
+	init_worldmodel( bsp, descriptor_set[0] );	
+
 //    offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
 //    uint32_t offset_indices  = vkal_index_buffer_add(map_indices, map_index_count);
 
@@ -1187,7 +1096,7 @@ int main(int argc, char ** argv)
 			  (float)width, (float)height);
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
-			 width, height);
+			 (float)width, (float)height);
 //	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
 //	    vkal_draw_indexed(image_id, graphics_pipeline,
 //			      offset_indices, map_index_count,

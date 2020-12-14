@@ -1,13 +1,17 @@
 #ifndef Q2BSP_H
 #define Q2BSP_H
 
-#include "tr_math.h"
+#include "../../vkal.h"
 
+#include "tr_math.h"
+#include "../q2_common.h"
 
 #define MAX_QPATH              128
-//////////////////////////////////////////////////////////
-// File BSP representation
-//////////////////////////////////////////////////////////
+
+#define MAX_MAP_TEXTURES       1024
+#define MAX_MAP_VERTS          65536 
+#define	MAX_MAP_FACES	       65536
+#define MAX_MAP_LEAVES         65536
 
 /* Flags of BspTexinfo */
 #define	SURF_LIGHT		0x1		// value will hold the light strength
@@ -19,16 +23,9 @@
 #define	SURF_FLOWING	        0x40	        // scroll towards angle
 #define	SURF_NODRAW		0x80	        // don't bother referencing the texture
 
-typedef struct Q2Tri
-{
-    vec3     * verts;
-    vec3     normal;
-    uint16_t * indices;
-    uint32_t vert_count;
-    uint32_t idx_count;
-    uint32_t tri_count;
-} Q2Tri;
-
+//////////////////////////////////////////////////////////
+// File BSP representation
+//////////////////////////////////////////////////////////
 
 typedef struct vec3_16i
 {
@@ -225,6 +222,12 @@ typedef struct Q2Bsp
 // Runtime BSP representation
 //////////////////////////////////////////////////////////
 
+typedef struct MapTexture
+{
+	Texture texture;
+	char    name[32];
+} MapTexture;
+
 typedef enum MapFaceType
 {
     REGULAR,
@@ -338,10 +341,23 @@ typedef struct BspWorldModel
     BspVisOffset        *vis_offsets; // there are as many of those as numclusters
     
     uint8_t		*lightdata;
+
+	// Renderer Data, TODO: maybe this should be part of another "thing" in the code.
+	VkDescriptorSet descriptor_set;
+	VkDescriptorSet skybox_descriptor_set;
+
+	MapTexture      textures[MAX_MAP_TEXTURES];
+	uint32_t        texture_count;
+
+	Vertex          * map_vertices;
+	uint32_t        map_vertex_count;
 } BspWorldModel;
 
 
 Q2Bsp q2bsp_init(uint8_t * data);
+void init_worldmodel(Q2Bsp bsp, VkDescriptorSet descriptor_set);
+void load_faces(Q2Bsp bsp);
+void load_leaves(Q2Bsp bsp);
 Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face);
 
 #endif
