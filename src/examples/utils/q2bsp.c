@@ -37,6 +37,7 @@ Q2Bsp q2bsp_init(uint8_t * data)
     bsp.leaves = (BspLeaf*)(bsp.data + bsp.header->lumps[LT_LEAVES].offset);
     bsp.leaf_count = bsp.header->lumps[LT_LEAVES].length / sizeof(BspLeaf);
     bsp.leaf_face_table = (uint16_t*)(bsp.data + bsp.header->lumps[LT_LEAF_FACE_TABLE].offset);
+	bsp.leaf_face_count = bsp.header->lumps[LT_LEAF_FACE_TABLE].length / sizeof(uint16_t);
     bsp.face_edge_table = (int32_t*)(bsp.data + bsp.header->lumps[LT_FACE_EDGE_TABLE].offset);
     bsp.face_edge_count = bsp.header->lumps[LT_FACE_EDGE_TABLE].length / sizeof(int32_t);
     bsp.edges = (uint32_t*)(bsp.data + bsp.header->lumps[LT_EDGES].offset);
@@ -52,8 +53,15 @@ Q2Bsp q2bsp_init(uint8_t * data)
 
 void init_worldmodel(Q2Bsp bsp, VkDescriptorSet descriptor_set)
 {
+	g_worldmodel = (BspWorldModel){ 0 };
 	g_worldmodel.descriptor_set = descriptor_set;
 	load_faces( bsp );
+	load_marksurfaces( bsp );
+}
+
+void deinit_worldmodel(void)
+{
+	free( g_worldmodel.vertices );
 }
 
 Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face)
@@ -149,7 +157,7 @@ void load_faces(Q2Bsp bsp)
 	
 	g_worldmodel.surfaces    = out;
 	g_worldmodel.numsurfaces = bsp.face_count;
-
+	
 	for (uint32_t i = 0; i < g_worldmodel.numsurfaces; i++, in++, out++) {
 		int16_t texinfo_idx = in->texture_info; // TODO: can be negative?
 		BspTexinfo texinfo = bsp.texinfos[ texinfo_idx ];
@@ -158,6 +166,8 @@ void load_faces(Q2Bsp bsp)
 		out->texture_id = register_texture( g_worldmodel.descriptor_set, texinfo.texture_name );
 		tex_width  = g_worldmodel.textures[ out->texture_id ].texture.width;
 		tex_height = g_worldmodel.textures[ out->texture_id ].texture.height;
+		out->visframe = -1;
+
 		uint32_t prev_map_vert_count = g_worldmodel.map_vertex_count;
 		Q2Tri tris = q2bsp_triangulateFace(&bsp, *in);
 		for (uint32_t idx = 0; idx < tris.idx_count; ++idx) {
@@ -187,6 +197,21 @@ void load_faces(Q2Bsp bsp)
 			g_worldmodel.map_vertices + prev_map_vert_count,
 			sizeof(Vertex), tris.idx_count );
 		out->vertex_count = tris.idx_count;
+	}
+}
+
+void load_marksurfaces(Q2Bsp bsp)
+{
+	MapFace ** out;
+	
+	out = (MapFace**)malloc( bsp.leaf_face_count * sizeof(*out) );
+
+	g_worldmodel.marksurfaces    = out;
+	g_worldmodel.nummarksurfaces = bsp.leaf_face_count;
+
+	for (uint32_t i = 0; i < bsp.leaf_face_count; ++i) {
+		uint16_t j = bsp.leaf_face_table[ i ];
+		out[ i ] = g_worldmodel.surfaces + j;
 	}
 }
 

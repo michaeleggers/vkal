@@ -1153,7 +1153,8 @@ int main(int argc, char ** argv)
     }
 
     deinit_mapmodel(mapmodel);
-    
+	deinit_worldmodel();
+
     vkal_cleanup();
 
     glfwDestroyWindow(g_window);

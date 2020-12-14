@@ -198,6 +198,7 @@ typedef struct Q2Bsp
     uint32_t    leaf_count;
 
     uint16_t  * leaf_face_table;
+	uint32_t    leaf_face_count;
 
     // Array of indices into the edges array. The index can be negative but the absolute
     // value is used as the index. A negative index means that the vertex-order is flipped.
@@ -242,7 +243,7 @@ typedef struct MapFace
 {
     MapFaceType type;
     uint32_t    vertex_buffer_offset;
-    uint32_t    vk_vertex_buffer_offset;
+    uint64_t    vk_vertex_buffer_offset;
     uint32_t    vertex_count;
     uint32_t    texture_id;
     uint32_t    side;
@@ -328,7 +329,7 @@ typedef struct BspWorldModel
     int		        numtexinfo;
     BspTexinfo          *texinfos;
     
-    int		        numsurfaces;
+    uint32_t        numsurfaces;
     MapFace         	*surfaces;
 
     int			numsurfedges;
@@ -356,8 +357,12 @@ typedef struct BspWorldModel
 
 Q2Bsp q2bsp_init(uint8_t * data);
 void init_worldmodel(Q2Bsp bsp, VkDescriptorSet descriptor_set);
+void deinit_worldmodel(void);
 void load_faces(Q2Bsp bsp);
+void load_marksurfaces(Q2Bsp bsp);
 void load_leaves(Q2Bsp bsp);
 Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face);
+
+uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name);
 
 #endif
