@@ -9,6 +9,7 @@
 
 
 extern Platform p;
+extern VkDescriptorSet * descriptor_set;
 
 BspWorldModel   g_worldmodel;
 
@@ -51,12 +52,14 @@ Q2Bsp q2bsp_init(uint8_t * data)
     return bsp;
 }
 
-void init_worldmodel(Q2Bsp bsp, VkDescriptorSet descriptor_set)
+void init_worldmodel(Q2Bsp bsp)
 {
 	g_worldmodel = (BspWorldModel){ 0 };
-	g_worldmodel.descriptor_set = descriptor_set;
+	g_worldmodel.descriptor_set = descriptor_set[0];
 	load_faces( bsp );
 	load_marksurfaces( bsp );
+	load_leaves( bsp );
+	load_nodes( bsp );
 }
 
 void deinit_worldmodel(void)
@@ -148,6 +151,11 @@ uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
 	return i;
 }
 
+void load_planes(Q2Bsp bsp)
+{
+	memcpy(g_worldmodel.planes, bsp.planes, bsp.plane_count * sizeof(BspPlane));
+}
+
 void load_faces(Q2Bsp bsp)
 {
 	g_worldmodel.map_vertices     = (Vertex*)malloc(MAX_MAP_VERTS * sizeof(Vertex));
@@ -164,9 +172,11 @@ void load_faces(Q2Bsp bsp)
 		uint32_t tex_width, tex_height;
 
 		out->texture_id = register_texture( g_worldmodel.descriptor_set, texinfo.texture_name );
-		tex_width  = g_worldmodel.textures[ out->texture_id ].texture.width;
-		tex_height = g_worldmodel.textures[ out->texture_id ].texture.height;
-		out->visframe = -1;
+		tex_width       = g_worldmodel.textures[ out->texture_id ].texture.width;
+		tex_height      = g_worldmodel.textures[ out->texture_id ].texture.height;
+		out->visframe   = -1;
+		out->plane      = g_worldmodel.planes + in->plane;
+		out->plane_side = in->plane_side;
 
 		uint32_t prev_map_vert_count = g_worldmodel.map_vertex_count;
 		Q2Tri tris = q2bsp_triangulateFace(&bsp, *in);
@@ -225,11 +235,146 @@ void load_leaves(Q2Bsp bsp)
     
     for (uint32_t i = 0; i < g_worldmodel.leaf_count; i++, in++, out++) {
 		out->type = LEAF;
+		
+		// Node, Leaf common data
 		out->bbox_min = in->bbox_min;
 		out->bbox_max = in->bbox_max;
+
+		// Leaf specific data
 		out->content.leaf.cluster = in->cluster;
 		out->content.leaf.area = in->area;
 		out->content.leaf.firstmarksurface = g_worldmodel.marksurfaces + in->first_leaf_face;
 		out->content.leaf.nummarksurfaces  = in->num_leaf_faces;
     }
 }
+
+void set_parent_node(Node * node, Node * parent)
+{
+	node->parent = parent;
+	if (node->type == LEAF) 
+		return;
+	set_parent_node(node->content.node.front, node);
+	set_parent_node(node->content.node.back,  node);
+}
+
+void load_nodes(Q2Bsp bsp)
+{
+	BspNode * in = bsp.nodes;
+	uint32_t count = bsp.node_count;
+
+	Node * out = (Node*)malloc(count * sizeof(Node));
+	g_worldmodel.nodes    = out;
+	g_worldmodel.numnodes = count;
+
+	for (uint32_t i = 0; i < count; i++, in++, out++) {
+		out->type = NODE;
+		
+		// Node, Leaf common data
+		out->bbox_min = in->bbox_min;
+		out->bbox_max = in->bbox_max;
+		out->visframe = -1;
+
+		// Node specific data
+		out->content.node.plane        = g_worldmodel.planes + in->plane;
+		out->content.node.firstsurface = in->first_face;
+		out->content.node.numsurfaces  = in->num_faces;
+
+		int32_t front_child = in->front_child;
+		int32_t back_child  = in->back_child;
+		if (front_child < 0) { // front child is a leaf
+			out->content.node.front = g_worldmodel.leaves + (-front_child - 1);
+		}
+		else {
+			out->content.node.front = g_worldmodel.nodes + front_child;
+		}
+		if (back_child < 0) { // back child is a leaf
+			out->content.node.back = g_worldmodel.leaves + (-back_child - 1);
+		}
+		else {
+			out->content.node.back = g_worldmodel.nodes + back_child;
+		}
+	}
+
+	set_parent_node(g_worldmodel.nodes, NULL);
+}
+
+// find the leaf the camera (or any other position) is located in
+int point_in_leaf(Q2Bsp bsp, vec3 pos)
+{
+	BspNode * node = bsp.nodes;
+	BspLeaf current_leaf;
+	while (1) {
+		BspPlane plane = bsp.planes[ node->plane ];
+		vec3 plane_abc = (vec3){ -plane.normal.x, plane.normal.z, plane.normal.y };
+		float front_or_back = vec3_dot( pos, plane_abc ) - plane.distance;
+		if (front_or_back > 0) {
+			int32_t front_child = node->front_child;
+			if (front_child < 0) {
+				current_leaf = bsp.leaves[ -(front_child + 1) ];
+				break;
+			}
+			node = &bsp.nodes[ node->front_child ];
+		}
+		else {
+			int32_t back_child = node->back_child;
+			if (back_child < 0) {
+				current_leaf = bsp.leaves[ -(back_child + 1) ];
+				break;
+			}
+			node = &bsp.nodes[ node->back_child ];
+		}
+	}
+	return current_leaf.cluster;
+}
+
+// decompress a vis that has been acquired from a cluster
+uint8_t * Mod_DecompressVis (uint8_t * in, Q2Bsp * bsp)
+{
+	static uint8_t	decompressed[MAX_MAP_LEAVES/8];
+	int		c;
+	uint8_t	* out;
+	int		row;
+
+	row = (bsp->vis->numclusters+7)>>3;	
+	out = decompressed;
+
+	if (!in)
+	{	// no vis info, so make all visible
+		while (row)
+		{
+			*out++ = 0xff;
+			row--;
+		}
+		return decompressed;		
+	}
+
+	do
+	{
+		if (*in)
+		{
+			*out++ = *in++;
+			continue;
+		}
+
+		c = in[1];
+		in += 2;
+		while (c)
+		{
+			*out++ = 0;
+			c--;
+		}
+	} while (out - decompressed < row);
+
+	return decompressed;
+}
+
+// check if a leaf number i is visible in this pvs
+int isVisible(uint8_t * pvs, int i)
+{
+
+	// i>>3 = i/8    
+	// i&7  = i%8
+
+	return pvs[i>>3] & (1<<(i&7));	    
+}
+

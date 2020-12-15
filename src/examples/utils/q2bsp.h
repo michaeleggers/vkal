@@ -248,6 +248,8 @@ typedef struct MapFace
     uint32_t    texture_id;
     uint32_t    side;
     int         visframe;
+	BspPlane    *plane;
+	uint16_t    plane_side;
 } MapFace;
 
 typedef struct Leaf
@@ -280,8 +282,8 @@ struct Node
  
     NodeType type;
     union content {
-	_Node node;
-	Leaf  leaf;
+		_Node node;
+		Leaf  leaf;
     } content;
 };
 
@@ -322,7 +324,7 @@ typedef struct BspWorldModel
     int		        numedges;
     uint32_t	        *edges;
 
-    int		        numnodes;
+    uint32_t		numnodes;
     int		        firstnode;
     Node                *nodes;
 
@@ -356,11 +358,17 @@ typedef struct BspWorldModel
 
 
 Q2Bsp q2bsp_init(uint8_t * data);
-void init_worldmodel(Q2Bsp bsp, VkDescriptorSet descriptor_set);
+void init_worldmodel(Q2Bsp bsp);
 void deinit_worldmodel(void);
 void load_faces(Q2Bsp bsp);
 void load_marksurfaces(Q2Bsp bsp);
 void load_leaves(Q2Bsp bsp);
+void set_parent_node(Node * node, Node * parent);
+void load_nodes(Q2Bsp bsp);
+int point_in_leaf(Q2Bsp bsp, vec3 pos);
+uint8_t * Mod_DecompressVis (uint8_t * in, Q2Bsp * bsp);
+int isVisible(uint8_t * pvs, int i);
+
 Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face);
 
 uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name);

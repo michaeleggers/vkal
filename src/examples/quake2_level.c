@@ -143,7 +143,8 @@ static VkPipeline       graphics_pipeline_sky;
 static VkPipelineLayout pipeline_layout;
 static VkPipeline       graphics_pipeline;
 
-static VkDescriptorSet * descriptor_set;
+/* Global Rendering Stuff (across compilation units) */
+VkDescriptorSet * descriptor_set;
 
 /* Static geometry, such as a cube */
 static Vertex g_skybox_verts[8] =
@@ -393,84 +394,6 @@ void update_transient_vertex_buffer(VertexBuffer * vertex_buf, uint32_t offset, 
 {
     memcpy( ((Vertex*)(vertex_buf->buffer.mapped)) + offset, vertices, vertex_count*sizeof(Vertex) );      
 }
-
-int isVisible(uint8_t * pvs, int i)
-{
-		
-    // i>>3 = i/8    
-    // i&7  = i%8
-	    
-    return pvs[i>>3] & (1<<(i&7));	    
-}
-
-uint8_t * Mod_DecompressVis (uint8_t * in, Q2Bsp * bsp)
-{
-    static uint8_t	decompressed[MAX_MAP_LEAVES/8];
-    int		c;
-    uint8_t	* out;
-    int		row;
-
-    row = (bsp->vis->numclusters+7)>>3;	
-    out = decompressed;
-
-    if (!in)
-    {	// no vis info, so make all visible
-	while (row)
-	{
-	    *out++ = 0xff;
-	    row--;
-	}
-	return decompressed;		
-    }
-
-    do
-    {
-	if (*in)
-	{
-	    *out++ = *in++;
-	    continue;
-	}
-	
-	c = in[1];
-	in += 2;
-	while (c)
-	{
-	    *out++ = 0;
-	    c--;
-	}
-    } while (out - decompressed < row);
-	
-    return decompressed;
-}
-
-int point_in_leaf(Q2Bsp bsp, vec3 pos)
-{
-    BspNode * node = bsp.nodes;
-    BspLeaf current_leaf;
-    while (1) {
-	BspPlane plane = bsp.planes[ node->plane ];
-	vec3 plane_abc = (vec3){ -plane.normal.x, plane.normal.z, plane.normal.y };
-	float front_or_back = vec3_dot( pos, plane_abc ) - plane.distance;
-	if (front_or_back > 0) {
-	    int32_t front_child = node->front_child;
-	    if (front_child < 0) {
-		current_leaf = bsp.leaves[ -(front_child + 1) ];
-		break;
-	    }
-	    node = &bsp.nodes[ node->front_child ];
-	}
-	else {
-	    int32_t back_child = node->back_child;
-	    if (back_child < 0) {
-		current_leaf = bsp.leaves[ -(back_child + 1) ];
-		break;
-	    }
-	    node = &bsp.nodes[ node->back_child ];
-	}
-    }
-    return current_leaf.cluster;
-}
-
 
 void draw_leaf(Q2Bsp bsp, BspLeaf leaf)
 {
@@ -896,118 +819,9 @@ int main(int argc, char ** argv)
 	concat_str(g_exe_dir, "/assets/maps/michi3.bsp", map_path);
     p.read_file(map_path, &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
-    Q2Bsp bsp = q2bsp_init(bsp_data);
-    printf("BSP LEAF COUNT: %d\n", bsp.leaf_count);
-    for (uint32_t i = 0; i < bsp.leaf_count; ++i) {
-	printf("LEAF %d\n", i);
-	printf("    first leaf face: %d\n", bsp.leaves[ i ].first_leaf_face);
-	printf("    num leaf faces : %d\n", bsp.leaves[ i ].num_leaf_faces);
-    }
-    int num_trans_faces = 0;
-    printf("\n\nBSP FACES TRANSPARENT:\n");
-    for (uint32_t i = 0; i < bsp.face_count; ++i) {
-	BspFace face = bsp.faces[ i ];
-	BspTexinfo texinfo = bsp.texinfos[ face.texture_info ];
-	if ( (texinfo.flags & SURF_TRANS66) == SURF_TRANS66 ) {
-	    num_trans_faces++;
-	    printf("FACE %d\n", i);
-	    printf("    first face edge: %d\n", bsp.faces[ i ].first_edge);
-	    printf("    num face edges : %d\n", bsp.faces[ i ].num_edges);
-	}
-    }
-    printf("num trans faces: %d\n", num_trans_faces);
-    
-    printf("\n\nBSP NODE COUNT: %d\n", bsp.node_count);
-    
-    mapmodel = init_mapmodel(bsp);
-    FILE * f_map_entities = fopen("entities.txt", "w");
-    fprintf(f_map_entities, "%s", bsp.entities);
-    fclose(f_map_entities);
-    printf("BSP Cluster Count: %d\n", bsp.vis->numclusters);
-    printf("BSP Brush Model Count: %d\n", bsp.sub_model_count);
-    
-    map_vertices = (Vertex*)malloc(MAX_MAP_VERTS*sizeof(Vertex));
-    uint16_t * map_indices = (uint16_t*)malloc(1024*1024*sizeof(uint16_t));
-    uint32_t map_vertex_count = 0;
-    uint32_t map_index_count = 0;
+    Q2Bsp bsp = q2bsp_init(bsp_data);   
 
-    /* Precompute all faces so they are ready to be sent to GPU */
-    for (uint32_t face_idx = 0; face_idx < bsp.face_count; ++face_idx) {
-	BspFace face = bsp.faces[ face_idx ];
-	BspTexinfo texinfo = bsp.texinfos[ face.texture_info ];
-	uint32_t texture_flags = texinfo.flags;
-
-	uint32_t texture_id;
-	uint32_t tex_width, tex_height;
-	if ( (texture_flags & SURF_SKY) == SURF_SKY) { /* Skybox Face*/
-	    g_map_faces[ g_map_face_count ].type = SKY;
-	    texture_id = register_sky_texture(descriptor_set[1], texinfo.texture_name);
-	    tex_width  = g_sky_textures[ texture_id ].texture.width;
-	    tex_height = g_sky_textures[ texture_id ].texture.height;
-	}
-	else if ( (texture_flags & SURF_LIGHT) == SURF_LIGHT) { /* Light Face*/
-	    g_map_faces[ g_map_face_count ].type = LIGHT;
-	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
-	    tex_width  = g_map_textures[ texture_id ].texture.width;
-	    tex_height = g_map_textures[ texture_id ].texture.height;
-	}
-	else if ( (texture_flags & SURF_NODRAW) == SURF_NODRAW) { /* Don't draw. Probably Trigger boxes, etc. */
-	    g_map_faces[ g_map_face_count ].type = NODRAW;
-	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
-	    tex_width  = g_map_textures[ texture_id ].texture.width;
-	    tex_height = g_map_textures[ texture_id ].texture.height;
-	}
-	else if ( (texture_flags & SURF_TRANS66) == SURF_TRANS66) { /* 66% transparent surface */
-	    g_map_faces[ g_map_face_count ].type = TRANS66;
-	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
-	    tex_width  = g_map_textures[ texture_id ].texture.width;
-	    tex_height = g_map_textures[ texture_id ].texture.height;
-	}
-	else {
-	    g_map_faces[ g_map_face_count ].type = REGULAR;
-	    texture_id = register_texture(descriptor_set[0], texinfo.texture_name);
-	    tex_width  = g_map_textures[ texture_id ].texture.width;
-	    tex_height = g_map_textures[ texture_id ].texture.height;
-	}
-
-	uint32_t prev_map_vertex_count = map_vertex_count;
-	Q2Tri   tris = q2bsp_triangulateFace(&bsp, face);
-	for (uint32_t idx = 0; idx < tris.idx_count; ++idx) {
-	    uint16_t vert_index = tris.indices[ idx ];
-	    vec3 pos            = bsp.vertices[ vert_index ];
-	    vec3 normal         = tris.normal;
-	    Vertex v = (Vertex){ 0 };
-	    float x = -pos.x;
-	    float y =  pos.z;
-	    float z =  pos.y;
-	    v.pos.x = x;
-	    v.pos.y = y;
-	    v.pos.z = z;
-	    v.normal.x = -normal.x;
-	    v.normal.y =  normal.z;
-	    v.normal.z =  normal.y;
-	    float scale = 1.0; //0.25; 0.25 for yamagi texture pack
-	    v.uv.x = (-x * texinfo.u_axis.x + y * texinfo.u_axis.z + z * texinfo.u_axis.y + texinfo.u_offset)/(float)(scale*(float)tex_width);
-	    v.uv.y = (-x * texinfo.v_axis.x + y * texinfo.v_axis.z + z * texinfo.v_axis.y + texinfo.v_offset)/(float)(scale*(float)tex_height);
-	    v.texture_id = texture_id;
-	    v.surface_flags = texture_flags;
-	    map_vertices[ map_vertex_count++ ] = v;
-	}
-
-	g_map_faces[ g_map_face_count ].vertex_buffer_offset = prev_map_vertex_count;
-	g_map_faces[ g_map_face_count ].vertex_count = tris.idx_count;
-	g_map_faces[ g_map_face_count ].vk_vertex_buffer_offset = vkal_vertex_buffer_add(map_vertices + prev_map_vertex_count, sizeof(Vertex), tris.idx_count);
-	g_map_faces[ g_map_face_count ].side = face.plane_side;
-	g_map_face_count++;
-	} // end for face_idx
-
-	init_worldmodel( bsp, descriptor_set[0] );	
-
-//    offset_vertices = vkal_vertex_buffer_add(map_vertices, sizeof(Vertex), map_vertex_count);
-//    uint32_t offset_indices  = vkal_index_buffer_add(map_indices, map_index_count);
-
-//    uint32_t offset_sky_vertices = vkal_vertex_buffer_add(g_skybox_verts, sizeof(Vertex), sizeof(g_skybox_verts)/sizeof(*g_skybox_verts));
-//    uint32_t offset_sky_indices  = vkal_index_buffer_add(g_skybox_indices, sizeof(g_skybox_indices)/sizeof(*g_skybox_indices));
+	init_worldmodel( bsp );	
     
     /* Uniform Buffer for view projection matrices */
     g_camera.pos = (vec3){ 2, 46, 42 };
@@ -1064,28 +878,7 @@ int main(int argc, char ** argv)
 	view_proj_data.cam_pos = g_camera.pos;
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 	
-
-        /* Walk BSP to check in which cluster we are */
-	int cluster_id = point_in_leaf(bsp, g_camera.pos);
-//	printf("%d\n", cluster_id);
-
-	begin_drawing();
-
-//	vkDeviceWaitIdle(vkal_info->device);
-#if 0
-	/* Update the vertex buffer */
-	if (cluster_id >= 0) {
-	    uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
-	    uint8_t * c_pvs = ((uint8_t*)(bsp.vis)) + c_pvs_idx;
-	    uint8_t * pvs = Mod_DecompressVis(c_pvs, &bsp);
-	    draw_marked_leaves(bsp, bsp.nodes, pvs, g_camera.pos);
-	}
-	else {
-	    vertex_count = map_vertex_count;
-	    update_transient_vertex_buffer(&transient_vertex_buffer, 0, map_vertices, vertex_count);
-	}	
-#endif
-
+	
 	{
 	    uint32_t image_id = vkal_get_image();
 
@@ -1097,49 +890,18 @@ int main(int argc, char ** argv)
 	    vkal_scissor(vkal_info->command_buffers[image_id],
 			 0, 0,
 			 (float)width, (float)height);
-//	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
-//	    vkal_draw_indexed(image_id, graphics_pipeline,
-//			      offset_indices, map_index_count,
-//			      offset_vertices);
-//	    vkal_draw(image_id, graphics_pipeline, offset_vertices, map_vertex_count);
+		
+		// TODO: bind descriptor set
+		// TODO: draw stuff
 
-	    if (cluster_id >= 0) {
+	    /*if (cluster_id >= 0) {
 		uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
 		uint8_t * c_pvs = ((uint8_t*)(bsp.vis)) + c_pvs_idx;
 		uint8_t * pvs = Mod_DecompressVis(c_pvs, &bsp);
 		draw_marked_leaves_immediate(bsp, bsp.nodes, pvs, g_camera.pos, image_id);
-	    }	    
-
-#if 0
-	    /* Draw Map */
-	    vkal_draw_from_buffers(transient_vertex_buffer.buffer,
-				   image_id, graphics_pipeline,
-				   0, vertex_count);
-	   
-	    /* Draw Lights */
-	    vkal_draw_from_buffers(transient_vertex_buffer_lights.buffer,
-				   image_id, graphics_pipeline,
-				   0, vertex_count_lights);
-
-	    /* Draw Skybox */
-	    vkal_bind_descriptor_set(image_id, &descriptor_set[1], pipeline_layout_sky);
-	    vkal_draw_from_buffers(transient_vertex_buffer_sky.buffer,
-				   image_id, graphics_pipeline_sky,
-				   0, vertex_count_sky);
-
-	    /* Draw Transparent */
-	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
-	    vkal_draw_from_buffers(transient_vertex_buffer_trans.buffer,
-				   image_id, graphics_pipeline,
-				   0, vertex_count_trans);
-
-//	    vkal_draw_indexed_from_buffers(
-//		vkal_info->index_buffer, offset_sky_indices, 36, transient_vertex_buffer_sky.buffer, 0,
-//		image_id, graphics_pipeline_sky);
-
-#endif
-	    
-	    vkal_end_renderpass(image_id);	    
+	    }	    */
+	
+		vkal_end_renderpass(image_id);	    
 	    vkal_end_command_buffer(image_id);
 	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
 	    vkal_queue_submit(command_buffers1, 1);
@@ -1151,8 +913,7 @@ int main(int argc, char ** argv)
 	    vkDeviceWaitIdle(vkal_info->device);
 	}
     }
-
-    deinit_mapmodel(mapmodel);
+    
 	deinit_worldmodel();
 
     vkal_cleanup();
