@@ -877,8 +877,10 @@ int main(int argc, char ** argv)
 	view_proj_data.proj    = perspective( tr_radians(90.f), (float)width/(float)height, 0.1f, 10000.f );
 	view_proj_data.cam_pos = g_camera.pos;
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
-	
-	
+
+	Node * node = point_in_leaf( bsp, g_camera.pos );
+	assert( node->type == LEAF );
+
 	{
 	    uint32_t image_id = vkal_get_image();
 

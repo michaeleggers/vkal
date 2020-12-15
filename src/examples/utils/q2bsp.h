@@ -360,12 +360,13 @@ typedef struct BspWorldModel
 Q2Bsp q2bsp_init(uint8_t * data);
 void init_worldmodel(Q2Bsp bsp);
 void deinit_worldmodel(void);
+void load_planes(Q2Bsp bsp);
 void load_faces(Q2Bsp bsp);
 void load_marksurfaces(Q2Bsp bsp);
 void load_leaves(Q2Bsp bsp);
 void set_parent_node(Node * node, Node * parent);
 void load_nodes(Q2Bsp bsp);
-int point_in_leaf(Q2Bsp bsp, vec3 pos);
+Node * point_in_leaf(Q2Bsp bsp, vec3 pos);
 uint8_t * Mod_DecompressVis (uint8_t * in, Q2Bsp * bsp);
 int isVisible(uint8_t * pvs, int i);
 

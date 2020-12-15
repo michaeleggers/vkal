@@ -56,6 +56,7 @@ void init_worldmodel(Q2Bsp bsp)
 {
 	g_worldmodel = (BspWorldModel){ 0 };
 	g_worldmodel.descriptor_set = descriptor_set[0];
+	load_planes( bsp );
 	load_faces( bsp );
 	load_marksurfaces( bsp );
 	load_leaves( bsp );
@@ -153,7 +154,12 @@ uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
 
 void load_planes(Q2Bsp bsp)
 {
-	memcpy(g_worldmodel.planes, bsp.planes, bsp.plane_count * sizeof(BspPlane));
+	BspPlane * out = (BspPlane*)malloc(bsp.plane_count * sizeof(BspPlane));
+
+	g_worldmodel.planes    = out;
+	g_worldmodel.numplanes = bsp.plane_count;
+
+	memcpy(out, bsp.planes, bsp.plane_count * sizeof(BspPlane));
 }
 
 void load_faces(Q2Bsp bsp)
@@ -239,6 +245,7 @@ void load_leaves(Q2Bsp bsp)
 		// Node, Leaf common data
 		out->bbox_min = in->bbox_min;
 		out->bbox_max = in->bbox_max;
+		out->visframe = -1;
 
 		// Leaf specific data
 		out->content.leaf.cluster = in->cluster;
@@ -299,32 +306,24 @@ void load_nodes(Q2Bsp bsp)
 }
 
 // find the leaf the camera (or any other position) is located in
-int point_in_leaf(Q2Bsp bsp, vec3 pos)
-{
-	BspNode * node = bsp.nodes;
-	BspLeaf current_leaf;
+// Returned Node Type must be LEAF!
+Node * point_in_leaf(Q2Bsp bsp, vec3 pos)
+{	
+	Node * node = g_worldmodel.nodes;
+	
 	while (1) {
-		BspPlane plane = bsp.planes[ node->plane ];
-		vec3 plane_abc = (vec3){ -plane.normal.x, plane.normal.z, plane.normal.y };
-		float front_or_back = vec3_dot( pos, plane_abc ) - plane.distance;
-		if (front_or_back > 0) {
-			int32_t front_child = node->front_child;
-			if (front_child < 0) {
-				current_leaf = bsp.leaves[ -(front_child + 1) ];
-				break;
-			}
-			node = &bsp.nodes[ node->front_child ];
+		if (node->type == LEAF)
+			return node;
+		BspPlane * plane = node->content.node.plane;
+		vec3 plane_abc   = plane->normal;
+		float distance   = plane->distance;
+		if ( (vec3_dot(pos, plane_abc) - distance) > 0 ) { // pos located at front side of plane
+			node = node->content.node.front;
 		}
-		else {
-			int32_t back_child = node->back_child;
-			if (back_child < 0) {
-				current_leaf = bsp.leaves[ -(back_child + 1) ];
-				break;
-			}
-			node = &bsp.nodes[ node->back_child ];
+		else {  // pos located at back side of plane
+			node = node->content.node.back;
 		}
 	}
-	return current_leaf.cluster;
 }
 
 // decompress a vis that has been acquired from a cluster
