@@ -101,7 +101,6 @@ void camera_yaw(Camera * camera, float angle);
 void camera_pitch(Camera * camera, float angle);
 
 static GLFWwindow * g_window;
-Platform p;
 static char g_exe_dir[128];
 static Camera g_camera;
 static int g_keys[MAX_KEYS];
@@ -125,9 +124,6 @@ static uint32_t offset_sky = 0;
 static uint32_t offset_lights = 0;
 static uint32_t offset_trans = 0;
 
-/* Renderer current frame */
-static int r_framecount;
-
 static MapModel mapmodel;
 
 static VertexBuffer transient_vertex_buffer;
@@ -144,7 +140,9 @@ static VkPipelineLayout pipeline_layout;
 static VkPipeline       graphics_pipeline;
 
 /* Global Rendering Stuff (across compilation units) */
-VkDescriptorSet * descriptor_set;
+VkDescriptorSet *       descriptor_set;
+int                     r_visframecount;
+Platform                p;
 
 /* Static geometry, such as a cube */
 static Vertex g_skybox_verts[8] =
@@ -495,8 +493,8 @@ void draw_leaf_immediate(Q2Bsp bsp, m_BspLeaf * leaf, uint32_t side, vec3 pos, u
 	    face_plane_side = 0;
 	}
 	if ( face_plane_side != face->side ) continue;	  	
-	if (face->visframe == r_framecount) continue;
-	face->visframe = r_framecount;
+	if (face->visframe == r_visframecount) continue;
+	face->visframe = r_visframecount;
 	
 	uint32_t map_verts_offset = face->vk_vertex_buffer_offset;
 	if (face->type == SKY) {
@@ -891,7 +889,7 @@ int main(int argc, char ** argv)
 		uint8_t * compressed_pvs    = pvs_for_cluster(cluster_id);
 		uint8_t * decompressed_pvs  = Mod_DecompressVis(compressed_pvs, &bsp);
 		
-		int ass = 7;
+		mark_leaves(decompressed_pvs);
 	}	    
 
 	{
@@ -915,9 +913,7 @@ int main(int argc, char ** argv)
 	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
 	    vkal_queue_submit(command_buffers1, 1);
 
-	    vkal_present(image_id);
-
-	    r_framecount++;
+	    vkal_present(image_id);	    
 
 	    vkDeviceWaitIdle(vkal_info->device);
 	}

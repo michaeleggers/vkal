@@ -9,10 +9,11 @@
 #include "../../platform.h"
 
 
-extern Platform p;
+extern Platform          p;
 extern VkDescriptorSet * descriptor_set;
+extern int               r_visframecount;
 
-static BspWorldModel   g_worldmodel;
+static BspWorldModel     g_worldmodel;
 
 // Some buffers used in q2bsp_triangulateFace() function.
 // TODO: Maybe replace thouse?
@@ -258,13 +259,15 @@ void load_marksurfaces(Q2Bsp bsp)
 
 void load_leaves(Q2Bsp bsp)
 {
-    BspLeaf * in  = bsp.leaves;
-    Node * out = (Node*)malloc(bsp.leaf_count * sizeof(Node));
+    BspLeaf * in   = bsp.leaves;
+	uint32_t count = bsp.leaf_count;
+    Node * out = (Node*)malloc(count * sizeof(Node));
+	memset( out, 0, count * sizeof(Node) );
 
     g_worldmodel.leaves     = out;
-    g_worldmodel.leaf_count = bsp.leaf_count;
+    g_worldmodel.leaf_count = count;
     
-    for (uint32_t i = 0; i < g_worldmodel.leaf_count; i++, in++, out++) {
+    for (uint32_t i = 0; i < count; i++, in++, out++) {
 		out->type = LEAF;
 		
 		// Node, Leaf common data
@@ -291,10 +294,11 @@ void set_parent_node(Node * node, Node * parent)
 
 void load_nodes(Q2Bsp bsp)
 {
-	BspNode * in = bsp.nodes;
+	BspNode * in   = bsp.nodes;
 	uint32_t count = bsp.node_count;
 
 	Node * out = (Node*)malloc(count * sizeof(Node));
+	memset( out, 0, count * sizeof(Node) );
 	g_worldmodel.nodes    = out;
 	g_worldmodel.numnodes = count;
 
@@ -314,13 +318,15 @@ void load_nodes(Q2Bsp bsp)
 		int32_t front_child = in->front_child;
 		int32_t back_child  = in->back_child;
 		if (front_child < 0) { // front child is a leaf
-			out->content.node.front = g_worldmodel.leaves + (-front_child - 1);
+			int leaf_idx = (-front_child - 1);
+			out->content.node.front = g_worldmodel.leaves + leaf_idx;
 		}
 		else {
 			out->content.node.front = g_worldmodel.nodes + front_child;
 		}
 		if (back_child < 0) { // back child is a leaf
-			out->content.node.back = g_worldmodel.leaves + (-back_child - 1);
+			int leaf_idx = (-back_child - 1);
+			out->content.node.back = g_worldmodel.leaves + leaf_idx;
 		}
 		else {
 			out->content.node.back = g_worldmodel.nodes + back_child;
@@ -400,6 +406,7 @@ uint8_t * Mod_DecompressVis (uint8_t * in, Q2Bsp * bsp)
 }
 
 // check if cluster i is visible in this pvs
+// i >= 0!
 int isVisible(uint8_t * pvs, int i)
 {
 
@@ -407,5 +414,26 @@ int isVisible(uint8_t * pvs, int i)
 	// i&7  = i%8
 
 	return pvs[i>>3] & (1<<(i&7));	    
+}
+
+void mark_leaves(uint8_t * pvs)
+{
+	r_visframecount++;
+
+	Node * leaf = g_worldmodel.leaves;
+	for (uint32_t i = 0; i < g_worldmodel.leaf_count; ++i, leaf++) {
+		int cluster = leaf->content.leaf.cluster;
+		if (cluster == -1)
+			continue;
+		if ( isVisible(pvs, cluster) ) {
+			Node * node = leaf;
+			do {
+				if (node->visframe == r_visframecount) // we have been here before while walking up from another branch -> no need to go further
+					break;
+				node->visframe = r_visframecount;
+				node = node->parent;
+			} while(node);
+		}
+	}
 }
 

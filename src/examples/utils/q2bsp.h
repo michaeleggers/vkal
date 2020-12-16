@@ -373,6 +373,7 @@ uint8_t * pvs_for_cluster(int cluster);
 Leaf * point_in_leaf(Q2Bsp bsp, vec3 pos);
 uint8_t * Mod_DecompressVis (uint8_t * in, Q2Bsp * bsp);
 int isVisible(uint8_t * pvs, int i);
+void mark_leaves(uint8_t * pvs);
 
 Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face);
 
