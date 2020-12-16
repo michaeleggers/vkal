@@ -7,12 +7,9 @@
 #include "../q2_common.h"
 
 #include "../../platform.h"
+#include "../q2_r_local.h"
 
-
-extern Platform          p;
-extern VkDescriptorSet * descriptor_set;
-extern int               r_visframecount;
-
+static Q2Bsp             bsp;
 static BspWorldModel     g_worldmodel;
 
 // Some buffers used in q2bsp_triangulateFace() function.
@@ -21,10 +18,9 @@ static vec3     g_verts[1024];
 static uint16_t g_indices[1024];
 static uint16_t g_tmp_indices[1024];
 
-
-Q2Bsp q2bsp_init(uint8_t * data)
+void q2bsp_init(uint8_t * data)
 {
-    Q2Bsp bsp = { 0 };
+    bsp = (Q2Bsp){ 0 };
     bsp.data = data;
 
     bsp.header = (BspHeader*)bsp.data;
@@ -52,13 +48,13 @@ Q2Bsp q2bsp_init(uint8_t * data)
     bsp.vis_offsets = (BspVisOffset*)( ((uint8_t*)(bsp.vis)) + sizeof(uint32_t) );
     bsp.texinfos = (BspTexinfo*)(bsp.data + bsp.header->lumps[LT_TEX_INFO].offset);
     bsp.texinfo_count = bsp.header->lumps[LT_TEX_INFO].length / sizeof(BspTexinfo);
-    return bsp;
+
+	init_worldmodel();
 }
 
-void init_worldmodel(Q2Bsp bsp)
+void init_worldmodel(void)
 {
-	g_worldmodel = (BspWorldModel){ 0 };
-	g_worldmodel.descriptor_set = descriptor_set[0];
+	g_worldmodel = (BspWorldModel){ 0 };	
 	load_vis( bsp );
 	load_planes( bsp );
 	load_faces( bsp );
@@ -128,7 +124,7 @@ Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face)
     return tris;
 }
 
-uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
+uint32_t register_texture(char * texture_name)
 {
 	uint32_t i = 0;
 	for ( ; i <= g_worldmodel.texture_count; ++i) {
@@ -144,7 +140,7 @@ uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
 			0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST,
 			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 		vkal_update_descriptor_set_texturearray(
-			descriptor_set, 
+			descriptor_set[0], 
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 			i,
 			texture);
@@ -203,7 +199,7 @@ void load_faces(Q2Bsp bsp)
 		BspTexinfo texinfo = bsp.texinfos[ texinfo_idx ];
 		uint32_t tex_width, tex_height;
 
-		out->texture_id = register_texture( g_worldmodel.descriptor_set, texinfo.texture_name );
+		out->texture_id = register_texture( texinfo.texture_name );
 		tex_width       = g_worldmodel.textures[ out->texture_id ].texture.width;
 		tex_height      = g_worldmodel.textures[ out->texture_id ].texture.height;
 		out->visframe   = -1;
@@ -343,7 +339,7 @@ uint8_t * pvs_for_cluster(int cluster)
 }
 
 // find the leaf the camera (or any other position) is located in
-Leaf * point_in_leaf(Q2Bsp bsp, vec3 pos)
+Leaf * point_in_leaf(vec3 pos)
 {	
 	Node * node = g_worldmodel.nodes;
 	
@@ -351,7 +347,7 @@ Leaf * point_in_leaf(Q2Bsp bsp, vec3 pos)
 		if (node->type == LEAF)
 			return &node->content.leaf;
 		BspPlane * plane = node->content.node.plane;
-		vec3 plane_abc   = plane->normal;
+		vec3 plane_abc   = (vec3){ -plane->normal.x, plane->normal.z, plane->normal.y };
 		float distance   = plane->distance;
 		if ( (vec3_dot(pos, plane_abc) - distance) > 0 ) { // pos located at front side of plane
 			node = node->content.node.front;
@@ -365,14 +361,14 @@ Leaf * point_in_leaf(Q2Bsp bsp, vec3 pos)
 }
 
 // decompress a vis that has been acquired from a cluster
-uint8_t * Mod_DecompressVis (uint8_t * in, Q2Bsp * bsp)
+uint8_t * Mod_DecompressVis (uint8_t * in)
 {
 	static uint8_t	decompressed[MAX_MAP_LEAVES/8];
 	int		c;
 	uint8_t	* out;
 	int		row;
 
-	row = (bsp->vis->numclusters+7)>>3;	
+	row = (bsp.vis->numclusters+7)>>3;	
 	out = decompressed;
 
 	if (!in)
@@ -418,6 +414,7 @@ int isVisible(uint8_t * pvs, int i)
 
 void mark_leaves(uint8_t * pvs)
 {
+
 	r_visframecount++;
 
 	Node * leaf = g_worldmodel.leaves;
@@ -435,5 +432,79 @@ void mark_leaves(uint8_t * pvs)
 			} while(node);
 		}
 	}
+}
+
+void recursive_world_node(Node * node, vec3 pos)
+{
+	
+	if (node->visframe != r_visframecount) 
+		return;
+	// TODO: Frustum Culling
+
+	if (node->type == LEAF) { // Leaf Node -> Draw!
+		Leaf leaf = node->content.leaf;
+		MapFace ** mark       = leaf.firstmarksurface;
+		int c = leaf.nummarksurfaces;
+
+		if (c) { 
+			do {
+				(*mark)->visframe = r_framecount;
+				mark++;
+			} while (--c);
+		}
+
+		return;
+	}
+
+	// Node is not a Leaf -> walk approporiate side
+	// if pos is "behind" plane -> walk front, otherwise walk back. This gives back to front surface order
+
+	BspPlane * plane = node->content.node.plane;
+	vec3 plane_abc = plane->normal;
+	float front_or_back = vec3_dot(pos, plane_abc) - plane->distance;
+	
+	int sidebit;
+	if (front_or_back < 0) { // on back-side -> walk front side of plane
+		sidebit = 1;
+		recursive_world_node( node->content.node.front, pos );
+	}
+	else { // on front-side -> walk front side of plane
+		sidebit = 0;
+		recursive_world_node( node->content.node.back, pos );
+	}
+
+	// then draw the surfaces that have been marked previously (when node was a leaf)
+
+	MapFace * surf = g_worldmodel.surfaces + node->content.node.firstsurface;
+	for (int c = node->content.node.numsurfaces; c; c--, surf++) {
+		//if (surf->visframe != r_framecount)
+			//continue;
+		//if ( surf->plane_side != sidebit )
+			//continue;
+
+		vkal_draw(image_id, graphics_pipeline, surf->vk_vertex_buffer_offset, surf->vertex_count);
+	}
+
+	// Recurse down the other side
+	if (sidebit) {
+		recursive_world_node( node->content.node.back, pos );
+	}
+	else {
+		recursive_world_node( node->content.node.front, pos );
+	}
+}
+
+void draw_world(vec3 pos)
+{
+	Leaf * leaf = point_in_leaf( pos );
+	int cluster_id = leaf->cluster;
+	printf("cluster id: %d\n", cluster_id);
+	if (cluster_id >= 0) {		
+		uint8_t * compressed_pvs    = pvs_for_cluster(cluster_id);
+		uint8_t * decompressed_pvs  = Mod_DecompressVis(compressed_pvs);
+
+		mark_leaves(decompressed_pvs);
+		recursive_world_node(g_worldmodel.nodes, pos);
+	}	    
 }
 

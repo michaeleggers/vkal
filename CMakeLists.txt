@@ -57,6 +57,7 @@ add_executable(Quake2Level
     src/examples/q2_io.h
     src/examples/q2_common.c
     src/examples/q2_common.h
+    src/examples/q2_r_local.h
     src/examples/utils/q2bsp.c
     src/examples/utils/tr_math.c
     src/platform.c

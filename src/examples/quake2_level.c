@@ -15,10 +15,9 @@
 #include "../vkal.h"
 #include "../platform.h"
 #include "utils/tr_math.h"
-#include "utils/q2bsp.h"
 #include "q2_common.h"
 #include "q2_io.h"
-#include "utils/q2bsp.h"
+#include "q2_r_local.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stb_image.h"
@@ -47,8 +46,6 @@ typedef struct Camera
     float velocity;
 } Camera;
 
-
-
 typedef enum KeyCmd
 {
     W,
@@ -68,34 +65,6 @@ typedef struct VertexBuffer
     Buffer       buffer;
 } VertexBuffer;
 
-typedef struct m_BspLeaf
-{
-    uint32_t   brush_or;          // ?
-	
-    int16_t    cluster;           // -1 for cluster indicates no visibility information
-    uint16_t   area;              // ?
-
-    vec3_16i   bbox_min;          // bounding box minimums
-    vec3_16i   bbox_max;          // bounding box maximums
-
-    uint16_t   first_leaf_face;   // index of the first face (in the face leaf array)
-    uint16_t   num_leaf_faces;    // number of consecutive faces (in the face leaf array)
-
-    uint16_t   first_leaf_brush;  // ?
-    uint16_t   num_leaf_brushes;  // ?
-
-    int        visframe;
-} m_BspLeaf;
-
-typedef struct MapModel
-{
-    BspNode * nodes;
-    uint32_t node_count;
-
-    m_BspLeaf * leaves;
-    uint32_t leaf_count;
-} MapModel;
-
 void camera_dolly(Camera * camera, vec3 translate);
 void camera_yaw(Camera * camera, float angle);
 void camera_pitch(Camera * camera, float angle);
@@ -104,12 +73,6 @@ static GLFWwindow * g_window;
 static char g_exe_dir[128];
 static Camera g_camera;
 static int g_keys[MAX_KEYS];
-static MapTexture g_map_textures[MAX_MAP_TEXTURES];
-static uint32_t g_map_texture_count;
-static MapTexture g_sky_textures[MAX_MAP_TEXTURES];
-static uint32_t g_sky_texture_count;
-static MapFace  g_map_faces[MAX_MAP_FACES];
-static uint32_t g_map_face_count;
 
 static Vertex * map_vertices;
 static uint32_t offset_vertices;
@@ -124,8 +87,6 @@ static uint32_t offset_sky = 0;
 static uint32_t offset_lights = 0;
 static uint32_t offset_trans = 0;
 
-static MapModel mapmodel;
-
 static VertexBuffer transient_vertex_buffer;
 static VertexBuffer transient_vertex_buffer_sky;
 static VertexBuffer transient_vertex_buffer_lights;
@@ -136,12 +97,15 @@ static VertexBuffer transient_vertex_buffer_trans;
 static VkPipelineLayout pipeline_layout_sky;
 static VkPipeline       graphics_pipeline_sky;
 
-static VkPipelineLayout pipeline_layout;
-static VkPipeline       graphics_pipeline;
-
 /* Global Rendering Stuff (across compilation units) */
 VkDescriptorSet *       descriptor_set;
 int                     r_visframecount;
+int                     r_framecount;
+uint32_t                image_id;
+VkPipeline              graphics_pipeline;
+VkPipelineLayout        pipeline_layout;
+
+/* Platform */
 Platform                p;
 
 /* Static geometry, such as a cube */
@@ -150,7 +114,7 @@ static Vertex g_skybox_verts[8] =
     { .pos = { -1, 1, 1 } },
     { .pos =  { 1, 1, 1 } },
     { .pos = { 1, -1, 1 } },
-    { .pos = { -1, -1, 1} },
+    { .pos = { -1,-1, 1} },
     { .pos = { -1, 1, -1 } },
     { .pos = { 1, 1, -1 } },
     { .pos = { 1, -1, -1 } },
@@ -294,6 +258,7 @@ void load_shader_from_dir(char * dir, char * file, uint8_t ** out_byte_code, int
 	p.read_file(shader_path, out_byte_code, out_code_size);
 }
 
+/*
 uint32_t register_sky_texture(VkDescriptorSet descriptor_set, char * texture_name)
 {
     uint32_t i = 0;
@@ -331,6 +296,7 @@ uint32_t register_sky_texture(VkDescriptorSet descriptor_set, char * texture_nam
 
     return i;
 }
+*/
 
 void camera_dolly(Camera * camera, vec3 translate)
 {
@@ -373,6 +339,7 @@ void deinit_physfs()
         printf("PHYSFS_deinit() failed!\n  reason: %s.\n", PHYSFS_getLastError());
 }
 
+/*
 void create_transient_vertex_buffer(VertexBuffer * vertex_buf)
 {
     vertex_buf->memory = vkal_allocate_devicememory(MAX_MAP_VERTS*sizeof(Vertex),
@@ -392,7 +359,9 @@ void update_transient_vertex_buffer(VertexBuffer * vertex_buf, uint32_t offset, 
 {
     memcpy( ((Vertex*)(vertex_buf->buffer.mapped)) + offset, vertices, vertex_count*sizeof(Vertex) );      
 }
+*/
 
+/*
 void draw_leaf(Q2Bsp bsp, BspLeaf leaf)
 {
     for (uint32_t leaf_face_idx = leaf.first_leaf_face; leaf_face_idx < (leaf.first_leaf_face + leaf.num_leaf_faces); ++leaf_face_idx) {
@@ -571,6 +540,7 @@ void draw_marked_leaves_immediate(Q2Bsp bsp, BspNode * node, uint8_t * pvs, vec3
 	}
     }
 }
+*/
 
 void begin_drawing(void)
 {
@@ -582,34 +552,6 @@ void begin_drawing(void)
      offset_sky = 0;
      offset_lights = 0;
      offset_trans = 0;
-}
-
-MapModel init_mapmodel(Q2Bsp bsp)
-{
-    MapModel map_model = { 0 };
-    map_model.nodes = (BspNode*)malloc(bsp.node_count * sizeof(BspNode));
-    map_model.node_count = bsp.node_count;
-    memcpy(map_model.nodes, bsp.nodes, bsp.node_count * sizeof(BspNode));
-    
-    map_model.leaves = (m_BspLeaf*)malloc(bsp.leaf_count * sizeof(m_BspLeaf));
-    map_model.leaf_count = bsp.leaf_count;
-    m_BspLeaf * m_leaf = map_model.leaves;
-    BspLeaf   * d_leaf = bsp.leaves;
-    for (uint32_t i = 0; i < bsp.leaf_count; ++i) {
-	*( (BspLeaf*)m_leaf ) = *d_leaf;
-	m_leaf->visframe = -1;
-	m_leaf++; d_leaf++;
-    }
-    return map_model;
-}
-
-void deinit_mapmodel(MapModel map_model)
-{
-    assert(map_model.nodes != NULL);
-    free(map_model.nodes);
-
-    assert(map_model.leaves != NULL);
-    free(map_model.leaves);
 }
 
 int main(int argc, char ** argv)
@@ -667,8 +609,6 @@ int main(int argc, char ** argv)
     VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
     
     /* Shader Setup */
-	uint8_t shader_path[128];    
-
 	uint8_t * vertex_byte_code = 0;
     uint8_t * fragment_byte_code = 0;
     int vertex_code_size;
@@ -805,25 +745,24 @@ int main(int argc, char ** argv)
 	vkal_info->render_pass, pipeline_layout_sky);
     
     /* Load Quake 2 BSP map */
+	/*
     create_transient_vertex_buffer(&transient_vertex_buffer);
     create_transient_vertex_buffer(&transient_vertex_buffer_sky);
     create_transient_vertex_buffer(&transient_vertex_buffer_lights);
     create_transient_vertex_buffer(&transient_vertex_buffer_sub_models);
     create_transient_vertex_buffer(&transient_vertex_buffer_trans);
-    
+    */
+
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
 	uint8_t map_path[128];
 	concat_str(g_exe_dir, "/assets/maps/michi3.bsp", map_path);
     p.read_file(map_path, &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
-    Q2Bsp bsp = q2bsp_init(bsp_data);   
-
-	init_worldmodel( bsp );	
+    q2bsp_init(bsp_data);   
     
     /* Uniform Buffer for view projection matrices */
     g_camera.pos = (vec3){ 2, 46, 42 };
-	g_camera.pos = (vec3){ 2, 0, 42 };
 
     g_camera.center = (vec3){ 0 };
     vec3 f = vec3_normalize(vec3_sub(g_camera.center, g_camera.pos));
@@ -878,22 +817,11 @@ int main(int argc, char ** argv)
 	view_proj_data.cam_pos = g_camera.pos;
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
-	Leaf * leaf = point_in_leaf( bsp, g_camera.pos );
-	int cluster_id = leaf->cluster;
-	if (cluster_id >= 0) {
-		uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
-		uint8_t * c_pvs = ((uint8_t*)(bsp.vis)) + c_pvs_idx;
-		uint8_t * pvs = Mod_DecompressVis(c_pvs, &bsp);
-		//draw_marked_leaves_immediate(bsp, bsp.nodes, pvs, g_camera.pos, image_id);
 
-		uint8_t * compressed_pvs    = pvs_for_cluster(cluster_id);
-		uint8_t * decompressed_pvs  = Mod_DecompressVis(compressed_pvs, &bsp);
-		
-		mark_leaves(decompressed_pvs);
-	}	    
+	
 
 	{
-	    uint32_t image_id = vkal_get_image();
+	    image_id = vkal_get_image();
 
 	    vkal_begin_command_buffer(image_id);
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
@@ -906,6 +834,8 @@ int main(int argc, char ** argv)
 		
 		// TODO: bind descriptor set
 		// TODO: draw stuff
+		vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
+		draw_world( g_camera.pos );
 
 	
 		vkal_end_renderpass(image_id);	    
@@ -916,11 +846,11 @@ int main(int argc, char ** argv)
 	    vkal_present(image_id);	    
 
 	    vkDeviceWaitIdle(vkal_info->device);
+
+		r_framecount++;
 	}
     }
     
-	deinit_worldmodel();
-
     vkal_cleanup();
 
     glfwDestroyWindow(g_window);

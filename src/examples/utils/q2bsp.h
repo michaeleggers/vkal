@@ -4,7 +4,9 @@
 #include "../../vkal.h"
 
 #include "tr_math.h"
+#include "../../platform.h"
 #include "../q2_common.h"
+
 
 #define MAX_QPATH              128
 
@@ -347,10 +349,7 @@ typedef struct BspWorldModel
 
     uint8_t		*lightdata;
 
-	// Renderer Data, TODO: maybe this should be part of another "thing" in the code.
-	VkDescriptorSet descriptor_set;
-	VkDescriptorSet skybox_descriptor_set;
-
+	// Renderer Data, TODO: maybe this should be part of another "thing" in the code.	
 	MapTexture      textures[MAX_MAP_TEXTURES];
 	uint32_t        texture_count;
 
@@ -359,24 +358,25 @@ typedef struct BspWorldModel
 } BspWorldModel;
 
 
-Q2Bsp q2bsp_init(uint8_t * data);
-void init_worldmodel(Q2Bsp bsp);
-void deinit_worldmodel(void);
-void load_vis(Q2Bsp bsp);
-void load_planes(Q2Bsp bsp);
-void load_faces(Q2Bsp bsp);
-void load_marksurfaces(Q2Bsp bsp);
-void load_leaves(Q2Bsp bsp);
-void set_parent_node(Node * node, Node * parent);
-void load_nodes(Q2Bsp bsp);
+
+
+void      init_worldmodel(void);
+void      deinit_worldmodel(void);
+void      load_vis(Q2Bsp bsp);
+void      load_planes(Q2Bsp bsp);
+void      load_faces(Q2Bsp bsp);
+void      load_marksurfaces(Q2Bsp bsp);
+void      load_leaves(Q2Bsp bsp);
+void      set_parent_node(Node * node, Node * parent);
+void      load_nodes(Q2Bsp bsp);
 uint8_t * pvs_for_cluster(int cluster);
-Leaf * point_in_leaf(Q2Bsp bsp, vec3 pos);
-uint8_t * Mod_DecompressVis (uint8_t * in, Q2Bsp * bsp);
-int isVisible(uint8_t * pvs, int i);
-void mark_leaves(uint8_t * pvs);
+Leaf    * point_in_leaf(vec3 pos);
+uint8_t * Mod_DecompressVis (uint8_t * in);
+int       isVisible(uint8_t * pvs, int i);
+void      mark_leaves(uint8_t * pvs);
+void      recursive_world_node(Node * node, vec3 pos);
 
-Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face);
-
-uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name);
+Q2Tri     q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face);
+uint32_t  register_texture(char * texture_name);
 
 #endif

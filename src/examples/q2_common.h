@@ -4,6 +4,9 @@
 #include <stdint.h>
 
 #include "utils/tr_math.h"
+#include "../platform.h"
+
+extern Platform          p;
 
 typedef struct Q2Tri
 {
