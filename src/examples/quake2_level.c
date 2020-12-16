@@ -825,6 +825,8 @@ int main(int argc, char ** argv)
     
     /* Uniform Buffer for view projection matrices */
     g_camera.pos = (vec3){ 2, 46, 42 };
+	g_camera.pos = (vec3){ 2, 0, 42 };
+
     g_camera.center = (vec3){ 0 };
     vec3 f = vec3_normalize(vec3_sub(g_camera.center, g_camera.pos));
     g_camera.up = (vec3){ 0, 1, 0 };
@@ -878,8 +880,19 @@ int main(int argc, char ** argv)
 	view_proj_data.cam_pos = g_camera.pos;
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
-	Node * node = point_in_leaf( bsp, g_camera.pos );
-	assert( node->type == LEAF );
+	Leaf * leaf = point_in_leaf( bsp, g_camera.pos );
+	int cluster_id = leaf->cluster;
+	if (cluster_id >= 0) {
+		uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
+		uint8_t * c_pvs = ((uint8_t*)(bsp.vis)) + c_pvs_idx;
+		uint8_t * pvs = Mod_DecompressVis(c_pvs, &bsp);
+		//draw_marked_leaves_immediate(bsp, bsp.nodes, pvs, g_camera.pos, image_id);
+
+		uint8_t * compressed_pvs    = pvs_for_cluster(cluster_id);
+		uint8_t * decompressed_pvs  = Mod_DecompressVis(compressed_pvs, &bsp);
+		
+		int ass = 7;
+	}	    
 
 	{
 	    uint32_t image_id = vkal_get_image();
@@ -896,12 +909,6 @@ int main(int argc, char ** argv)
 		// TODO: bind descriptor set
 		// TODO: draw stuff
 
-	    /*if (cluster_id >= 0) {
-		uint32_t c_pvs_idx = bsp.vis_offsets[ cluster_id ].pvs;
-		uint8_t * c_pvs = ((uint8_t*)(bsp.vis)) + c_pvs_idx;
-		uint8_t * pvs = Mod_DecompressVis(c_pvs, &bsp);
-		draw_marked_leaves_immediate(bsp, bsp.nodes, pvs, g_camera.pos, image_id);
-	    }	    */
 	
 		vkal_end_renderpass(image_id);	    
 	    vkal_end_command_buffer(image_id);

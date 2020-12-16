@@ -215,7 +215,9 @@ typedef struct Q2Bsp
     uint32_t     texinfo_count;
 
     BspVis         * vis;
+	uint32_t       vis_size;
     BspVisOffset   * vis_offsets; // there are as many of those as numclusters
+	
 } Q2Bsp;
 
 
@@ -287,7 +289,6 @@ struct Node
     } content;
 };
 
-
 typedef enum {mod_bad, mod_brush, mod_sprite, mod_alias } modtype_t;
 typedef struct BspWorldModel
 {
@@ -340,9 +341,10 @@ typedef struct BspWorldModel
     int			nummarksurfaces;
     MapFace             **marksurfaces;
     
-    BspVis              *vis;
-    BspVisOffset        *vis_offsets; // there are as many of those as numclusters
-    
+    uint8_t              *vis;
+    uint32_t             cluster_count; // this is also the size of vis and vis_offset arrays
+	uint8_t              **vis_for_cluster; // array of numclusters pointers. Each pointer references a vis in the vis-array.
+
     uint8_t		*lightdata;
 
 	// Renderer Data, TODO: maybe this should be part of another "thing" in the code.
@@ -360,13 +362,15 @@ typedef struct BspWorldModel
 Q2Bsp q2bsp_init(uint8_t * data);
 void init_worldmodel(Q2Bsp bsp);
 void deinit_worldmodel(void);
+void load_vis(Q2Bsp bsp);
 void load_planes(Q2Bsp bsp);
 void load_faces(Q2Bsp bsp);
 void load_marksurfaces(Q2Bsp bsp);
 void load_leaves(Q2Bsp bsp);
 void set_parent_node(Node * node, Node * parent);
 void load_nodes(Q2Bsp bsp);
-Node * point_in_leaf(Q2Bsp bsp, vec3 pos);
+uint8_t * pvs_for_cluster(int cluster);
+Leaf * point_in_leaf(Q2Bsp bsp, vec3 pos);
 uint8_t * Mod_DecompressVis (uint8_t * in, Q2Bsp * bsp);
 int isVisible(uint8_t * pvs, int i);
 

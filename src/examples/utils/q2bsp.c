@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "q2bsp.h"
 #include "../q2_io.h"
@@ -11,7 +12,7 @@
 extern Platform p;
 extern VkDescriptorSet * descriptor_set;
 
-BspWorldModel   g_worldmodel;
+static BspWorldModel   g_worldmodel;
 
 // Some buffers used in q2bsp_triangulateFace() function.
 // TODO: Maybe replace thouse?
@@ -46,6 +47,7 @@ Q2Bsp q2bsp_init(uint8_t * data)
     bsp.vertices = (vec3*)(bsp.data + bsp.header->lumps[LT_VERTICES].offset);
     bsp.vertex_count = bsp.header->lumps[LT_VERTICES].length / sizeof(vec3);
     bsp.vis = (BspVis*)(bsp.data + bsp.header->lumps[LT_VISIBILITY].offset);
+	bsp.vis_size = bsp.header->lumps[LT_VISIBILITY].length;
     bsp.vis_offsets = (BspVisOffset*)( ((uint8_t*)(bsp.vis)) + sizeof(uint32_t) );
     bsp.texinfos = (BspTexinfo*)(bsp.data + bsp.header->lumps[LT_TEX_INFO].offset);
     bsp.texinfo_count = bsp.header->lumps[LT_TEX_INFO].length / sizeof(BspTexinfo);
@@ -56,6 +58,7 @@ void init_worldmodel(Q2Bsp bsp)
 {
 	g_worldmodel = (BspWorldModel){ 0 };
 	g_worldmodel.descriptor_set = descriptor_set[0];
+	load_vis( bsp );
 	load_planes( bsp );
 	load_faces( bsp );
 	load_marksurfaces( bsp );
@@ -150,6 +153,28 @@ uint32_t register_texture(VkDescriptorSet descriptor_set, char * texture_name)
 	}
 
 	return i;
+}
+
+void load_vis(Q2Bsp bsp)
+{
+	uint32_t cluster_count  = bsp.vis->numclusters;
+	//uint32_t vis_byte_count = (cluster_count >> 3) + ( (cluster_count & 7) & ~(cluster_count - 1) );
+
+	uint32_t vis_size = bsp.vis_size;		
+	uint8_t * in_vis  = (uint8_t*)(bsp.vis);
+	uint8_t * out_vis  = (uint8_t*)malloc(vis_size);
+	memcpy(out_vis, in_vis, vis_size);
+
+	g_worldmodel.vis             = out_vis;
+	g_worldmodel.cluster_count   = cluster_count;
+	g_worldmodel.vis_for_cluster = (uint8_t**)malloc( cluster_count*sizeof(uint8_t*) );
+
+	for (uint32_t i = 0; i < cluster_count; ++i) {
+		uint32_t pvs_idx                  = bsp.vis_offsets[ i ].pvs;
+		g_worldmodel.vis_for_cluster[ i ] = out_vis + pvs_idx;
+	}
+
+	// uint8_t * vis_for_cluster = g_worldmodel.vis[ cluster_id ];
 }
 
 void load_planes(Q2Bsp bsp)
@@ -305,15 +330,20 @@ void load_nodes(Q2Bsp bsp)
 	set_parent_node(g_worldmodel.nodes, NULL);
 }
 
+uint8_t * pvs_for_cluster(int cluster)
+{
+	assert( cluster >= 0 );
+	return g_worldmodel.vis_for_cluster[ cluster ];
+}
+
 // find the leaf the camera (or any other position) is located in
-// Returned Node Type must be LEAF!
-Node * point_in_leaf(Q2Bsp bsp, vec3 pos)
+Leaf * point_in_leaf(Q2Bsp bsp, vec3 pos)
 {	
 	Node * node = g_worldmodel.nodes;
 	
 	while (1) {
 		if (node->type == LEAF)
-			return node;
+			return &node->content.leaf;
 		BspPlane * plane = node->content.node.plane;
 		vec3 plane_abc   = plane->normal;
 		float distance   = plane->distance;
@@ -324,6 +354,8 @@ Node * point_in_leaf(Q2Bsp bsp, vec3 pos)
 			node = node->content.node.back;
 		}
 	}
+
+	return NULL; // This cannot be reached.
 }
 
 // decompress a vis that has been acquired from a cluster
@@ -367,7 +399,7 @@ uint8_t * Mod_DecompressVis (uint8_t * in, Q2Bsp * bsp)
 	return decompressed;
 }
 
-// check if a leaf number i is visible in this pvs
+// check if cluster i is visible in this pvs
 int isVisible(uint8_t * pvs, int i)
 {
 
