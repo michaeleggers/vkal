@@ -202,7 +202,7 @@ void load_faces(Q2Bsp bsp)
 		out->texture_id = register_texture( texinfo.texture_name );
 		tex_width       = g_worldmodel.textures[ out->texture_id ].texture.width;
 		tex_height      = g_worldmodel.textures[ out->texture_id ].texture.height;
-		out->visframe   = -1;
+		out->visframe   = 0;
 		out->plane      = g_worldmodel.planes + in->plane;
 		out->plane_side = in->plane_side;
 
@@ -442,8 +442,8 @@ void recursive_world_node(Node * node, vec3 pos)
 	// TODO: Frustum Culling
 
 	if (node->type == LEAF) { // Leaf Node -> Draw!
-		Leaf leaf = node->content.leaf;
-		MapFace ** mark       = leaf.firstmarksurface;
+		Leaf leaf       = node->content.leaf;
+		MapFace ** mark = leaf.firstmarksurface;
 		int c = leaf.nummarksurfaces;
 
 		if (c) { 
@@ -460,7 +460,7 @@ void recursive_world_node(Node * node, vec3 pos)
 	// if pos is "behind" plane -> walk front, otherwise walk back. This gives back to front surface order
 
 	BspPlane * plane = node->content.node.plane;
-	vec3 plane_abc = plane->normal;
+	vec3 plane_abc = (vec3){ -plane->normal.x, plane->normal.z, plane->normal.y };
 	float front_or_back = vec3_dot(pos, plane_abc) - plane->distance;
 	
 	int sidebit;
@@ -479,8 +479,22 @@ void recursive_world_node(Node * node, vec3 pos)
 	for (int c = node->content.node.numsurfaces; c; c--, surf++) {
 		//if (surf->visframe != r_framecount)
 			//continue;
-		//if ( surf->plane_side != sidebit )
-			//continue;
+
+		//BspPlane * surf_plane = surf->plane;
+		//vec3 surf_plane_abc = (vec3){ -surf_plane->normal.x, surf_plane->normal.z, surf_plane->normal.y };
+		//float surf_front_or_back = vec3_dot( pos, surf_plane_abc ) - surf_plane->distance;
+		//int face_plane_side;
+		//if (surf_front_or_back < 0) {
+		//	face_plane_side = 1;
+		//}
+		//else {
+		//	face_plane_side = 0;
+		//}
+		//if (face_plane_side != surf->side)
+		//	continue;
+
+		if ( surf->plane_side != sidebit )
+			continue;
 
 		vkal_draw(image_id, graphics_pipeline, surf->vk_vertex_buffer_offset, surf->vertex_count);
 	}
@@ -505,6 +519,7 @@ void draw_world(vec3 pos)
 
 		mark_leaves(decompressed_pvs);
 		recursive_world_node(g_worldmodel.nodes, pos);
+		r_framecount++;
 	}	    
 }
 

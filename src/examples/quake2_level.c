@@ -715,7 +715,7 @@ int main(int argc, char ** argv)
     graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
 	vkal_info->render_pass, pipeline_layout);
@@ -847,7 +847,7 @@ int main(int argc, char ** argv)
 
 	    vkDeviceWaitIdle(vkal_info->device);
 
-		r_framecount++;
+		
 	}
     }
     
