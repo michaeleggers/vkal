@@ -752,7 +752,7 @@ int main(int argc, char ** argv)
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
 	uint8_t map_path[128];
-	concat_str(g_exe_dir, "/assets/maps/michi5.bsp", map_path);
+	concat_str(g_exe_dir, "/assets/maps/base1.bsp", map_path);
     p.read_file(map_path, &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     q2bsp_init(bsp_data);   
@@ -774,9 +774,13 @@ int main(int argc, char ** argv)
     vkal_update_descriptor_set_uniform(descriptor_set[1], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);
     
+	double start_time;
+	double second = 0.0;
     // Main Loop
     while (!glfwWindowShouldClose(g_window))
     {
+		start_time = glfwGetTime();
+
 	glfwPollEvents();
 
 	if (g_keys[W]) {
@@ -847,8 +851,16 @@ int main(int argc, char ** argv)
 		r_framecount++;
 		
 	}
+
+	double end_time = glfwGetTime();
+	double time_elapsed = end_time - start_time;
+	second += time_elapsed;
+	if ( second >= 1.0 ) {
+		printf( "frametime: %f, FPS: %f\n", time_elapsed, (1.0/time_elapsed) );
+		second = 0.0;
     }
-    
+	}
+
     vkal_cleanup();
 
     glfwDestroyWindow(g_window);
