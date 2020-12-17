@@ -821,6 +821,7 @@ int main(int argc, char ** argv)
 	
 
 	{
+
 	    image_id = vkal_get_image();
 
 	    vkal_begin_command_buffer(image_id);
@@ -836,7 +837,7 @@ int main(int argc, char ** argv)
 		// TODO: draw stuff
 		vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
 		draw_world( g_camera.pos );
-
+		draw_transluscent_chain();
 	
 		vkal_end_renderpass(image_id);	    
 	    vkal_end_command_buffer(image_id);
@@ -847,6 +848,7 @@ int main(int argc, char ** argv)
 
 	    vkDeviceWaitIdle(vkal_info->device);
 
+		r_framecount++;
 		
 	}
     }

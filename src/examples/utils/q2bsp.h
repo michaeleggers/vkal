@@ -243,9 +243,10 @@ typedef enum MapFaceType
     NODRAW
 } MapFaceType;
 
-typedef struct MapFace
+typedef struct MapFace MapFace;
+struct MapFace
 {
-    MapFaceType type;
+    int         type;
     uint32_t    vertex_buffer_offset;
     uint64_t    vk_vertex_buffer_offset;
     uint32_t    vertex_count;
@@ -254,7 +255,10 @@ typedef struct MapFace
     int         visframe;
 	BspPlane    *plane;
 	uint16_t    plane_side;
-} MapFace;
+
+	MapFace *   transluscent_chain;
+	uint16_t    face_id; // debug stuff
+};
 
 typedef struct Leaf
 {
@@ -355,28 +359,30 @@ typedef struct BspWorldModel
 
 	Vertex          * map_vertices;
 	uint32_t        map_vertex_count;
+
+	MapFace         * transluscent_face_chain;
 } BspWorldModel;
 
 
 
 
-void      init_worldmodel(void);
-void      deinit_worldmodel(void);
-void      load_vis(Q2Bsp bsp);
-void      load_planes(Q2Bsp bsp);
-void      load_faces(Q2Bsp bsp);
-void      load_marksurfaces(Q2Bsp bsp);
-void      load_leaves(Q2Bsp bsp);
-void      set_parent_node(Node * node, Node * parent);
-void      load_nodes(Q2Bsp bsp);
-uint8_t * pvs_for_cluster(int cluster);
-Leaf    * point_in_leaf(vec3 pos);
-uint8_t * Mod_DecompressVis (uint8_t * in);
-int       isVisible(uint8_t * pvs, int i);
-void      mark_leaves(uint8_t * pvs);
-void      recursive_world_node(Node * node, vec3 pos);
+void			init_worldmodel(void);
+void			deinit_worldmodel(void);
+void			load_vis(void);
+void			load_planes(void);
+void			load_faces(void);
+void			load_marksurfaces(void);
+void			load_leaves(void);
+void			set_parent_node(Node * node, Node * parent);
+void			load_nodes(void);
+uint8_t *		pvs_for_cluster(int cluster);
+Leaf    *		point_in_leaf(vec3 pos);
+uint8_t *		Mod_DecompressVis (uint8_t * in);
+int				isVisible(uint8_t * pvs, int i);
+void			mark_leaves(uint8_t * pvs);
+void			recursive_world_node(Node * node, vec3 pos);
 
-Q2Tri     q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face);
-uint32_t  register_texture(char * texture_name);
+Q2Tri			q2bsp_triangulateFace(BspFace face);
+uint32_t		register_texture(char * texture_name);
 
 #endif

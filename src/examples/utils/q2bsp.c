@@ -12,6 +12,7 @@
 static Q2Bsp             bsp;
 static BspWorldModel     g_worldmodel;
 
+
 // Some buffers used in q2bsp_triangulateFace() function.
 // TODO: Maybe replace thouse?
 static vec3     g_verts[1024];
@@ -55,12 +56,12 @@ void q2bsp_init(uint8_t * data)
 void init_worldmodel(void)
 {
 	g_worldmodel = (BspWorldModel){ 0 };	
-	load_vis( bsp );
-	load_planes( bsp );
-	load_faces( bsp );
-	load_marksurfaces( bsp );
-	load_leaves( bsp );
-	load_nodes( bsp );
+	load_vis();
+	load_planes();
+	load_faces();
+	load_marksurfaces();
+	load_leaves();
+	load_nodes();
 }
 
 void deinit_worldmodel(void)
@@ -68,19 +69,19 @@ void deinit_worldmodel(void)
 	free( g_worldmodel.vertices );
 }
 
-Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face)
+Q2Tri q2bsp_triangulateFace(BspFace face)
 {
     uint16_t num_edges  = face.num_edges;
     uint16_t plane_idx = face.plane;
     uint16_t normal_is_flipped = face.plane_side;
-    vec3 face_normal = bsp->planes[plane_idx].normal;
+    vec3 face_normal = bsp.planes[plane_idx].normal;
     if (normal_is_flipped) {
 	face_normal = vec3_mul(-1.0f, face_normal);
     }
     
     for (uint32_t i = 0; i < (uint32_t)num_edges; ++i) {
 	uint32_t face_edge_idx  = face.first_edge + i;
-	int32_t edge_idx        = bsp->face_edge_table[face_edge_idx];
+	int32_t edge_idx        = bsp.face_edge_table[face_edge_idx];
 	int is_negative         = edge_idx & 0x08000000 ? 1 : 0;
         uint32_t abs_edge_idx;
 	if (is_negative) {
@@ -90,7 +91,7 @@ Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face)
 	    abs_edge_idx = (uint32_t)edge_idx;
 	}
 
-	uint32_t edge = bsp->edges[abs_edge_idx];
+	uint32_t edge = bsp.edges[abs_edge_idx];
 	uint32_t vertex1_idx = edge >> 16;
 	uint32_t vertex2_idx = edge & 0x0000FFFF;
 	if (is_negative) {
@@ -99,7 +100,7 @@ Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face)
 	else {
 	    g_tmp_indices[i] = vertex1_idx;
 	}
-	g_verts[i] = bsp->vertices[ g_tmp_indices[i] ];
+	g_verts[i] = bsp.vertices[ g_tmp_indices[i] ];
     }
 
     uint32_t num_tris = 1 + ((uint32_t)num_edges - 3);
@@ -110,7 +111,7 @@ Q2Tri q2bsp_triangulateFace(Q2Bsp * bsp, BspFace face)
 	g_indices[i*3+2] = g_tmp_indices[i+2];
     }
     for (uint32_t i = 0; i < 3*num_tris; ++i) {
-	g_verts[i] = bsp->vertices[ g_indices[i] ];
+	g_verts[i] = bsp.vertices[ g_indices[i] ];
     }
     
     Q2Tri tris = { 0 };
@@ -152,7 +153,7 @@ uint32_t register_texture(char * texture_name)
 	return i;
 }
 
-void load_vis(Q2Bsp bsp)
+void load_vis(void)
 {
 	uint32_t cluster_count  = bsp.vis->numclusters;
 	//uint32_t vis_byte_count = (cluster_count >> 3) + ( (cluster_count & 7) & ~(cluster_count - 1) );
@@ -174,7 +175,7 @@ void load_vis(Q2Bsp bsp)
 	// uint8_t * vis_for_cluster = g_worldmodel.vis[ cluster_id ];
 }
 
-void load_planes(Q2Bsp bsp)
+void load_planes(void)
 {
 	BspPlane * out = (BspPlane*)malloc(bsp.plane_count * sizeof(BspPlane));
 
@@ -184,13 +185,14 @@ void load_planes(Q2Bsp bsp)
 	memcpy(out, bsp.planes, bsp.plane_count * sizeof(BspPlane));
 }
 
-void load_faces(Q2Bsp bsp)
+void load_faces(void)
 {
 	g_worldmodel.map_vertices     = (Vertex*)malloc(MAX_MAP_VERTS * sizeof(Vertex));
 	g_worldmodel.map_vertex_count = 0;
 	BspFace * in  = bsp.faces;
 	MapFace * out = (MapFace*)malloc(bsp.face_count * sizeof(MapFace));
-	
+	memset(out, 0, bsp.face_count*sizeof(MapFace));
+
 	g_worldmodel.surfaces    = out;
 	g_worldmodel.numsurfaces = bsp.face_count;
 	
@@ -202,12 +204,13 @@ void load_faces(Q2Bsp bsp)
 		out->texture_id = register_texture( texinfo.texture_name );
 		tex_width       = g_worldmodel.textures[ out->texture_id ].texture.width;
 		tex_height      = g_worldmodel.textures[ out->texture_id ].texture.height;
-		out->visframe   = 0;
+		out->visframe   = r_framecount;
 		out->plane      = g_worldmodel.planes + in->plane;
 		out->plane_side = in->plane_side;
+		out->type       = texinfo.flags;
 
 		uint32_t prev_map_vert_count = g_worldmodel.map_vertex_count;
-		Q2Tri tris = q2bsp_triangulateFace(&bsp, *in);
+		Q2Tri tris = q2bsp_triangulateFace(*in);
 		for (uint32_t idx = 0; idx < tris.idx_count; ++idx) {
 			uint16_t vert_index = tris.indices[ idx ];
 			vec3 pos = bsp.vertices[ vert_index ];
@@ -238,7 +241,7 @@ void load_faces(Q2Bsp bsp)
 	}
 }
 
-void load_marksurfaces(Q2Bsp bsp)
+void load_marksurfaces(void)
 {
 	MapFace ** out;
 	
@@ -250,10 +253,11 @@ void load_marksurfaces(Q2Bsp bsp)
 	for (uint32_t i = 0; i < bsp.leaf_face_count; ++i) {
 		uint16_t j = bsp.leaf_face_table[ i ];
 		out[ i ] = g_worldmodel.surfaces + j;
+		out[ i ]->face_id = j;
 	}
 }
 
-void load_leaves(Q2Bsp bsp)
+void load_leaves(void)
 {
     BspLeaf * in   = bsp.leaves;
 	uint32_t count = bsp.leaf_count;
@@ -288,7 +292,7 @@ void set_parent_node(Node * node, Node * parent)
 	set_parent_node(node->content.node.back,  node);
 }
 
-void load_nodes(Q2Bsp bsp)
+void load_nodes(void)
 {
 	BspNode * in   = bsp.nodes;
 	uint32_t count = bsp.node_count;
@@ -412,6 +416,7 @@ int isVisible(uint8_t * pvs, int i)
 	return pvs[i>>3] & (1<<(i&7));	    
 }
 
+// mark leaves and nodes
 void mark_leaves(uint8_t * pvs)
 {
 
@@ -436,19 +441,21 @@ void mark_leaves(uint8_t * pvs)
 
 void recursive_world_node(Node * node, vec3 pos)
 {
-	
+	int c;
+	Leaf leaf;
+	MapFace ** mark;
+
 	if (node->visframe != r_visframecount) 
 		return;
 	// TODO: Frustum Culling
 
 	if (node->type == LEAF) { // Leaf Node -> Draw!
-		Leaf leaf       = node->content.leaf;
-		MapFace ** mark = leaf.firstmarksurface;
-		int c = leaf.nummarksurfaces;
-
+		leaf = node->content.leaf;
+		mark = leaf.firstmarksurface;
+		c = leaf.nummarksurfaces;
 		if (c) { 
 			do {
-				(*mark)->visframe = r_framecount;
+				(*mark)->visframe = r_framecount;				
 				mark++;
 			} while (--c);
 		}
@@ -466,60 +473,64 @@ void recursive_world_node(Node * node, vec3 pos)
 	int sidebit;
 	if (front_or_back < 0) { // on back-side -> walk front side of plane
 		sidebit = 1;
-		recursive_world_node( node->content.node.front, pos );
-	}
-	else { // on front-side -> walk front side of plane
-		sidebit = 0;
 		recursive_world_node( node->content.node.back, pos );
+	}
+	else { // on front-side -> walk back side of plane
+		sidebit = 0;
+		recursive_world_node( node->content.node.front, pos );
 	}
 
 	// then draw the surfaces that have been marked previously (when node was a leaf)
 
 	MapFace * surf = g_worldmodel.surfaces + node->content.node.firstsurface;
-	for (int c = node->content.node.numsurfaces; c; c--, surf++) {
-		//if (surf->visframe != r_framecount)
-			//continue;
-
-		//BspPlane * surf_plane = surf->plane;
-		//vec3 surf_plane_abc = (vec3){ -surf_plane->normal.x, surf_plane->normal.z, surf_plane->normal.y };
-		//float surf_front_or_back = vec3_dot( pos, surf_plane_abc ) - surf_plane->distance;
-		//int face_plane_side;
-		//if (surf_front_or_back < 0) {
-		//	face_plane_side = 1;
-		//}
-		//else {
-		//	face_plane_side = 0;
-		//}
-		//if (face_plane_side != surf->side)
-		//	continue;
+	for (c = node->content.node.numsurfaces; c; c--, surf++) {
+		if (surf->visframe != r_framecount)
+			continue;
 
 		if ( surf->plane_side != sidebit )
 			continue;
 
-		vkal_draw(image_id, graphics_pipeline, surf->vk_vertex_buffer_offset, surf->vertex_count);
+		if ( surf->type == SURF_TRANS66 ) {
+			surf->transluscent_chain = g_worldmodel.transluscent_face_chain;
+			g_worldmodel.transluscent_face_chain = surf;
+		}
+		else {
+			vkal_draw(image_id, graphics_pipeline, surf->vk_vertex_buffer_offset, surf->vertex_count);
+		}
 	}
 
 	// Recurse down the other side
 	if (sidebit) {
-		recursive_world_node( node->content.node.back, pos );
+		recursive_world_node( node->content.node.front, pos );
 	}
 	else {
-		recursive_world_node( node->content.node.front, pos );
+		recursive_world_node( node->content.node.back, pos );
+	}
+}
+
+void draw_transluscent_chain(void)
+{
+	MapFace * trans_surf = g_worldmodel.transluscent_face_chain;
+
+	while ( trans_surf ) {
+		vkal_draw(image_id, graphics_pipeline, trans_surf->vk_vertex_buffer_offset, trans_surf->vertex_count);
+		trans_surf = trans_surf->transluscent_chain;
 	}
 }
 
 void draw_world(vec3 pos)
-{
+{	
+	g_worldmodel.transluscent_face_chain = NULL;
+
 	Leaf * leaf = point_in_leaf( pos );
 	int cluster_id = leaf->cluster;
-	printf("cluster id: %d\n", cluster_id);
+	//printf("cluster id: %d\n", cluster_id);
 	if (cluster_id >= 0) {		
 		uint8_t * compressed_pvs    = pvs_for_cluster(cluster_id);
 		uint8_t * decompressed_pvs  = Mod_DecompressVis(compressed_pvs);
 
 		mark_leaves(decompressed_pvs);
-		recursive_world_node(g_worldmodel.nodes, pos);
-		r_framecount++;
+ 		recursive_world_node(g_worldmodel.nodes, pos);		
 	}	    
 }
 

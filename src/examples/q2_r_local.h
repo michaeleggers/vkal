@@ -14,6 +14,7 @@ extern uint32_t          image_id;
 extern VkPipeline        graphics_pipeline;
 extern VkPipelineLayout  pipeline_layout;
 void                     draw_world(vec3 pos);
+void					 draw_transluscent_chain(void);
 void                     q2bsp_init(uint8_t * data);
 
 
