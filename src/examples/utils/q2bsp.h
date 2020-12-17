@@ -6,14 +6,11 @@
 #include "tr_math.h"
 #include "../../platform.h"
 #include "../q2_common.h"
-
+#include "../q2_r_local.h"
 
 #define MAX_QPATH              128
 
-#define MAX_MAP_TEXTURES       1024
-#define MAX_MAP_VERTS          65536 
-#define	MAX_MAP_FACES	       65536
-#define MAX_MAP_LEAVES         65536
+
 
 /* Flags of BspTexinfo */
 #define	SURF_LIGHT		0x1		// value will hold the light strength
@@ -361,6 +358,8 @@ typedef struct BspWorldModel
 	uint32_t        map_vertex_count;
 
 	MapFace         * transluscent_face_chain;
+
+	uint32_t        trans_vertex_count;
 } BspWorldModel;
 
 

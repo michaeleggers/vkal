@@ -59,11 +59,7 @@ typedef enum KeyCmd
     MAX_KEYS
 } KeyCmd;
 
-typedef struct VertexBuffer
-{
-    DeviceMemory memory;
-    Buffer       buffer;
-} VertexBuffer;
+
 
 void camera_dolly(Camera * camera, vec3 translate);
 void camera_yaw(Camera * camera, float angle);
@@ -87,7 +83,7 @@ static uint32_t offset_sky = 0;
 static uint32_t offset_lights = 0;
 static uint32_t offset_trans = 0;
 
-static VertexBuffer transient_vertex_buffer;
+
 static VertexBuffer transient_vertex_buffer_sky;
 static VertexBuffer transient_vertex_buffer_lights;
 static VertexBuffer transient_vertex_buffer_sub_models;
@@ -104,6 +100,7 @@ int                     r_framecount;
 uint32_t                image_id;
 VkPipeline              graphics_pipeline;
 VkPipelineLayout        pipeline_layout;
+VertexBuffer            transient_vertex_buffer;
 
 /* Platform */
 Platform                p;
@@ -339,7 +336,7 @@ void deinit_physfs()
         printf("PHYSFS_deinit() failed!\n  reason: %s.\n", PHYSFS_getLastError());
 }
 
-/*
+
 void create_transient_vertex_buffer(VertexBuffer * vertex_buf)
 {
     vertex_buf->memory = vkal_allocate_devicememory(MAX_MAP_VERTS*sizeof(Vertex),
@@ -359,7 +356,6 @@ void update_transient_vertex_buffer(VertexBuffer * vertex_buf, uint32_t offset, 
 {
     memcpy( ((Vertex*)(vertex_buf->buffer.mapped)) + offset, vertices, vertex_count*sizeof(Vertex) );      
 }
-*/
 
 /*
 void draw_leaf(Q2Bsp bsp, BspLeaf leaf)
@@ -745,8 +741,8 @@ int main(int argc, char ** argv)
 	vkal_info->render_pass, pipeline_layout_sky);
     
     /* Load Quake 2 BSP map */
-	/*
     create_transient_vertex_buffer(&transient_vertex_buffer);
+	/*
     create_transient_vertex_buffer(&transient_vertex_buffer_sky);
     create_transient_vertex_buffer(&transient_vertex_buffer_lights);
     create_transient_vertex_buffer(&transient_vertex_buffer_sub_models);
@@ -756,7 +752,7 @@ int main(int argc, char ** argv)
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
 	uint8_t map_path[128];
-	concat_str(g_exe_dir, "/assets/maps/michi3.bsp", map_path);
+	concat_str(g_exe_dir, "/assets/maps/michi5.bsp", map_path);
     p.read_file(map_path, &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     q2bsp_init(bsp_data);   
@@ -836,7 +832,7 @@ int main(int argc, char ** argv)
 		// TODO: bind descriptor set
 		// TODO: draw stuff
 		vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
-		draw_world( g_camera.pos );
+		draw_world( g_camera.pos );		
 		draw_transluscent_chain();
 	
 		vkal_end_renderpass(image_id);	    

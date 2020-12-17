@@ -12,7 +12,6 @@
 static Q2Bsp             bsp;
 static BspWorldModel     g_worldmodel;
 
-
 // Some buffers used in q2bsp_triangulateFace() function.
 // TODO: Maybe replace thouse?
 static vec3     g_verts[1024];
@@ -237,6 +236,7 @@ void load_faces(void)
 		out->vk_vertex_buffer_offset = vkal_vertex_buffer_add( 
 			g_worldmodel.map_vertices + prev_map_vert_count,
 			sizeof(Vertex), tris.idx_count );
+		out->vertex_buffer_offset = prev_map_vert_count;
 		out->vertex_count = tris.idx_count;
 	}
 }
@@ -419,7 +419,6 @@ int isVisible(uint8_t * pvs, int i)
 // mark leaves and nodes
 void mark_leaves(uint8_t * pvs)
 {
-
 	r_visframecount++;
 
 	Node * leaf = g_worldmodel.leaves;
@@ -495,7 +494,15 @@ void recursive_world_node(Node * node, vec3 pos)
 			g_worldmodel.transluscent_face_chain = surf;
 		}
 		else {
-			vkal_draw(image_id, graphics_pipeline, surf->vk_vertex_buffer_offset, surf->vertex_count);
+			//vkal_draw(image_id, graphics_pipeline, surf->vk_vertex_buffer_offset, surf->vertex_count);
+			
+			uint32_t vbuf_offset = surf->vertex_buffer_offset;
+			
+			update_transient_vertex_buffer( 
+				&transient_vertex_buffer, g_worldmodel.trans_vertex_count, 
+				g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count );
+
+			g_worldmodel.trans_vertex_count += surf->vertex_count;			
 		}
 	}
 
@@ -521,6 +528,7 @@ void draw_transluscent_chain(void)
 void draw_world(vec3 pos)
 {	
 	g_worldmodel.transluscent_face_chain = NULL;
+	g_worldmodel.trans_vertex_count      = 0;
 
 	Leaf * leaf = point_in_leaf( pos );
 	int cluster_id = leaf->cluster;
@@ -531,6 +539,8 @@ void draw_world(vec3 pos)
 
 		mark_leaves(decompressed_pvs);
  		recursive_world_node(g_worldmodel.nodes, pos);		
-	}	    
+	}
+
+	vkal_draw_from_buffers( transient_vertex_buffer.buffer, image_id, graphics_pipeline, 0, g_worldmodel.trans_vertex_count );
 }
 
