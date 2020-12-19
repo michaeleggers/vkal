@@ -27,6 +27,11 @@ typedef struct Vertex
 	uint32_t surface_flags;
 } Vertex;
 
+typedef struct Material
+{
+	uint32_t diffuse;
+} Material;
+
 typedef struct Image
 {
 	uint32_t width, height, channels;

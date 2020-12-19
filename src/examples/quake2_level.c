@@ -94,13 +94,13 @@ static VkPipelineLayout pipeline_layout_sky;
 static VkPipeline       graphics_pipeline_sky;
 
 /* Global Rendering Stuff (across compilation units) */
-VkDescriptorSet *       descriptor_set;
+VkDescriptorSet *       r_descriptor_set;
 int                     r_visframecount;
 int                     r_framecount;
-uint32_t                image_id;
-VkPipeline              graphics_pipeline;
-VkPipelineLayout        pipeline_layout;
-VertexBuffer            transient_vertex_buffer;
+uint32_t                r_image_id;
+VkPipeline              r_graphics_pipeline;
+VkPipelineLayout        r_pipeline_layout;
+VertexBuffer            r_transient_vertex_buffer;
 
 /* Platform */
 Platform                p;
@@ -225,9 +225,12 @@ void init_window()
     glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
     glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
     glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-
-//    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+	//glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+	
     g_window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Michi's Quake 2 BSP Vulkan Renderer ;)", 0, 0);
+	
+	glfwSetWindowPos(g_window, 200, 200);
+	glfwSetWindowMonitor(g_window, glfwGetPrimaryMonitor(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, GLFW_DONT_CARE);
 
     glfwSetKeyCallback(g_window, glfw_key_callback);
 }
@@ -686,8 +689,8 @@ int main(int argc, char ** argv)
 	descriptor_set_layout_sky
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
-    descriptor_set = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_set);
+    r_descriptor_set = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
+    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &r_descriptor_set);
 
     /* Create dummy Texture to make sure every descriptor is initialized */
     Image dummy_img = load_image_file_from_dir("textures", "michi");
@@ -697,7 +700,7 @@ int main(int argc, char ** argv)
 						VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
     for (uint32_t i = 0; i < 1024; ++i) {
 	vkal_update_descriptor_set_texturearray(
-	    descriptor_set[0], 
+	    r_descriptor_set[0], 
 	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 	    i,
 	    dummy_texture);
@@ -705,16 +708,16 @@ int main(int argc, char ** argv)
    } 
     
     /* Pipeline */
-    pipeline_layout = vkal_create_pipeline_layout(
+    r_pipeline_layout = vkal_create_pipeline_layout(
 	layouts, 1, 
 	NULL, 0);
-    graphics_pipeline = vkal_create_graphics_pipeline(
+    r_graphics_pipeline = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
-	vkal_info->render_pass, pipeline_layout);
+	vkal_info->render_pass, r_pipeline_layout);
 
     /* Pipeline for Transparent surfaces */
     VkPipelineLayout pipeline_layout_trans = vkal_create_pipeline_layout(
@@ -741,7 +744,7 @@ int main(int argc, char ** argv)
 	vkal_info->render_pass, pipeline_layout_sky);
     
     /* Load Quake 2 BSP map */
-    create_transient_vertex_buffer(&transient_vertex_buffer);
+    create_transient_vertex_buffer(&r_transient_vertex_buffer);
 	/*
     create_transient_vertex_buffer(&transient_vertex_buffer_sky);
     create_transient_vertex_buffer(&transient_vertex_buffer_lights);
@@ -752,13 +755,15 @@ int main(int argc, char ** argv)
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
 	uint8_t map_path[128];
-	concat_str(g_exe_dir, "/assets/maps/base1.bsp", map_path);
+	concat_str(g_exe_dir, "/assets/maps/michi5.bsp", map_path);
     p.read_file(map_path, &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     q2bsp_init(bsp_data);   
     
     /* Uniform Buffer for view projection matrices */
-    g_camera.pos = (vec3){ 2, 46, 42 };
+    g_camera.pos = (vec3){ 2, 46, 42 };	
+	g_camera.pos = (vec3){ 2, 100, 42 };
+	
 
     g_camera.center = (vec3){ 0 };
     vec3 f = vec3_normalize(vec3_sub(g_camera.center, g_camera.pos));
@@ -770,8 +775,8 @@ int main(int argc, char ** argv)
     view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
 
-    vkal_update_descriptor_set_uniform(descriptor_set[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    vkal_update_descriptor_set_uniform(descriptor_set[1], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    vkal_update_descriptor_set_uniform(r_descriptor_set[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    vkal_update_descriptor_set_uniform(r_descriptor_set[1], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);
     
 	double start_time;
@@ -818,33 +823,32 @@ int main(int argc, char ** argv)
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
 
-	
-
 	{
 
-	    image_id = vkal_get_image();
+	    r_image_id = vkal_get_image();
 
-	    vkal_begin_command_buffer(image_id);
-	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->command_buffers[image_id],
+	    vkal_begin_command_buffer(r_image_id);
+	    vkal_begin_render_pass(r_image_id, vkal_info->render_pass);
+	    vkal_viewport(vkal_info->command_buffers[r_image_id],
 			  0, 0,
 			  (float)width, (float)height);
-	    vkal_scissor(vkal_info->command_buffers[image_id],
+	    vkal_scissor(vkal_info->command_buffers[r_image_id],
 			 0, 0,
 			 (float)width, (float)height);
 		
 		// TODO: bind descriptor set
 		// TODO: draw stuff
-		vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
+		
 		draw_world( g_camera.pos );		
+		draw_static_geometry();
 		draw_transluscent_chain();
 	
-		vkal_end_renderpass(image_id);	    
-	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
+		vkal_end_renderpass(r_image_id);	    
+	    vkal_end_command_buffer(r_image_id);
+	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[r_image_id] };
 	    vkal_queue_submit(command_buffers1, 1);
 
-	    vkal_present(image_id);	    
+	    vkal_present(r_image_id);	    
 
 	    vkDeviceWaitIdle(vkal_info->device);
 

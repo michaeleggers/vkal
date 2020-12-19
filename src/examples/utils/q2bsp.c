@@ -137,10 +137,10 @@ uint32_t register_texture(char * texture_name)
 		Image image = load_image_file_from_dir("textures", texture_name);
 		Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
 			VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-			0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST,
+			0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 		vkal_update_descriptor_set_texturearray(
-			descriptor_set[0], 
+			r_descriptor_set[0], 
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 			i,
 			texture);
@@ -493,13 +493,24 @@ void recursive_world_node(Node * node, vec3 pos)
 			surf->transluscent_chain = g_worldmodel.transluscent_face_chain;
 			g_worldmodel.transluscent_face_chain = surf;
 		}
+		else if ( surf->type == SURF_LIGHT ) {
+			// TODO: add light face to uniform descriptor-array
+
+			uint32_t vbuf_offset = surf->vertex_buffer_offset;
+
+			update_transient_vertex_buffer( 
+				&r_transient_vertex_buffer, g_worldmodel.trans_vertex_count, 
+				g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count );
+
+			g_worldmodel.trans_vertex_count += surf->vertex_count;			
+		}
 		else {
-			//vkal_draw(image_id, graphics_pipeline, surf->vk_vertex_buffer_offset, surf->vertex_count);
+			//vkal_draw(r_image_id, r_graphics_pipeline, surf->vk_vertex_buffer_offset, surf->vertex_count);
 			
 			uint32_t vbuf_offset = surf->vertex_buffer_offset;
 			
 			update_transient_vertex_buffer( 
-				&transient_vertex_buffer, g_worldmodel.trans_vertex_count, 
+				&r_transient_vertex_buffer, g_worldmodel.trans_vertex_count, 
 				g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count );
 
 			g_worldmodel.trans_vertex_count += surf->vertex_count;			
@@ -515,12 +526,19 @@ void recursive_world_node(Node * node, vec3 pos)
 	}
 }
 
+void draw_static_geometry(void)
+{
+	vkal_bind_descriptor_set(r_image_id, &r_descriptor_set[0], r_pipeline_layout);
+	vkal_draw_from_buffers( r_transient_vertex_buffer.buffer, r_image_id, r_graphics_pipeline, 0, g_worldmodel.trans_vertex_count );
+}
+
 void draw_transluscent_chain(void)
 {
 	MapFace * trans_surf = g_worldmodel.transluscent_face_chain;
 
+	vkal_bind_descriptor_set(r_image_id, &r_descriptor_set[0], r_pipeline_layout);
 	while ( trans_surf ) {
-		vkal_draw(image_id, graphics_pipeline, trans_surf->vk_vertex_buffer_offset, trans_surf->vertex_count);
+		vkal_draw(r_image_id, r_graphics_pipeline, trans_surf->vk_vertex_buffer_offset, trans_surf->vertex_count);
 		trans_surf = trans_surf->transluscent_chain;
 	}
 }
@@ -540,7 +558,5 @@ void draw_world(vec3 pos)
 		mark_leaves(decompressed_pvs);
  		recursive_world_node(g_worldmodel.nodes, pos);		
 	}
-
-	vkal_draw_from_buffers( transient_vertex_buffer.buffer, image_id, graphics_pipeline, 0, g_worldmodel.trans_vertex_count );
 }
 
