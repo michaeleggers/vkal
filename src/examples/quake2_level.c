@@ -225,12 +225,12 @@ void init_window()
     glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
     glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
     glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-	//glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+	glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 	
     g_window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Michi's Quake 2 BSP Vulkan Renderer ;)", 0, 0);
 	
 	glfwSetWindowPos(g_window, 200, 200);
-	glfwSetWindowMonitor(g_window, glfwGetPrimaryMonitor(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, GLFW_DONT_CARE);
+	//glfwSetWindowMonitor(g_window, glfwGetPrimaryMonitor(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, GLFW_DONT_CARE);
 
     glfwSetKeyCallback(g_window, glfw_key_callback);
 }
@@ -755,7 +755,14 @@ int main(int argc, char ** argv)
     uint8_t * bsp_data = NULL;
     int bsp_data_size;
 	uint8_t map_path[128];
-	concat_str(g_exe_dir, "/assets/maps/michi5.bsp", map_path);
+	uint8_t map[64];
+	if (argc > 1) {
+		concat_str("assets/maps/", argv[1], map);
+		concat_str(g_exe_dir, map, map_path);
+	}
+	else {
+		concat_str(g_exe_dir, "/assets/maps/michi5.bsp", map_path);
+	}
     p.read_file(map_path, &bsp_data, &bsp_data_size);
     assert(bsp_data != NULL);
     q2bsp_init(bsp_data);   

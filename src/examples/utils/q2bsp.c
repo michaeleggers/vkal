@@ -8,6 +8,7 @@
 
 #include "../../platform.h"
 #include "../q2_r_local.h"
+#include "../q2_e_parser.h"
 
 static Q2Bsp             bsp;
 static BspWorldModel     g_worldmodel;
@@ -55,12 +56,14 @@ void q2bsp_init(uint8_t * data)
 void init_worldmodel(void)
 {
 	g_worldmodel = (BspWorldModel){ 0 };	
+	q2_e_parse(bsp.entities);
 	load_vis();
 	load_planes();
 	load_faces();
 	load_marksurfaces();
 	load_leaves();
 	load_nodes();
+	
 }
 
 void deinit_worldmodel(void)
