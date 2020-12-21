@@ -9,7 +9,35 @@
 
 #include "q2_io.h"
 
+static Image generate_checkerboard_img(void)
+{	
+	Image img = (Image){ 0 };
+
+	uint32_t width  = 64;
+	uint32_t height = 64;
+	unsigned char * data = (unsigned char*)malloc(width*height*4);
+	uint32_t stride = 4;	
+	for (uint32_t i = 0; i < height; ++i) {
+		for (uint32_t j = 0; j < width; ++j) {
+			uint8_t oddeven = ( (i/4) % 2 ) ^ ( (j/4) % 2 );
+			uint8_t color = 255*oddeven;
+			*(data + i*width*stride + j*stride + 0) = color;
+			*(data + i*width*stride + j*stride + 1) = color;
+			*(data + i*width*stride + j*stride + 2) = color;
+			*(data + i*width*stride + j*stride + 3) = 0xFF;//(i / 16) % 2;		
+		}
+	}	
+
+	img.width    = width;
+	img.height   = height;
+	img.channels = 4;
+	img.data     = data;
+
+	return img;
+}
+
 // TODO: do not use malloc here. use preallocated scratch buffer or something like that!
+// TODO: what if file was not found? Return precomputed checkerboard or something?
 Image load_image_file_from_dir(char * dir, char * file)
 {
     Image image = (Image){ 0 };
@@ -28,8 +56,7 @@ Image load_image_file_from_dir(char * dir, char * file)
     if ( !phys_file ) {
 	   printf("PHYSFS_openRead() failed!\n  reason: %s.\n", PHYSFS_getLastError());
 	   printf("Warning: Image File not found: %s\n", searchpath);
-	   getchar();
-	   exit(-1);
+	   return generate_checkerboard_img();	 
 	}
     uint64_t file_length = PHYSFS_fileLength(phys_file);
     void * buffer = malloc(file_length);
@@ -46,4 +73,9 @@ Image load_image_file_from_dir(char * dir, char * file)
     free(buffer);
 
 	return image;
+}
+
+void  q2_destroy_image(Image * img)
+{
+	free(img->data);
 }

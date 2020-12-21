@@ -56,10 +56,11 @@ void q2bsp_init(uint8_t * data)
 void init_worldmodel(void)
 {
 	g_worldmodel = (BspWorldModel){ 0 };	
-	q2_e_parse(bsp.entities);
+	g_worldmodel.entities = q2_e_parse(bsp.entities);
 	load_vis();
 	load_planes();
 	load_faces();
+	load_sky();
 	load_marksurfaces();
 	load_leaves();
 	load_nodes();
@@ -68,7 +69,7 @@ void init_worldmodel(void)
 
 void deinit_worldmodel(void)
 {
-	free( g_worldmodel.vertices );
+
 }
 
 Q2Tri q2bsp_triangulateFace(BspFace face)
@@ -153,6 +154,49 @@ uint32_t register_texture(char * texture_name)
 	}
 
 	return i;
+}
+
+void load_sky(void)
+{
+	char * sky = g_worldmodel.entities.worldspawn.sky;
+	if (sky != '\0') {
+		Image images[ 6 ];
+		char * env_names[ 6 ] = { "ft", "bk", "up", "dn", "rt", "lf" };
+		char side[64];
+		for (int i = 0; i < 6; ++i) {
+			concat_str(sky, env_names[ i ], side);
+			images[ i ] = load_image_file_from_dir("env", side);			
+		}
+		
+		uint32_t img_width = images->width;
+		uint32_t img_height = images->height;
+		uint32_t img_size = img_width*img_height*4;
+		unsigned char * cubemaps = (unsigned char*)malloc( 6 * img_size );
+		unsigned char * img = cubemaps;
+		for (int i = 0; i < 6; ++i) {
+			memcpy( img + i*img_size, images[ i ].data, img_size );
+		}
+		
+		g_worldmodel.cubemap = vkal_create_texture(
+			1,
+			cubemaps,
+			img_width, img_height, 4,
+			VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, VK_IMAGE_VIEW_TYPE_CUBE,
+			VK_FORMAT_R8G8B8A8_UNORM,
+			0, 1,
+			0, 6,
+			VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+		vkal_update_descriptor_set_texture(r_descriptor_set[1], g_worldmodel.cubemap);
+
+		free(cubemaps);
+		for (int i = 0; i < 6; ++i) {
+			q2_destroy_image( images + i );
+		}
+	} 
+	else {
+		// TODO: LOAD A DEFAULT CUBEMAP?
+	}
 }
 
 void load_vis(void)
@@ -507,6 +551,14 @@ void recursive_world_node(Node * node, vec3 pos)
 
 			g_worldmodel.trans_vertex_count += surf->vertex_count;			
 		}
+		else if ( surf->type == SURF_SKY ) {
+			uint32_t vbuf_offset = surf->vertex_buffer_offset;
+			update_transient_vertex_buffer(
+				&r_transient_vertex_buffer_sky, g_worldmodel.trans_vertex_count_sky,
+				g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count );
+
+			g_worldmodel.trans_vertex_count_sky += surf->vertex_count;
+		}
 		else {
 			//vkal_draw(r_image_id, r_graphics_pipeline, surf->vk_vertex_buffer_offset, surf->vertex_count);
 			
@@ -535,6 +587,12 @@ void draw_static_geometry(void)
 	vkal_draw_from_buffers( r_transient_vertex_buffer.buffer, r_image_id, r_graphics_pipeline, 0, g_worldmodel.trans_vertex_count );
 }
 
+void draw_sky(void)
+{
+	vkal_bind_descriptor_set(r_image_id, &r_descriptor_set[1], r_pipeline_layout_sky);
+	vkal_draw_from_buffers( r_transient_vertex_buffer_sky.buffer, r_image_id, r_graphics_pipeline_sky, 0, g_worldmodel.trans_vertex_count_sky );
+}
+
 void draw_transluscent_chain(void)
 {
 	MapFace * trans_surf = g_worldmodel.transluscent_face_chain;
@@ -550,6 +608,7 @@ void draw_world(vec3 pos)
 {	
 	g_worldmodel.transluscent_face_chain = NULL;
 	g_worldmodel.trans_vertex_count      = 0;
+	g_worldmodel.trans_vertex_count_sky  = 0;
 
 	Leaf * leaf = point_in_leaf( pos );
 	int cluster_id = leaf->cluster;

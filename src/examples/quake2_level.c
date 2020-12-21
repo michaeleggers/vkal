@@ -84,14 +84,9 @@ static uint32_t offset_lights = 0;
 static uint32_t offset_trans = 0;
 
 
-static VertexBuffer transient_vertex_buffer_sky;
 static VertexBuffer transient_vertex_buffer_lights;
 static VertexBuffer transient_vertex_buffer_sub_models;
 static VertexBuffer transient_vertex_buffer_trans;
-
-/* Vulkan Stuff */
-static VkPipelineLayout pipeline_layout_sky;
-static VkPipeline       graphics_pipeline_sky;
 
 /* Global Rendering Stuff (across compilation units) */
 VkDescriptorSet *       r_descriptor_set;
@@ -100,7 +95,10 @@ int                     r_framecount;
 uint32_t                r_image_id;
 VkPipeline              r_graphics_pipeline;
 VkPipelineLayout        r_pipeline_layout;
+VkPipelineLayout        r_pipeline_layout_sky;
+VkPipeline              r_graphics_pipeline_sky;
 VertexBuffer            r_transient_vertex_buffer;
+VertexBuffer            r_transient_vertex_buffer_sky;
 
 /* Platform */
 Platform                p;
@@ -141,11 +139,7 @@ static uint16_t g_skybox_indices[36] =
 };
 
 
-void concat_str(uint8_t * str1, uint8_t * str2, uint8_t * out_result)
-{
-	strcpy(out_result, str1);
-	strcat(out_result, str2);
-}
+
 
 // GLFW callbacks
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
@@ -559,7 +553,7 @@ int main(int argc, char ** argv)
     init_physfs(argv[0]);
     init_window();
     init_platform(&p);
-    
+
 	p.get_exe_path(g_exe_dir, 128);
 
 	uint8_t textures_dir[128];
@@ -732,21 +726,21 @@ int main(int argc, char ** argv)
 	vkal_info->render_pass, pipeline_layout_trans);
 
     /* Pipeline for Skybox */
-    pipeline_layout_sky = vkal_create_pipeline_layout(
+    r_pipeline_layout_sky = vkal_create_pipeline_layout(
 	&layouts[1], 1, 
 	NULL, 0);
-    graphics_pipeline_sky = vkal_create_graphics_pipeline(
+    r_graphics_pipeline_sky = vkal_create_graphics_pipeline(
 	vertex_input_bindings, 1,
 	vertex_attributes, vertex_attribute_count,
 	shader_setup_sky, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
 	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	VK_FRONT_FACE_CLOCKWISE,
-	vkal_info->render_pass, pipeline_layout_sky);
+	vkal_info->render_pass, r_pipeline_layout_sky);
     
     /* Load Quake 2 BSP map */
     create_transient_vertex_buffer(&r_transient_vertex_buffer);
+    create_transient_vertex_buffer(&r_transient_vertex_buffer_sky);
 	/*
-    create_transient_vertex_buffer(&transient_vertex_buffer_sky);
     create_transient_vertex_buffer(&transient_vertex_buffer_lights);
     create_transient_vertex_buffer(&transient_vertex_buffer_sub_models);
     create_transient_vertex_buffer(&transient_vertex_buffer_trans);
@@ -848,6 +842,7 @@ int main(int argc, char ** argv)
 		
 		draw_world( g_camera.pos );		
 		draw_static_geometry();
+		draw_sky();
 		draw_transluscent_chain();
 	
 		vkal_end_renderpass(r_image_id);	    

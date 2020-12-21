@@ -7,6 +7,7 @@
 #include "../../platform.h"
 #include "../q2_common.h"
 #include "../q2_r_local.h"
+#include "../q2_e_parser.h"
 
 #define MAX_QPATH              128
 
@@ -360,6 +361,13 @@ typedef struct BspWorldModel
 	MapFace         * transluscent_face_chain;
 
 	uint32_t        trans_vertex_count;
+	uint32_t        trans_vertex_count_sky;
+
+	Texture         cubemap;
+
+	// Entity stuff
+	Q2Entities      entities;
+
 } BspWorldModel;
 
 
@@ -370,6 +378,7 @@ void			deinit_worldmodel(void);
 void			load_vis(void);
 void			load_planes(void);
 void			load_faces(void);
+void			load_sky(void);
 void			load_marksurfaces(void);
 void			load_leaves(void);
 void			set_parent_node(Node * node, Node * parent);

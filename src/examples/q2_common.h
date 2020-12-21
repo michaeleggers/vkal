@@ -39,6 +39,6 @@ typedef struct Image
 } Image;
 
 
-int string_length(char * string);
-
+int  string_length(char * string);
+void concat_str(uint8_t * str1, uint8_t * str2, uint8_t * out_result);
 #endif
