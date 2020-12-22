@@ -12,7 +12,6 @@
 static Image generate_checkerboard_img(void)
 {	
 	Image img = (Image){ 0 };
-
 	uint32_t width  = 64;
 	uint32_t height = 64;
 	unsigned char * data = (unsigned char*)malloc(width*height*4);
@@ -77,5 +76,7 @@ Image load_image_file_from_dir(char * dir, char * file)
 
 void  q2_destroy_image(Image * img)
 {
-	free(img->data);
+	if (img->data) {
+		free(img->data);
+	}
 }

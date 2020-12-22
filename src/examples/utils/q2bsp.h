@@ -351,6 +351,7 @@ typedef struct BspWorldModel
 
     uint8_t		*lightdata;
 
+
 	// Renderer Data, TODO: maybe this should be part of another "thing" in the code.	
 	MapTexture      textures[MAX_MAP_TEXTURES];
 	uint32_t        texture_count;
@@ -362,6 +363,8 @@ typedef struct BspWorldModel
 
 	uint32_t        trans_vertex_count;
 	uint32_t        trans_vertex_count_sky;
+	uint32_t        trans_vertex_count_bb;
+	uint32_t        trans_index_count_bb;
 
 	Texture         cubemap;
 

@@ -19,6 +19,12 @@ typedef struct VertexBuffer
 	Buffer       buffer;
 } VertexBuffer;
 
+typedef struct IndexBuffer
+{
+	DeviceMemory memory;
+	Buffer       buffer;
+} IndexBuffer;
+
 typedef struct StorageBuffer
 {
 	DeviceMemory memory;
@@ -31,21 +37,25 @@ extern int               r_framecount;
 extern uint32_t          r_image_id;
 extern VkPipeline        r_graphics_pipeline;
 extern VkPipelineLayout  r_pipeline_layout;
+extern VkPipeline        r_graphics_pipeline_bb;
+extern VkPipelineLayout  r_pipeline_layout_bb;
 extern VkPipeline        r_graphics_pipeline_sky;
 extern VkPipelineLayout  r_pipeline_layout_sky;
 
 /* Buffers */
 extern VertexBuffer      r_transient_vertex_buffer; // scratch memory gets updated every frame with faces depending on viewpos
 extern VertexBuffer      r_transient_vertex_buffer_sky;
+extern VertexBuffer      r_transient_vertex_buffer_bb;
+extern IndexBuffer       r_transient_index_buffer_bb;
 extern StorageBuffer     r_transient_material_buffer;
 
 void                     draw_world(vec3 pos);
 void                     draw_static_geometry(void);
+void					 draw_bb(void);
 void					 draw_sky(void);
 void					 draw_transluscent_chain(void);
 void                     q2bsp_init(uint8_t * data);
 void                     update_transient_vertex_buffer(VertexBuffer * vertex_buf, uint32_t offset, Vertex * vertices, uint32_t vertex_count);
-
-
+void					 update_transient_index_buffer(IndexBuffer * index_buf, uint32_t offset, uint16_t * indices, uint32_t index_count);
 
 #endif

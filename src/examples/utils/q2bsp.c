@@ -79,42 +79,43 @@ Q2Tri q2bsp_triangulateFace(BspFace face)
     uint16_t normal_is_flipped = face.plane_side;
     vec3 face_normal = bsp.planes[plane_idx].normal;
     if (normal_is_flipped) {
-	face_normal = vec3_mul(-1.0f, face_normal);
+		face_normal = vec3_mul(-1.0f, face_normal);
     }
     
     for (uint32_t i = 0; i < (uint32_t)num_edges; ++i) {
-	uint32_t face_edge_idx  = face.first_edge + i;
-	int32_t edge_idx        = bsp.face_edge_table[face_edge_idx];
-	int is_negative         = edge_idx & 0x08000000 ? 1 : 0;
-        uint32_t abs_edge_idx;
-	if (is_negative) {
-	    abs_edge_idx = (edge_idx - 1) ^ 0xFFFFFFFF; // assume 2's complement architecture
-	}
-	else {
-	    abs_edge_idx = (uint32_t)edge_idx;
+		uint32_t face_edge_idx  = face.first_edge + i;
+		int32_t edge_idx        = bsp.face_edge_table[face_edge_idx];
+		int is_negative         = edge_idx & 0x08000000 ? 1 : 0;
+		uint32_t abs_edge_idx;
+		if (is_negative) {
+			abs_edge_idx = (edge_idx - 1) ^ 0xFFFFFFFF; // assume 2's complement architecture
+		}
+		else {
+			abs_edge_idx = (uint32_t)edge_idx;
+		}
+
+		uint32_t edge = bsp.edges[abs_edge_idx];
+		uint32_t vertex1_idx = edge >> 16;
+		uint32_t vertex2_idx = edge & 0x0000FFFF;
+		if (is_negative) {
+			g_tmp_indices[i] = vertex2_idx;
+		}
+		else {
+			g_tmp_indices[i] = vertex1_idx;
+		}
+		g_verts[i] = bsp.vertices[ g_tmp_indices[i] ];
 	}
 
-	uint32_t edge = bsp.edges[abs_edge_idx];
-	uint32_t vertex1_idx = edge >> 16;
-	uint32_t vertex2_idx = edge & 0x0000FFFF;
-	if (is_negative) {
-	    g_tmp_indices[i] = vertex2_idx;
-	}
-	else {
-	    g_tmp_indices[i] = vertex1_idx;
-	}
-	g_verts[i] = bsp.vertices[ g_tmp_indices[i] ];
+	uint32_t num_tris = 1 + ((uint32_t)num_edges - 3);
+	uint16_t ancor_idx = g_tmp_indices[0];
+	for (uint32_t i = 0; i < num_tris; ++i) {
+		g_indices[i*3]   = ancor_idx;
+		g_indices[i*3+1] = g_tmp_indices[i+1];
+		g_indices[i*3+2] = g_tmp_indices[i+2];
     }
 
-    uint32_t num_tris = 1 + ((uint32_t)num_edges - 3);
-    uint16_t ancor_idx = g_tmp_indices[0];
-    for (uint32_t i = 0; i < num_tris; ++i) {
-	g_indices[i*3]   = ancor_idx;
-	g_indices[i*3+1] = g_tmp_indices[i+1];
-	g_indices[i*3+2] = g_tmp_indices[i+2];
-    }
     for (uint32_t i = 0; i < 3*num_tris; ++i) {
-	g_verts[i] = bsp.vertices[ g_indices[i] ];
+		g_verts[i] = bsp.vertices[ g_indices[i] ];
     }
     
     Q2Tri tris = { 0 };
@@ -383,6 +384,67 @@ void load_nodes(void)
 	set_parent_node(g_worldmodel.nodes, NULL);
 }
 
+void add_bb(Node * node)
+{
+	vec3_16i bbox_min = node->bbox_min;
+	vec3_16i bbox_max = node->bbox_max;
+	vec3 minf = (vec3){ -(float)bbox_min.x, (float)bbox_min.z, (float)bbox_min.y };
+	vec3 maxf = (vec3){ -(float)bbox_max.x, (float)bbox_max.z, (float)bbox_max.y };
+	Vertex verts[ 8 ] = { 0 };
+	// front
+	verts[ 0 ].pos   = minf;
+	verts[ 1 ].pos.x = minf.x; verts[ 1 ].pos.y = maxf.y; verts[ 1 ].pos.z = minf.z;
+	verts[ 2 ].pos.x = maxf.x; verts[ 2 ].pos.y = maxf.y; verts[ 2 ].pos.z = minf.z;
+	verts[ 3 ].pos.x = maxf.x; verts[ 3 ].pos.y = minf.y; verts[ 3 ].pos.z = minf.z;
+	// back
+	verts[ 4 ].pos.x = minf.x; verts[ 4 ].pos.y = minf.y; verts[ 4 ].pos.z = maxf.z;
+	verts[ 5 ].pos.x = minf.x; verts[ 5 ].pos.y = maxf.y; verts[ 5 ].pos.z = maxf.z;
+	verts[ 6 ].pos   = maxf;
+	verts[ 7 ].pos.x = maxf.x; verts[ 7 ].pos.y = minf.y; verts[ 7 ].pos.z = maxf.z;
+
+	uint16_t indices[48] = {
+		// front
+		0, 1,
+		1, 2,
+		2, 3,
+		3, 4,
+		// right
+		3, 2,
+		2, 6,
+		6, 7,
+		7, 3,
+		// back
+		7, 6,
+		6, 5,
+		5, 4,
+		4, 7,
+		// left
+		4, 5,
+		5, 1,
+		1, 0,
+		0, 4,
+		// top
+		1, 5,
+		5, 6,
+		6, 2,
+		2, 1,
+		// bottom
+		0, 4,
+		4, 7,
+		7, 3,
+		3, 0
+	};
+	for (int i = 0; i < 48; ++i) {
+		indices[ i ] += g_worldmodel.trans_vertex_count_bb;
+	}
+
+	update_transient_vertex_buffer( &r_transient_vertex_buffer_bb, g_worldmodel.trans_vertex_count_bb, verts, 8 );
+	update_transient_index_buffer( &r_transient_index_buffer_bb, g_worldmodel.trans_index_count_bb, indices, 48 );
+
+	g_worldmodel.trans_vertex_count_bb += 8;
+	g_worldmodel.trans_index_count_bb  += 48;
+}
+
 uint8_t * pvs_for_cluster(int cluster)
 {
 	assert( cluster >= 0 );
@@ -395,8 +457,10 @@ Leaf * point_in_leaf(vec3 pos)
 	Node * node = g_worldmodel.nodes;
 	
 	while (1) {
-		if (node->type == LEAF)
+		if (node->type == LEAF) {
+			add_bb(node);
 			return &node->content.leaf;
+		}
 		BspPlane * plane = node->content.node.plane;
 		vec3 plane_abc   = (vec3){ -plane->normal.x, plane->normal.z, plane->normal.y };
 		float distance   = plane->distance;
@@ -479,7 +543,7 @@ void mark_leaves(uint8_t * pvs)
 				if (node->visframe == r_visframecount) // we have been here before while walking up from another branch -> no need to go further
 					break;
 				node->visframe = r_visframecount;
-				node = node->parent;
+				node = node->parent;				
 			} while(node);
 		}
 	}
@@ -490,10 +554,12 @@ void recursive_world_node(Node * node, vec3 pos)
 	int c;
 	Leaf leaf;
 	MapFace ** mark;
+		
 
 	if (node->visframe != r_visframecount) 
 		return;
 	// TODO: Frustum Culling
+
 
 	if (node->type == LEAF) { // Leaf Node -> Draw!
 		leaf = node->content.leaf;
@@ -525,7 +591,7 @@ void recursive_world_node(Node * node, vec3 pos)
 		sidebit = 0;
 		recursive_world_node( node->content.node.front, pos );
 	}
-
+	
 	// then draw the surfaces that have been marked previously (when node was a leaf)
 
 	MapFace * surf = g_worldmodel.surfaces + node->content.node.firstsurface;
@@ -542,6 +608,7 @@ void recursive_world_node(Node * node, vec3 pos)
 		}
 		else if ( surf->type == SURF_LIGHT ) {
 			// TODO: add light face to uniform descriptor-array
+			// TODO: maybe but into separate buffer for raytracing
 
 			uint32_t vbuf_offset = surf->vertex_buffer_offset;
 
@@ -566,14 +633,14 @@ void recursive_world_node(Node * node, vec3 pos)
 			
 			update_transient_vertex_buffer( 
 				&r_transient_vertex_buffer, g_worldmodel.trans_vertex_count, 
-				g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count );
+				g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count );			
 
 			g_worldmodel.trans_vertex_count += surf->vertex_count;			
 		}
 	}
 
 	// Recurse down the other side
-	if (sidebit) {
+	if (sidebit) {		
 		recursive_world_node( node->content.node.front, pos );
 	}
 	else {
@@ -585,6 +652,14 @@ void draw_static_geometry(void)
 {
 	vkal_bind_descriptor_set(r_image_id, &r_descriptor_set[0], r_pipeline_layout);
 	vkal_draw_from_buffers( r_transient_vertex_buffer.buffer, r_image_id, r_graphics_pipeline, 0, g_worldmodel.trans_vertex_count );
+}
+
+void draw_bb(void)
+{
+	vkal_bind_descriptor_set(r_image_id, &r_descriptor_set[2], r_pipeline_layout_bb);
+	vkal_draw_indexed_from_buffers( 
+		r_transient_index_buffer_bb.buffer, 0, g_worldmodel.trans_index_count_bb, 
+		r_transient_vertex_buffer_bb.buffer, 0, r_image_id, r_graphics_pipeline_bb );
 }
 
 void draw_sky(void)
@@ -609,6 +684,8 @@ void draw_world(vec3 pos)
 	g_worldmodel.transluscent_face_chain = NULL;
 	g_worldmodel.trans_vertex_count      = 0;
 	g_worldmodel.trans_vertex_count_sky  = 0;
+	g_worldmodel.trans_vertex_count_bb   = 0;
+	g_worldmodel.trans_index_count_bb    = 0;
 
 	Leaf * leaf = point_in_leaf( pos );
 	int cluster_id = leaf->cluster;

@@ -95,11 +95,15 @@ int                     r_framecount;
 uint32_t                r_image_id;
 VkPipeline              r_graphics_pipeline;
 VkPipelineLayout        r_pipeline_layout;
-VkPipelineLayout        r_pipeline_layout_sky;
+VkPipeline			    r_graphics_pipeline_bb;
+VkPipelineLayout	    r_pipeline_layout_bb;
 VkPipeline              r_graphics_pipeline_sky;
+VkPipelineLayout        r_pipeline_layout_sky;
 VertexBuffer            r_transient_vertex_buffer;
 VertexBuffer            r_transient_vertex_buffer_sky;
-
+VertexBuffer			r_transient_vertex_buffer_bb;
+IndexBuffer             r_transient_index_buffer_bb;
+ 
 /* Platform */
 Platform                p;
 
@@ -352,6 +356,23 @@ void create_transient_vertex_buffer(VertexBuffer * vertex_buf)
 void update_transient_vertex_buffer(VertexBuffer * vertex_buf, uint32_t offset, Vertex * vertices, uint32_t vertex_count)
 {
     memcpy( ((Vertex*)(vertex_buf->buffer.mapped)) + offset, vertices, vertex_count*sizeof(Vertex) );      
+}
+
+void create_transient_index_buffer(IndexBuffer * index_buf)
+{
+	index_buf->memory = vkal_allocate_devicememory(MAX_MAP_VERTS*sizeof(uint16_t),
+		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	index_buf->buffer = vkal_create_buffer( MAX_MAP_VERTS*sizeof(uint16_t), &index_buf->memory,
+		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT );
+
+	map_memory( &index_buf->buffer, MAX_MAP_VERTS*sizeof(uint16_t), 0 );
+}
+
+void update_transient_index_buffer(IndexBuffer * index_buf, uint32_t offset, uint16_t * indices, uint32_t index_count)
+{
+	memcpy( ((uint16_t*)(index_buf->buffer.mapped)) + offset, indices, index_count*sizeof(uint16_t) );      
 }
 
 /*
@@ -613,6 +634,12 @@ int main(int argc, char ** argv)
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
 
+	load_shader_from_dir("assets/shaders/", "q2bsp_bb_vert.spv", &vertex_byte_code, &vertex_code_size);	
+	load_shader_from_dir("assets/shaders/", "q2bsp_bb_frag.spv", &fragment_byte_code, &fragment_code_size);
+	ShaderStageSetup shader_setup_bb = vkal_create_shaders(
+		vertex_byte_code, vertex_code_size, 
+		fragment_byte_code, fragment_code_size);
+
 	load_shader_from_dir("assets/shaders/", "q2bsp_sky_vert.spv", &vertex_byte_code, &vertex_code_size);
 	load_shader_from_dir("assets/shaders/", "q2bsp_sky_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup_sky = vkal_create_shaders(
@@ -678,9 +705,22 @@ int main(int argc, char ** argv)
     };
     VkDescriptorSetLayout descriptor_set_layout_sky = vkal_create_descriptor_set_layout(set_layout_sky, 2);
 
+	VkDescriptorSetLayoutBinding set_layout_bb[] = {
+		{
+			0,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			1,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			0
+		}
+	};
+	VkDescriptorSetLayout descriptor_set_layout_bb = vkal_create_descriptor_set_layout(set_layout_bb, 1);
+
+
     VkDescriptorSetLayout layouts[] = {
-	descriptor_set_layout,
-	descriptor_set_layout_sky
+		descriptor_set_layout,
+		descriptor_set_layout_sky,
+		descriptor_set_layout_bb
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     r_descriptor_set = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
@@ -703,15 +743,26 @@ int main(int argc, char ** argv)
     
     /* Pipeline */
     r_pipeline_layout = vkal_create_pipeline_layout(
-	layouts, 1, 
-	NULL, 0);
-    r_graphics_pipeline = vkal_create_graphics_pipeline(
-	vertex_input_bindings, 1,
-	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
-	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-	VK_FRONT_FACE_CLOCKWISE,
-	vkal_info->render_pass, r_pipeline_layout);
+		layouts, 1, 
+		NULL, 0);
+	r_graphics_pipeline = vkal_create_graphics_pipeline(
+		vertex_input_bindings, 1,
+		vertex_attributes, vertex_attribute_count,
+		shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
+		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+		VK_FRONT_FACE_CLOCKWISE,
+		vkal_info->render_pass, r_pipeline_layout);
+
+	r_pipeline_layout_bb = vkal_create_pipeline_layout(
+		&layouts[2], 1,
+		NULL, 0);
+	r_graphics_pipeline_bb = vkal_create_graphics_pipeline(
+		vertex_input_bindings, 1,
+		vertex_attributes, vertex_attribute_count,
+		shader_setup_bb, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL, 
+		VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+		VK_FRONT_FACE_CLOCKWISE,
+		vkal_info->render_pass, r_pipeline_layout_bb);
 
     /* Pipeline for Transparent surfaces */
     VkPipelineLayout pipeline_layout_trans = vkal_create_pipeline_layout(
@@ -740,6 +791,8 @@ int main(int argc, char ** argv)
     /* Load Quake 2 BSP map */
     create_transient_vertex_buffer(&r_transient_vertex_buffer);
     create_transient_vertex_buffer(&r_transient_vertex_buffer_sky);
+	create_transient_vertex_buffer(&r_transient_vertex_buffer_bb);
+	create_transient_index_buffer(&r_transient_index_buffer_bb);
 	/*
     create_transient_vertex_buffer(&transient_vertex_buffer_lights);
     create_transient_vertex_buffer(&transient_vertex_buffer_sub_models);
@@ -776,8 +829,9 @@ int main(int argc, char ** argv)
     view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
 
-    vkal_update_descriptor_set_uniform(r_descriptor_set[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    vkal_update_descriptor_set_uniform(r_descriptor_set[1], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    vkal_update_descriptor_set_uniform(r_descriptor_set[ 0 ], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    vkal_update_descriptor_set_uniform(r_descriptor_set[ 1 ], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	vkal_update_descriptor_set_uniform(r_descriptor_set[ 2 ], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);
     
 	double start_time;
@@ -842,6 +896,7 @@ int main(int argc, char ** argv)
 		
 		draw_world( g_camera.pos );		
 		draw_static_geometry();
+		draw_bb();
 		draw_sky();
 		draw_transluscent_chain();
 	
