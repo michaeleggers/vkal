@@ -1,17 +1,14 @@
 #ifndef Q2BSP_H
 #define Q2BSP_H
 
-#include "../../vkal.h"
+//#include "../../vkal.h"
 
 #include "tr_math.h"
 #include "../../platform.h"
 #include "../q2_common.h"
-#include "../q2_r_local.h"
 #include "../q2_e_parser.h"
 
 #define MAX_QPATH              128
-
-
 
 /* Flags of BspTexinfo */
 #define	SURF_LIGHT		0x1		// value will hold the light strength
@@ -227,8 +224,10 @@ typedef struct Q2Bsp
 
 typedef struct MapTexture
 {
-	Texture texture;
-	char    name[32];
+	uint32_t texture;
+	uint32_t width;
+	uint32_t height;
+	char     name[32];
 } MapTexture;
 
 typedef enum MapFaceType
@@ -361,12 +360,16 @@ typedef struct BspWorldModel
 
 	MapFace         * transluscent_face_chain;
 
-	uint32_t        trans_vertex_count;
-	uint32_t        trans_vertex_count_sky;
-	uint32_t        trans_vertex_count_bb;
-	uint32_t        trans_index_count_bb;
-
-	Texture         cubemap;
+	Vertex                   * transient_vertex_buffer; 
+	uint32_t				 transient_vertex_count;
+	Vertex                   * transient_vertex_buffer_bb;
+	uint32_t                 transient_vertex_count_bb;
+	uint16_t                 * transient_index_buffer_bb;
+	uint32_t                 transient_index_count_bb;
+	Vertex                   * transient_vertex_buffer_sky;
+	uint32_t			     transient_vertex_count_sky;
+	Vertex                   * transient_vertex_buffer_trans;
+	uint32_t                 transient_vertex_count_trans;
 
 	// Entity stuff
 	Q2Entities      entities;
@@ -375,7 +378,7 @@ typedef struct BspWorldModel
 
 
 
-
+void            q2bsp_init(uint8_t * data);
 void			init_worldmodel(void);
 void			deinit_worldmodel(void);
 void			load_vis(void);
@@ -394,6 +397,7 @@ void			mark_leaves(uint8_t * pvs);
 void			recursive_world_node(Node * node, vec3 pos);
 
 Q2Tri			q2bsp_triangulateFace(BspFace face);
-uint32_t		register_texture(char * texture_name);
+
+extern BspWorldModel g_worldmodel;
 
 #endif

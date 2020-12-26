@@ -1,7 +1,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
+#include "../../vkal.h"
 #include "q2bsp.h"
 #include "../q2_io.h"
 #include "../q2_common.h"
@@ -11,7 +13,7 @@
 #include "../q2_e_parser.h"
 
 static Q2Bsp             bsp;
-static BspWorldModel     g_worldmodel;
+BspWorldModel			 g_worldmodel;
 
 // Some buffers used in q2bsp_triangulateFace() function.
 // TODO: Maybe replace thouse?
@@ -65,6 +67,10 @@ void init_worldmodel(void)
 	load_leaves();
 	load_nodes();
 	
+	// Int vertex buffers for drawing. Maybe they really should be somewhere else
+	g_worldmodel.transient_vertex_buffer       = (Vertex*)malloc(MAX_MAP_VERTS*sizeof(Vertex));
+	g_worldmodel.transient_vertex_buffer_sky   = (Vertex*)malloc(MAX_MAP_VERTS*sizeof(Vertex));
+	g_worldmodel.transient_vertex_buffer_trans = (Vertex*)malloc(MAX_MAP_VERTS*sizeof(Vertex));
 }
 
 void deinit_worldmodel(void)
@@ -129,34 +135,6 @@ Q2Tri q2bsp_triangulateFace(BspFace face)
     return tris;
 }
 
-uint32_t register_texture(char * texture_name)
-{
-	uint32_t i = 0;
-	for ( ; i <= g_worldmodel.texture_count; ++i) {
-		if ( !strcmp(texture_name, g_worldmodel.textures[ i ].name) ) {
-			break;
-		}
-	}
-	if (i > g_worldmodel.texture_count) {
-		i = g_worldmodel.texture_count;
-		Image image = load_image_file_from_dir("textures", texture_name);
-		Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
-			VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-			0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
-			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-		vkal_update_descriptor_set_texturearray(
-			r_descriptor_set[0], 
-			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-			i,
-			texture);
-		strcpy( g_worldmodel.textures[ g_worldmodel.texture_count ].name, texture_name );
-		g_worldmodel.textures[ g_worldmodel.texture_count ].texture = texture;
-		g_worldmodel.texture_count++;
-	}
-
-	return i;
-}
-
 void load_sky(void)
 {
 	char * sky = g_worldmodel.entities.worldspawn.sky;
@@ -178,17 +156,7 @@ void load_sky(void)
 			memcpy( img + i*img_size, images[ i ].data, img_size );
 		}
 		
-		g_worldmodel.cubemap = vkal_create_texture(
-			1,
-			cubemaps,
-			img_width, img_height, 4,
-			VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, VK_IMAGE_VIEW_TYPE_CUBE,
-			VK_FORMAT_R8G8B8A8_UNORM,
-			0, 1,
-			0, 6,
-			VK_FILTER_LINEAR, VK_FILTER_LINEAR,
-			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-		vkal_update_descriptor_set_texture(r_descriptor_set[1], g_worldmodel.cubemap);
+		create_cubemap( cubemaps, img_width, img_height, 4 );		
 
 		free(cubemaps);
 		for (int i = 0; i < 6; ++i) {
@@ -245,18 +213,23 @@ void load_faces(void)
 	
 	for (uint32_t i = 0; i < g_worldmodel.numsurfaces; i++, in++, out++) {
 		int16_t texinfo_idx = in->texture_info; // TODO: can be negative?
-		BspTexinfo texinfo = bsp.texinfos[ texinfo_idx ];
+		BspTexinfo texinfo = { 0 };
+		texinfo = bsp.texinfos[ texinfo_idx ];
 		uint32_t tex_width, tex_height;
-
-		out->texture_id = register_texture( texinfo.texture_name );
-		tex_width       = g_worldmodel.textures[ out->texture_id ].texture.width;
-		tex_height      = g_worldmodel.textures[ out->texture_id ].texture.height;
+		
+		out->texture_id = register_texture( texinfo.texture_name, &tex_width, &tex_height );
+		g_worldmodel.textures[ out->texture_id ].width  = tex_width;
+		g_worldmodel.textures[ out->texture_id ].height = tex_height;
+		strcpy(g_worldmodel.textures[ out->texture_id ].name, texinfo.texture_name);
 		out->visframe   = r_framecount;
 		out->plane      = g_worldmodel.planes + in->plane;
 		out->plane_side = in->plane_side;
 		out->type       = texinfo.flags;
 
 		uint32_t prev_map_vert_count = g_worldmodel.map_vertex_count;
+		if ( (texinfo.flags & SURF_LIGHT) == SURF_LIGHT ) {			
+			add_light( g_worldmodel.map_vertices + prev_map_vert_count );
+		}
 		Q2Tri tris = q2bsp_triangulateFace(*in);
 		for (uint32_t idx = 0; idx < tris.idx_count; ++idx) {
 			uint16_t vert_index = tris.indices[ idx ];
@@ -271,7 +244,7 @@ void load_faces(void)
 			v.pos.z = z;
 			v.normal.x = -normal.x;
 			v.normal.y = normal.z;
-			v.normal.z = normal.y;
+			v.normal.z = normal.y; 
 			float scale = 1.0;
 			v.uv.x = (-x * texinfo.u_axis.x + y * texinfo.u_axis.z + z * texinfo.u_axis.y + texinfo.u_offset)/(float)(scale*(float)tex_width);
 			v.uv.y = (-x * texinfo.v_axis.x + y * texinfo.v_axis.z + z * texinfo.v_axis.y + texinfo.v_offset)/(float)(scale*(float)tex_height);
@@ -281,9 +254,7 @@ void load_faces(void)
 		}
 
 		out->side = in->plane_side;
-		out->vk_vertex_buffer_offset = vkal_vertex_buffer_add( 
-			g_worldmodel.map_vertices + prev_map_vert_count,
-			sizeof(Vertex), tris.idx_count );
+		out->vk_vertex_buffer_offset = vkal_vertex_buffer_add( g_worldmodel.map_vertices + prev_map_vert_count, sizeof(Vertex), tris.idx_count );
 		out->vertex_buffer_offset = prev_map_vert_count;
 		out->vertex_count = tris.idx_count;
 	}
@@ -435,14 +406,15 @@ void add_bb(Node * node)
 		3, 0
 	};
 	for (int i = 0; i < 48; ++i) {
-		indices[ i ] += g_worldmodel.trans_vertex_count_bb;
+		indices[ i ] += g_worldmodel.transient_vertex_count_bb;
 	}
 
-	update_transient_vertex_buffer( &r_transient_vertex_buffer_bb, g_worldmodel.trans_vertex_count_bb, verts, 8 );
-	update_transient_index_buffer( &r_transient_index_buffer_bb, g_worldmodel.trans_index_count_bb, indices, 48 );
+	// TODO: update transient buffers (memcpy)
+	//update_transient_vertex_buffer( &r_transient_vertex_buffer_bb, g_worldmodel.transient_vertex_count_bb, verts, 8 );
+	//update_transient_index_buffer( &r_transient_index_buffer_bb, g_worldmodel.transient_index_count_bb, indices, 48 );
 
-	g_worldmodel.trans_vertex_count_bb += 8;
-	g_worldmodel.trans_index_count_bb  += 48;
+	g_worldmodel.transient_vertex_count_bb += 8;
+	g_worldmodel.transient_index_count_bb  += 48;
 }
 
 uint8_t * pvs_for_cluster(int cluster)
@@ -609,33 +581,29 @@ void recursive_world_node(Node * node, vec3 pos)
 		else if ( surf->type == SURF_LIGHT ) {
 			// TODO: add light face to uniform descriptor-array
 			// TODO: maybe but into separate buffer for raytracing
-
-			uint32_t vbuf_offset = surf->vertex_buffer_offset;
-
-			update_transient_vertex_buffer( 
-				&r_transient_vertex_buffer, g_worldmodel.trans_vertex_count, 
-				g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count );
-
-			g_worldmodel.trans_vertex_count += surf->vertex_count;			
+			
+			uint32_t vbuf_offset = surf->vertex_buffer_offset;			
+			memcpy( g_worldmodel.transient_vertex_buffer + g_worldmodel.transient_vertex_count, g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count*sizeof(Vertex) );
+			g_worldmodel.transient_vertex_count += surf->vertex_count;		
 		}
 		else if ( surf->type == SURF_SKY ) {
-			uint32_t vbuf_offset = surf->vertex_buffer_offset;
-			update_transient_vertex_buffer(
-				&r_transient_vertex_buffer_sky, g_worldmodel.trans_vertex_count_sky,
-				g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count );
+			//uint32_t vbuf_offset = surf->vertex_buffer_offset;
+			//update_transient_vertex_buffer(
+			//	&r_transient_vertex_buffer_sky, g_worldmodel.trans_vertex_count_sky,
+			//	g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count );
 
-			g_worldmodel.trans_vertex_count_sky += surf->vertex_count;
+			//g_worldmodel.trans_vertex_count_sky += surf->vertex_count;
+
+			uint32_t vbuf_offset = surf->vertex_buffer_offset;			
+			memcpy( g_worldmodel.transient_vertex_buffer_sky + g_worldmodel.transient_vertex_count_sky, g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count*sizeof(Vertex) );
+			g_worldmodel.transient_vertex_count_sky += surf->vertex_count;
 		}
 		else {
 			//vkal_draw(r_image_id, r_graphics_pipeline, surf->vk_vertex_buffer_offset, surf->vertex_count);
 			
-			uint32_t vbuf_offset = surf->vertex_buffer_offset;
-			
-			update_transient_vertex_buffer( 
-				&r_transient_vertex_buffer, g_worldmodel.trans_vertex_count, 
-				g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count );			
-
-			g_worldmodel.trans_vertex_count += surf->vertex_count;			
+			uint32_t vbuf_offset = surf->vertex_buffer_offset;			
+			memcpy( g_worldmodel.transient_vertex_buffer + g_worldmodel.transient_vertex_count, g_worldmodel.map_vertices + vbuf_offset, surf->vertex_count*sizeof(Vertex) );
+			g_worldmodel.transient_vertex_count += surf->vertex_count;
 		}
 	}
 
@@ -648,44 +616,14 @@ void recursive_world_node(Node * node, vec3 pos)
 	}
 }
 
-void draw_static_geometry(void)
-{
-	vkal_bind_descriptor_set(r_image_id, &r_descriptor_set[0], r_pipeline_layout);
-	vkal_draw_from_buffers( r_transient_vertex_buffer.buffer, r_image_id, r_graphics_pipeline, 0, g_worldmodel.trans_vertex_count );
-}
-
-void draw_bb(void)
-{
-	vkal_bind_descriptor_set(r_image_id, &r_descriptor_set[2], r_pipeline_layout_bb);
-	vkal_draw_indexed_from_buffers( 
-		r_transient_index_buffer_bb.buffer, 0, g_worldmodel.trans_index_count_bb, 
-		r_transient_vertex_buffer_bb.buffer, 0, r_image_id, r_graphics_pipeline_bb );
-}
-
-void draw_sky(void)
-{
-	vkal_bind_descriptor_set(r_image_id, &r_descriptor_set[1], r_pipeline_layout_sky);
-	vkal_draw_from_buffers( r_transient_vertex_buffer_sky.buffer, r_image_id, r_graphics_pipeline_sky, 0, g_worldmodel.trans_vertex_count_sky );
-}
-
-void draw_transluscent_chain(void)
-{
-	MapFace * trans_surf = g_worldmodel.transluscent_face_chain;
-
-	vkal_bind_descriptor_set(r_image_id, &r_descriptor_set[0], r_pipeline_layout);
-	while ( trans_surf ) {
-		vkal_draw(r_image_id, r_graphics_pipeline, trans_surf->vk_vertex_buffer_offset, trans_surf->vertex_count);
-		trans_surf = trans_surf->transluscent_chain;
-	}
-}
-
 void draw_world(vec3 pos)
 {	
-	g_worldmodel.transluscent_face_chain = NULL;
-	g_worldmodel.trans_vertex_count      = 0;
-	g_worldmodel.trans_vertex_count_sky  = 0;
-	g_worldmodel.trans_vertex_count_bb   = 0;
-	g_worldmodel.trans_index_count_bb    = 0;
+	g_worldmodel.transluscent_face_chain      = NULL;
+	g_worldmodel.transient_vertex_count       = 0;
+	g_worldmodel.transient_vertex_count_sky   = 0;
+	g_worldmodel.transient_vertex_count_bb    = 0;
+	g_worldmodel.transient_index_count_bb     = 0;
+	g_worldmodel.transient_vertex_count_trans = 0;
 
 	Leaf * leaf = point_in_leaf( pos );
 	int cluster_id = leaf->cluster;

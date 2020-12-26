@@ -74,9 +74,30 @@ Image load_image_file_from_dir(char * dir, char * file)
 	return image;
 }
 
+Image load_image_file(char const * file)
+{
+	Image image = (Image){0};
+	int tw, th, tn;
+	image.data = stbi_load(file, &tw, &th, &tn, 4);
+	assert(image.data != NULL);
+	image.width = tw;
+	image.height = th;
+	image.channels = tn;
+
+	return image;
+}
+
 void  q2_destroy_image(Image * img)
 {
 	if (img->data) {
 		free(img->data);
 	}
+}
+
+void load_shader_from_dir(char * dir, char * file, uint8_t ** out_byte_code, int * out_code_size)
+{
+	uint8_t shader_path[128];
+	concat_str(g_exe_dir, dir,  shader_path);
+	concat_str(shader_path, file, shader_path);
+	p.read_file(shader_path, out_byte_code, out_code_size);
 }

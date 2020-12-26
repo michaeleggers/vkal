@@ -24,13 +24,13 @@ typedef struct Q2EntityToken
 {
 	Q2EntityTokenType type;
 
-	char name[64];
+	char name[512]; // TODO: enum. Make this big enough, cause TB adds this _textures key. Original Q2 crashes because of this!
 } Q2EntityToken;
 
 typedef struct Q2EntityKeyValue
 {
-	char key[64];
-	char value[64];
+	char key[512];
+	char value[512];
 } Q2EntityKeyValue;
 
 typedef enum Q2EntityType

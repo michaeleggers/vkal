@@ -6,7 +6,13 @@
 #include "utils/tr_math.h"
 #include "../platform.h"
 
+#define MAX_MAP_TEXTURES       1024
+#define MAX_MAP_VERTS          65536 
+#define	MAX_MAP_FACES	       65536
+#define MAX_MAP_LEAVES         65536
+
 extern Platform          p;
+extern char              g_exe_dir[128];
 
 typedef struct Q2Tri
 {
@@ -38,6 +44,14 @@ typedef struct Image
 	unsigned char * data;
 } Image;
 
+typedef struct Camera
+{
+	vec3 pos;
+	vec3 center;
+	vec3 up;
+	vec3 right;
+	float velocity;
+} Camera;
 
 int  string_length(char * string);
 void concat_str(uint8_t * str1, uint8_t * str2, uint8_t * out_result);
