@@ -216,10 +216,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.rfb("../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
+    p.read_file("../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.rfb("../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
+    p.read_file("../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);

@@ -115,11 +115,11 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.rfb("../src/examples/assets/shaders/textures_descriptorarray_push_constant_vert.spv",
+    p.read_file("../src/examples/assets/shaders/textures_descriptorarray_push_constant_vert.spv",
 	  &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.rfb("../src/examples/assets/shaders/textures_descriptorarray_push_constant_frag.spv",
+    p.read_file("../src/examples/assets/shaders/textures_descriptorarray_push_constant_frag.spv",
 	  &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
@@ -164,7 +164,8 @@ int main(int argc, char ** argv)
     Image yakult_image = load_image_file("../src/examples/assets/textures/yakult.png");
     Texture yakult_texture = vkal_create_texture(
 	0, yakult_image.data, yakult_image.width, yakult_image.height, 4, 0,
-	VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+	VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+	VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     for (uint32_t i = 0; i < VKAL_MAX_TEXTURES; ++i) {
 	vkal_update_descriptor_set_texturearray(
 	    descriptor_sets[0], 
@@ -218,10 +219,13 @@ int main(int argc, char ** argv)
     /* Texture Data */
     Image image2 = load_image_file("../src/examples/assets/textures/mario.jpg");
     Texture mario_texture = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
-						VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+						VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+						VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     Image image = load_image_file("../src/examples/assets/textures/indy1.jpg");
     Texture indy_texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
-					       VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+					       VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+					       VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+    
     free(image.data);
     free(image2.data);
     

@@ -5,12 +5,12 @@
 
 #include "../../vkal.h"
 #include "q2bsp.h"
-#include "../q2_io.h"
-#include "../q2_common.h"
+#include "q2_io.h"
+#include "q2_common.h"
 
 #include "../../platform.h"
-#include "../q2_r_local.h"
-#include "../q2_e_parser.h"
+#include "q2_r_local.h"
+#include "q2_e_parser.h"
 
 static Q2Bsp             bsp;
 BspWorldModel			 g_worldmodel;

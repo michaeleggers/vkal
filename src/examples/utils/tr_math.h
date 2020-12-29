@@ -62,8 +62,10 @@ mat4  rotate_z(float angle);
 mat4  rotate(vec3 r, float angle);
 mat4  perspective_gl(float fov, float aspect, float z_near, float z_far);
 mat4  perspective_vk(float fov, float aspect, float z_near, float z_far);
+mat4  perspective_lh_vk(float fov, float aspect, float y_near, float y_far);
 mat4  ortho(float left, float right, float bottom, float top, float z_near, float z_far);
 mat4  look_at(vec3 eye_pos, vec3 center, vec3 up);
+mat4  look_at_lh(vec3 eye, vec3 center, vec3 up);
 float tr_radians(float deg);
 float rand_between(float min, float max);
 
@@ -73,9 +75,15 @@ vec3 vec4_as_vec3(vec4 v4);
 //#define VEC4_AS_VEC3(v4)    ( *( (vec3*)&v4) )
 
 #ifdef  TRM_NDC_ZERO_TO_ONE
-#define perspective perspective_vk
+	#ifdef TRM_LH
+		#define perspective perspective_lh_vk
+		#define look_at look_at
+	#else
+		#define perspective perspective_vk
+		#define look_at look_at
+	#endif
 #else
-#define perspective perspective_gl
+	#define perspective perspective_gl
 #endif
 
 #endif

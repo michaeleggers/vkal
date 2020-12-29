@@ -46,7 +46,7 @@ void CalcNormal(float N[3], float v0[3], float v1[3], float v2[3]) {
 
 void get_file_data(char const * filename, char ** data, size_t * len)
 {
-    p.rfb(filename, (uint8_t**)data, (int*)len);
+    p.read_file(filename, (uint8_t**)data, (int*)len);
 }
 
 int load_obj(float bmin[3], float bmax[3], char const * filename, Model * out_model)

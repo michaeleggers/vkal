@@ -1,9 +1,9 @@
 #ifndef Q2_VK_RENDER_H
 #define Q2_VK_RENDER_H
 
-#include "../vkal.h"
+#include "../../vkal.h"
 #include "q2_common.h"
-#include "utils/q2bsp.h"
+#include "q2bsp.h"
 
 typedef struct VertexBuffer
 {

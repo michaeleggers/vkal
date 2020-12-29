@@ -1,7 +1,8 @@
 
 #include <assert.h>
 
-#include "../vkal.h"
+#include "../../vkal.h"
+
 #include "q2_common.h"
 #include "q2_vk_render.h"
 #include "q2_r_local.h"
@@ -24,6 +25,7 @@ static VertexBuffer      r_transient_vertex_buffer_bb;
 static VertexBuffer      r_transient_vertex_buffer_trans;
 static IndexBuffer       r_transient_index_buffer_bb;
 static StorageBuffer     r_transient_material_buffer;
+static uint32_t          r_light_count;
 static VertexBuffer      r_transient_vertex_storage_buffer;
 
 static UniformBuffer     r_view_proj_ubo;
@@ -431,5 +433,6 @@ void vk_draw_transluscent(Vertex * vertices, uint32_t vertex_count)
 
 void vk_add_light(Vertex * vertex)
 {
-	memcpy( r_transient_vertex_storage_buffer.buffer.mapped, vertex, sizeof(Vertex) );
+	memcpy( (Vertex*)r_transient_vertex_storage_buffer.buffer.mapped + r_light_count, vertex, sizeof(Vertex) );
+	r_light_count++;
 }

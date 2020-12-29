@@ -5,7 +5,7 @@
 
 #include <physfs.h>
 
-#include "../stb_image.h"
+#include "../../stb_image.h"
 
 #include "q2_io.h"
 

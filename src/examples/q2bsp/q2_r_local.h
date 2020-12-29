@@ -3,9 +3,11 @@
 
 #include <stdint.h>
 
+#define TRM_NDC_ZERO_TO_ONE
+#define TRM_LH
+#include "../utils/tr_math.h"
 
-#include "utils/tr_math.h"
-#include "utils/q2bsp.h"
+#include "q2bsp.h"
 #include "q2_common.h"
 
 // Interface to renderer

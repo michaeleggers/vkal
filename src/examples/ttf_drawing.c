@@ -336,10 +336,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.rfb("../src/examples/assets/shaders/ttf_drawing_vert.spv", &vertex_byte_code, &vertex_code_size);
+    p.read_file("../src/examples/assets/shaders/ttf_drawing_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.rfb("../src/examples/assets/shaders/ttf_drawing_frag.spv", &fragment_byte_code, &fragment_code_size);
+    p.read_file("../src/examples/assets/shaders/ttf_drawing_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -410,7 +410,7 @@ int main(int argc, char ** argv)
     /* TTF loading */
     uint8_t * ttf = NULL;
     int file_size = 0;
-    p.rfb("../src/examples/assets/fonts/efmi.ttf", &ttf, &file_size);
+    p.read_file("../src/examples/assets/fonts/efmi.ttf", &ttf, &file_size);
     
     // stb_truetype texture baking API
     stbtt_fontinfo font;
@@ -431,7 +431,8 @@ int main(int argc, char ** argv)
     Texture font_texture = vkal_create_texture(1, pixels, 1024, 1024, 1, 0,
 					       VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8_UNORM,
 					       0, 1, 0, 1,
-					       VK_FILTER_NEAREST, VK_FILTER_NEAREST);
+					       VK_FILTER_NEAREST, VK_FILTER_NEAREST,
+					       VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
  
     unsigned char * output = (unsigned char *)malloc(1024*1024*sizeof(unsigned char));
     memcpy(output, pixels, 1024*1024*sizeof(unsigned char));

@@ -12,19 +12,21 @@
 #include <GLFW/glfw3.h>
 #include <physfs.h>
 
-#include "../vkal.h"
-#include "../platform.h"
-#include "utils/tr_math.h"
+#include "../../vkal.h"
+#include "../../platform.h"
+
+#define TRM_NDC_ZERO_TO_ONE
+#define TRM_LH
+#include "../utils/tr_math.h"
+
 #include "q2_common.h"
 #include "q2_io.h"
-#include "utils/q2bsp.h"
+#include "q2bsp.h"
 #include "q2_r_local.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "../stb_image.h"
+#include "../../stb_image.h"
 
-#define TRM_NDC_ZERO_TO_ONE
-#include "utils/tr_math.h"
 
 #define SCREEN_WIDTH  1920
 #define SCREEN_HEIGHT 1080
@@ -194,7 +196,7 @@ void camera_yaw(Camera * camera, float angle)
     vec3 forward = vec3_sub(camera->center, camera->pos);
     mat4 rot = rotate(camera->right, angle);
     forward = vec4_as_vec3( mat4_x_vec4(rot, vec3_to_vec4(forward, 1.0)) );
-    float fwd_dot_up = vec3_dot( vec3_normalize(forward), (vec3){0, 1, 0} );
+    float fwd_dot_up = vec3_dot( vec3_normalize(forward), (vec3){0, 0, 1} );
     if ( fabs(fwd_dot_up) > 0.9999 ) return;
     camera->center = vec3_add( camera->pos, forward );
 //    camera->up = vec3_normalize( vec3_cross(camera->right, new_forward3) );    
@@ -202,10 +204,10 @@ void camera_yaw(Camera * camera, float angle)
 
 void camera_pitch(Camera * camera, float angle)
 {
-    mat4 rot_y   = rotate_y(angle);
+    mat4 rot_z   = rotate_z(angle);
     vec3 forward = vec3_sub(camera->center, camera->pos);
-    forward        = vec4_as_vec3( mat4_x_vec4( rot_y, vec3_to_vec4(forward, 1.0) ) );
-    camera->right  = vec4_as_vec3( mat4_x_vec4( rot_y, vec3_to_vec4(camera->right, 1.0) ) );
+    forward        = vec4_as_vec3( mat4_x_vec4( rot_z, vec3_to_vec4(forward, 1.0) ) );
+    camera->right  = vec4_as_vec3( mat4_x_vec4( rot_z, vec3_to_vec4(camera->right, 1.0) ) );
     camera->center = vec3_add(camera->pos, forward);
 }
 
@@ -260,12 +262,11 @@ int main(int argc, char ** argv)
     
     /* Uniform Buffer for view projection matrices */
     g_camera.pos = (vec3){ 2, 46, 42 };	
-	g_camera.pos = (vec3){ 2, 100, 42 };
-	
+	g_camera.pos = (vec3){ 2, 100, 42 };	
 
     g_camera.center = (vec3){ 0 };
     vec3 f = vec3_normalize(vec3_sub(g_camera.center, g_camera.pos));
-    g_camera.up = (vec3){ 0, 1, 0 };
+    g_camera.up = (vec3){ 0, 0, 1 };
     g_camera.right = vec3_normalize(vec3_cross(f, g_camera.up));
     g_camera.velocity = 10.f;   
     r_view_proj_data.view = look_at(g_camera.pos, g_camera.center, g_camera.up);
@@ -283,23 +284,23 @@ int main(int argc, char ** argv)
 
 		if (g_keys[W]) {
 			vec3 forward = vec3_normalize( vec3_sub(g_camera.center, g_camera.pos) );
-			camera_dolly(&g_camera, forward);
+			camera_dolly(&g_camera, vec3_mul( -1, forward ) );
 		}
 		if (g_keys[S]) {
 			vec3 forward = vec3_normalize( vec3_sub(g_camera.center, g_camera.pos) );
-			camera_dolly(&g_camera, vec3_mul(-1, forward) );
+			camera_dolly(&g_camera, forward );
 		}
 		if (g_keys[A]) {
-			camera_dolly(&g_camera, vec3_mul(-1, g_camera.right) );
-		}
-		if (g_keys[D]) {
 			camera_dolly(&g_camera, g_camera.right);
 		}
+		if (g_keys[D]) {
+			camera_dolly(&g_camera, vec3_mul(-1, g_camera.right) );
+		}
 		if (g_keys[UP]) {
-			camera_yaw(&g_camera, tr_radians(-2.0f) );	    
+			camera_yaw(&g_camera, tr_radians(2.0f) );	    
 		}
 		if (g_keys[DOWN]) {
-			camera_yaw(&g_camera, tr_radians(2.0f) );
+			camera_yaw(&g_camera, tr_radians(-2.0f) );
 		}
 		if (g_keys[LEFT]) {
 			camera_pitch(&g_camera, tr_radians(2.0f) );
@@ -335,6 +336,7 @@ int main(int argc, char ** argv)
 		second += time_elapsed;
 		if ( second >= 1.0 ) {
 			printf( "frametime: %fms, FPS: %f\n", time_elapsed*1000.0, (1.0/time_elapsed) );
+			printf( "camera pos: %f, %f, %f\n", g_camera.pos.x, g_camera.pos.y, g_camera.pos.z );
 			second = 0.0;
 		}
 	}

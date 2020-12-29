@@ -1,9 +1,10 @@
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include "q2_r_local.h"
 
-#include "utils/q2bsp.h"
+#include "q2bsp.h"
 
 // Include concrete rendering backend here ( Macro select )
 #include "q2_vk_render.h"
@@ -73,5 +74,5 @@ void draw_transluscent_chain(MapFace * transluscent_chain)
 
 void add_light( Vertex * vertex )
 {
-	vk_add_light( vertex );
+	vk_add_light( vertex );	
 }

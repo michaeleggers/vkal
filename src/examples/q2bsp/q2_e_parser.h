@@ -3,7 +3,9 @@
 
 #include <stdint.h>
 
-#include "utils/tr_math.h"
+#define TRM_NDC_ZERO_TO_ONE
+#define TRM_LH
+#include "../utils/tr_math.h"
 
 #define MAX_LIGHTS			1024
 

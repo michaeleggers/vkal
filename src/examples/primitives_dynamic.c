@@ -239,10 +239,12 @@ MyTexture create_texture(char const * file, uint32_t id)
     MyTexture my_texture;
     Image img = load_image_file(file);
     Texture tex = vkal_create_texture(1, img.data, img.width, img.height, 4,
-					 0, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-					 0, 1,
-					 0, 1,
-					 VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+				      0, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
+				      0, 1,
+				      0, 1,
+				      VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+				      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+    
     my_texture.texture = tex;
     my_texture.id = id;
     return my_texture;
@@ -667,10 +669,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.rfb("../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
+    p.read_file("../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.rfb("../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
+    p.read_file("../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -752,9 +754,9 @@ int main(int argc, char ** argv)
 
     /* Shader Setup Textured Rect */
     vertex_byte_code = 0;
-    p.rfb("../src/examples/assets/shaders/primitives_textured_rect_vert.spv", &vertex_byte_code, &vertex_code_size);
+    p.read_file("../src/examples/assets/shaders/primitives_textured_rect_vert.spv", &vertex_byte_code, &vertex_code_size);
     fragment_byte_code = 0;
-    p.rfb("../src/examples/assets/shaders/primitives_textured_rect_frag.spv", &fragment_byte_code, &fragment_code_size);
+    p.read_file("../src/examples/assets/shaders/primitives_textured_rect_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup_textured_rect = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);

@@ -3,8 +3,10 @@
 
 #include <stdint.h>
 
-#include "utils/tr_math.h"
-#include "../platform.h"
+#define TRM_NDC_ZERO_TO_ONE
+#define TRM_LH
+#include "../utils/tr_math.h"
+#include "../../platform.h"
 
 #define MAX_MAP_TEXTURES       1024
 #define MAX_MAP_VERTS          65536 
