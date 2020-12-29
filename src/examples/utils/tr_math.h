@@ -77,7 +77,7 @@ vec3 vec4_as_vec3(vec4 v4);
 #ifdef  TRM_NDC_ZERO_TO_ONE
 	#ifdef TRM_LH
 		#define perspective perspective_lh_vk
-		#define look_at look_at
+		#define look_at look_at_lh
 	#else
 		#define perspective perspective_vk
 		#define look_at look_at

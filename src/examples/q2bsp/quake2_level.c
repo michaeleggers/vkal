@@ -187,28 +187,26 @@ void init_window()
 
 void camera_dolly(Camera * camera, vec3 translate)
 {
-    camera->pos = vec3_add(camera->pos, vec3_mul(camera->velocity, translate) );
-    camera->center = vec3_add(camera->center, vec3_mul(camera->velocity, translate));
+    camera->pos = vec3_add(camera->pos, vec3_mul(camera->velocity, translate) );    
 }
 
 void camera_yaw(Camera * camera, float angle)
 {
-    vec3 forward = vec3_sub(camera->center, camera->pos);
     mat4 rot = rotate(camera->right, angle);
-    forward = vec4_as_vec3( mat4_x_vec4(rot, vec3_to_vec4(forward, 1.0)) );
-    float fwd_dot_up = vec3_dot( vec3_normalize(forward), (vec3){0, 0, 1} );
-    if ( fabs(fwd_dot_up) > 0.9999 ) return;
-    camera->center = vec3_add( camera->pos, forward );
-//    camera->up = vec3_normalize( vec3_cross(camera->right, new_forward3) );    
+    vec3 new_forward = vec4_as_vec3( mat4_x_vec4(rot, vec3_to_vec4(g_camera.forward, 1.0)) );
+	new_forward = vec3_normalize( new_forward );
+    float fwd_dot_up = vec3_dot( new_forward, (vec3){0, 0, 1} );
+	printf("camera fwd_dot_up: %f\n", fabs(fwd_dot_up));
+    if ( fabs(fwd_dot_up) > 0.999 ) return;    
+	g_camera.forward = new_forward;
 }
 
 void camera_pitch(Camera * camera, float angle)
 {
-    mat4 rot_z   = rotate_z(angle);
-    vec3 forward = vec3_sub(camera->center, camera->pos);
-    forward        = vec4_as_vec3( mat4_x_vec4( rot_z, vec3_to_vec4(forward, 1.0) ) );
-    camera->right  = vec4_as_vec3( mat4_x_vec4( rot_z, vec3_to_vec4(camera->right, 1.0) ) );
-    camera->center = vec3_add(camera->pos, forward);
+    mat4 rot_z       = rotate_z(angle);    
+    g_camera.forward = vec4_as_vec3( mat4_x_vec4( rot_z, vec3_to_vec4(g_camera.forward, 1.0) ) );
+	g_camera.forward = vec3_normalize( g_camera.forward );
+    camera->right    = vec4_as_vec3( mat4_x_vec4( rot_z, vec3_to_vec4(camera->right, 1.0) ) );
 }
 
 void init_physfs(char const * argv0)
@@ -262,14 +260,13 @@ int main(int argc, char ** argv)
     
     /* Uniform Buffer for view projection matrices */
     g_camera.pos = (vec3){ 2, 46, 42 };	
-	g_camera.pos = (vec3){ 2, 100, 42 };	
+	g_camera.pos = (vec3){ -208, 608, 100 };	
 
-    g_camera.center = (vec3){ 0 };
-    vec3 f = vec3_normalize(vec3_sub(g_camera.center, g_camera.pos));
+    g_camera.forward = (vec3){ 1, 0, 0 }; 
     g_camera.up = (vec3){ 0, 0, 1 };
-    g_camera.right = vec3_normalize(vec3_cross(f, g_camera.up));
+    g_camera.right = vec3_normalize(vec3_cross(g_camera.forward, g_camera.up));
     g_camera.velocity = 10.f;   
-    r_view_proj_data.view = look_at(g_camera.pos, g_camera.center, g_camera.up);
+    r_view_proj_data.view = look_at(g_camera.pos, vec3_add( g_camera.pos, g_camera.forward ), g_camera.up);
     r_view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
     
 	double start_time;
@@ -282,25 +279,23 @@ int main(int argc, char ** argv)
 
 		glfwPollEvents();
 
-		if (g_keys[W]) {
-			vec3 forward = vec3_normalize( vec3_sub(g_camera.center, g_camera.pos) );
-			camera_dolly(&g_camera, vec3_mul( -1, forward ) );
+		if (g_keys[W]) {			
+			camera_dolly(&g_camera, g_camera.forward );
 		}
-		if (g_keys[S]) {
-			vec3 forward = vec3_normalize( vec3_sub(g_camera.center, g_camera.pos) );
-			camera_dolly(&g_camera, forward );
+		if (g_keys[S]) {			
+			camera_dolly(&g_camera, vec3_mul(-1, g_camera.forward) );
 		}
 		if (g_keys[A]) {
-			camera_dolly(&g_camera, g_camera.right);
-		}
-		if (g_keys[D]) {
 			camera_dolly(&g_camera, vec3_mul(-1, g_camera.right) );
 		}
+		if (g_keys[D]) {
+			camera_dolly(&g_camera, g_camera.right);
+		}
 		if (g_keys[UP]) {
-			camera_yaw(&g_camera, tr_radians(2.0f) );	    
+			camera_yaw(&g_camera, tr_radians(-2.0f) );	    
 		}
 		if (g_keys[DOWN]) {
-			camera_yaw(&g_camera, tr_radians(-2.0f) );
+			camera_yaw(&g_camera, tr_radians(2.0f) );
 		}
 		if (g_keys[LEFT]) {
 			camera_pitch(&g_camera, tr_radians(2.0f) );
@@ -310,7 +305,7 @@ int main(int argc, char ** argv)
 		}
 	
 		glfwGetFramebufferSize(g_window, &r_width, &r_height);
-		r_view_proj_data.view    = look_at(g_camera.pos, g_camera.center, g_camera.up);
+		r_view_proj_data.view    = look_at(g_camera.pos, vec3_add( g_camera.pos, g_camera.forward ), g_camera.up);
 		r_view_proj_data.proj    = perspective( tr_radians(90.f), (float)r_width/(float)r_height, 0.1f, 10000.f );
 		r_view_proj_data.cam_pos = g_camera.pos;
 	

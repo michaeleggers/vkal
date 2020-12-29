@@ -49,7 +49,7 @@ typedef struct Image
 typedef struct Camera
 {
 	vec3 pos;
-	vec3 center;
+	vec3 forward;
 	vec3 up;
 	vec3 right;
 	float velocity;
