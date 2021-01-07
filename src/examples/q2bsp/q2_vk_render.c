@@ -73,12 +73,12 @@ void update_transient_index_buffer(IndexBuffer * index_buf, uint32_t offset, uin
 
 void create_transient_vertex_storage_buffer(VertexBuffer * vertex_buf)
 {
-	vertex_buf->memory = vkal_allocate_devicememory(MAX_MAP_VERTS*sizeof(Vertex),
+	vertex_buf->memory = vkal_allocate_devicememory(MAX_MAP_VERTS*sizeof(vec3),
 		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	vertex_buf->buffer = vkal_create_buffer(MAX_MAP_VERTS*sizeof(Vertex), &vertex_buf->memory,
+	vertex_buf->buffer = vkal_create_buffer(MAX_MAP_VERTS*sizeof(vec3), &vertex_buf->memory,
 		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	map_memory( &vertex_buf->buffer, MAX_MAP_VERTS*sizeof(Vertex), 0 );
+	map_memory( &vertex_buf->buffer, MAX_MAP_VERTS*sizeof(vec3), 0 );
 }
 
 void vk_init_render(void * window)
@@ -188,7 +188,7 @@ void vk_init_render(void * window)
 			2,
 			VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 			1, 
-			VK_SHADER_STAGE_VERTEX_BIT,
+			VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 			0
 		}
 	};
@@ -324,7 +324,7 @@ uint32_t vk_register_texture(char * texture_name, uint32_t * out_width, uint32_t
 		Image image = load_image_file_from_dir("textures", texture_name);
 		Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
 			VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
-			0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+			0, 1, 0, 1, VK_FILTER_NEAREST, VK_FILTER_NEAREST,
 			VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 		vkal_update_descriptor_set_texturearray(
 			r_descriptor_set[0], 
@@ -383,6 +383,7 @@ void vk_end_frame(void)
 
 	vkal_present(r_image_id);	    
 
+	// TODO: Use pipeline barrier for syncing between transient buffers and pipeline usage state!
 	vkDeviceWaitIdle(vkal_info->device);
 
 	r_framecount++;
@@ -433,6 +434,7 @@ void vk_draw_transluscent(Vertex * vertices, uint32_t vertex_count)
 
 void vk_add_light(Vertex * vertex)
 {
-	memcpy( (Vertex*)r_transient_vertex_storage_buffer.buffer.mapped + r_light_count, vertex, sizeof(Vertex) );
+	vec4 * dst = (vec4*)r_transient_vertex_storage_buffer.buffer.mapped + r_light_count;
+	memcpy( dst , &(vertex->pos), sizeof(vec3) );
 	r_light_count++;
 }

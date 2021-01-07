@@ -16,7 +16,7 @@
 #include "../../platform.h"
 
 #define TRM_NDC_ZERO_TO_ONE
-#define TRM_LH
+#define TRM_QUAKE2
 #include "../utils/tr_math.h"
 
 #include "q2_common.h"

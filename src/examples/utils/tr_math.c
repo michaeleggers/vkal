@@ -486,9 +486,21 @@ mat4 perspective_vk(float fov, float aspect, float z_near, float z_far)
     return result;
 }
 
-/* Vulkan friendly (zero to one clipspace) with z and u axis swapped, which
-   makes it usable in a left-handed world coordinate space */
-mat4 perspective_lh_vk(float fov, float aspect, float y_near, float y_far)
+/* Vulkan friendly (zero to one clipspace) with z and y axis swapped, and
+   x pointing to the left:
+
+			^ +z
+			|
+			|
+			|
+ +x	<-------|
+		   /
+		  /
+		 /
+		/
+	   \/ +y  
+*/
+mat4 perspective_quake2_vk(float fov, float aspect, float y_near, float y_far)
 {
 	float g = 1.0f / tanf(fov*0.5f);
 
@@ -529,38 +541,38 @@ mat4  look_at(vec3 eye, vec3 center, vec3 up)
     vec3 u = vec3_cross(s, f);
 
     mat4 result = mat4_identity();
-    result.d[0][0] = s.x;
-    result.d[1][0] = s.y;
-    result.d[2][0] = s.z;
-    result.d[0][1] = u.x;
-    result.d[1][1] = u.y;
-    result.d[2][1] = u.z;
+    result.d[0][0] =  s.x;
+    result.d[1][0] =  s.y;
+    result.d[2][0] =  s.z;
+    result.d[0][1] =  u.x;
+    result.d[1][1] =  u.y;
+    result.d[2][1] =  u.z;
     result.d[0][2] = -f.x;
     result.d[1][2] = -f.y;
     result.d[2][2] = -f.z;
     result.d[3][0] = -vec3_dot(s, eye);
     result.d[3][1] = -vec3_dot(u, eye);
-    result.d[3][2] = vec3_dot(f, eye);
+    result.d[3][2] =  vec3_dot(f, eye);
 
     return result;
 }
 
-mat4  look_at_lh(vec3 eye, vec3 center, vec3 up)
+mat4  look_at_quake2(vec3 eye, vec3 center, vec3 up)
 {
 	vec3 f = vec3_normalize( vec3_sub(center, eye) );
 	vec3 s = vec3_normalize( vec3_cross(up, f) );
 	vec3 u = vec3_cross(f, s);
 
 	mat4 result = mat4_identity();
-	result.d[0][0] = s.x;
-	result.d[1][0] = s.y;
-	result.d[2][0] = s.z;
-	result.d[0][1] = u.x;
-	result.d[1][1] = u.y;
-	result.d[2][1] = u.z;
-	result.d[0][2] = f.x;
-	result.d[1][2] = f.y;
-	result.d[2][2] = f.z;
+	result.d[0][0] =  s.x;
+	result.d[1][0] =  s.y;
+	result.d[2][0] =  s.z;
+	result.d[0][1] =  u.x;
+	result.d[1][1] =  u.y;
+	result.d[2][1] =  u.z;
+	result.d[0][2] =  f.x;
+	result.d[1][2] =  f.y;
+	result.d[2][2] =  f.z;
 	result.d[3][0] = -vec3_dot(s, eye);
 	result.d[3][1] = -vec3_dot(u, eye);
 	result.d[3][2] = -vec3_dot(f, eye);
