@@ -487,22 +487,22 @@ void vkal_dbg_image_name(VkImage image, char const * name);
 VkResult map_memory(Buffer * buffer, VkDeviceSize size, VkDeviceSize offset);
 void unmap_memory(Buffer * buffer);
 void vkal_update_buffer(Buffer buffer, uint8_t* data);
-void create_image(uint32_t width, uint32_t height, uint32_t mip_levels, uint32_t array_layers,
+static void create_image(uint32_t width, uint32_t height, uint32_t mip_levels, uint32_t array_layers,
 		  VkImageCreateFlags flags, VkFormat format, VkImageUsageFlags usage_flags, uint32_t * out_image_id);
-void destroy_image(uint32_t id);
-VkImage get_image(uint32_t id);
-void create_image_view(VkImage image,
+static void destroy_image(uint32_t id);
+static VkImage get_image(uint32_t id);
+static void create_image_view(VkImage image,
 		       VkImageViewType view_type, VkFormat format, VkImageAspectFlags aspect_flags,
 		       uint32_t base_mip_level, uint32_t mip_level_count,
 		       uint32_t base_array_layer, uint32_t array_layer_count,
 		       uint32_t * out_image_view);
-void destroy_image_view(uint32_t id);
-VkImageView get_image_view(uint32_t id);
-VkSampler create_sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode u,
+static void destroy_image_view(uint32_t id);
+static VkImageView get_image_view(uint32_t id);
+static VkSampler create_sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode u,
 			 VkSamplerAddressMode v, VkSamplerAddressMode w);
-void internal_create_sampler(VkSamplerCreateInfo create_info, uint32_t * out_sampler);
-VkSampler get_sampler(uint32_t id);
-void destroy_sampler(uint32_t id);
+static void internal_create_sampler(VkSamplerCreateInfo create_info, uint32_t * out_sampler);
+static VkSampler get_sampler(uint32_t id);
+static void destroy_sampler(uint32_t id);
 VkPipelineLayout vkal_create_pipeline_layout(
     VkDescriptorSetLayout * descriptor_set_layouts, uint32_t descriptor_set_layout_count,
     VkPushConstantRange * push_constant_ranges, uint32_t push_constant_range_count);

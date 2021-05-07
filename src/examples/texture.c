@@ -224,7 +224,7 @@ int main(int argc, char ** argv)
     free(image.data);
     vkal_update_descriptor_set_texture(descriptor_set[0], texture);
     view_proj_data.image_aspect = (float)texture.width/(float)texture.height;
-    
+
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
