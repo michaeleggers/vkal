@@ -63,3 +63,22 @@ target_include_directories(MeshSkinning
 target_link_libraries(MeshSkinning
     PUBLIC libvkal
     PUBLIC glfw)
+	
+# Model Loading
+add_executable(ModelLoading
+    src/examples/model_loading.c
+	src/examples/utils/tr_math.c
+	src/examples/utils/tr_math.h
+	src/examples/utils/model.c
+	src/examples/utils/model.h
+	src/platform.c
+	src/platform.h
+    src/examples/assets/shaders/model_loading.vert
+    src/examples/assets/shaders/model_loading.frag
+)
+target_include_directories(ModelLoading
+    PUBLIC external
+)
+target_link_libraries(ModelLoading
+    PUBLIC libvkal
+    PUBLIC glfw)

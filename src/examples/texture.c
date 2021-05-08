@@ -167,37 +167,37 @@ int main(int argc, char ** argv)
     VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 2);
     
     VkDescriptorSetLayout layouts[] = {
-	descriptor_set_layout
+		descriptor_set_layout
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     VkDescriptorSet * descriptor_set = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_set);
+    vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_set);
     
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
-	layouts, descriptor_set_layout_count, 
-	NULL, 0);
-    VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
-	vertex_input_bindings, 1,
-	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
-	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-	VK_FRONT_FACE_CLOCKWISE,
-	vkal_info->render_pass, pipeline_layout);
+		layouts, descriptor_set_layout_count, 
+		NULL, 0);
+		VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
+		vertex_input_bindings, 1,
+		vertex_attributes, vertex_attribute_count,
+		shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+		VK_FRONT_FACE_CLOCKWISE,
+		vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
     float rect_vertices[] = {
-	// Pos            // Color        // UV
-	-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
-	 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
-	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
+		// Pos            // Color        // UV
+		-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
+		 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
+		-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
     	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  1.0, 1.0
     };
     uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
     
     uint16_t rect_indices[] = {
- 	0, 1, 2,
-	2, 1, 3
+ 		0, 1, 2,
+		2, 1, 3
     };
     uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
   
@@ -218,9 +218,10 @@ int main(int argc, char ** argv)
     
     /* Texture Data */
     Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
-    Texture texture = vkal_create_texture(1, image.data, image.width, image.height, 4, 0,
-					  VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
-					  VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+    VkalTexture texture = vkal_create_texture(
+		1, image.data, image.width, image.height, 4, 0,
+		VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     free(image.data);
     vkal_update_descriptor_set_texture(descriptor_set[0], texture);
     view_proj_data.image_aspect = (float)texture.width/(float)texture.height;
@@ -235,28 +236,31 @@ int main(int argc, char ** argv)
 	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
-	{
-	    uint32_t image_id = vkal_get_image();
+		{
+			vkDeviceWaitIdle(vkal_info->device);
+			vkal_update_descriptor_set_texture(descriptor_set[0], texture);
 
-	    vkal_begin_command_buffer(image_id);
-	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->command_buffers[image_id],
-			  0, 0,
-			  width, height);
-	    vkal_scissor(vkal_info->command_buffers[image_id],
-			 0, 0,
-			 width, height);
-	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
-	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, index_count,
-			      offset_vertices);
-	    vkal_end_renderpass(image_id);
-	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
-	    vkal_queue_submit(command_buffers1, 1);
+			uint32_t image_id = vkal_get_image();
 
-	    vkal_present(image_id);
-	}
+			vkal_begin_command_buffer(image_id);
+			vkal_begin_render_pass(image_id, vkal_info->render_pass);
+			vkal_viewport(vkal_info->default_command_buffers[image_id],
+				  0, 0,
+				  width, height);
+			vkal_scissor(vkal_info->default_command_buffers[image_id],
+				 0, 0,
+				 width, height);
+			vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
+			vkal_draw_indexed(image_id, graphics_pipeline,
+					  offset_indices, index_count,
+					  offset_vertices);
+			vkal_end_renderpass(image_id);
+			vkal_end_command_buffer(image_id);
+			VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
+			vkal_queue_submit(command_buffers1, 1);
+
+			vkal_present(image_id);
+		}
     }
     
     vkal_cleanup();

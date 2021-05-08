@@ -198,7 +198,7 @@ int main(int argc, char ** argv)
     
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
+    vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
 
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
@@ -214,17 +214,17 @@ int main(int argc, char ** argv)
 
     /* Model Data */
     float rect_vertices[] = {
-	// Pos            // Normal       // Color       
-	-1.0,  1.0, 1.0,  0.0, 0.0, 1.0,  1.0, 0.0, 0.0,  
-	 1.0,  1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0, 0.0,  
-	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 0.0, 1.0,  
+		// Pos            // Normal       // Color       
+		-1.0,  1.0, 1.0,  0.0, 0.0, 1.0,  1.0, 0.0, 0.0,  
+		 1.0,  1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0, 0.0,  
+		-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 0.0, 1.0,  
     	 1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  1.0, 1.0, 0.0, 
     };
     uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
     
     uint16_t rect_indices[] = {
- 	0, 1, 2,
-	2, 1, 3
+ 		0, 1, 2,
+		2, 1, 3
     };
     uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
   
@@ -349,10 +349,10 @@ int main(int argc, char ** argv)
 	    vkal_begin_command_buffer(image_id);
 
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->command_buffers[image_id],
+	    vkal_viewport(vkal_info->default_command_buffers[image_id],
 			  0, 0,
 			  (float)width, (float)height);
-	    vkal_scissor(vkal_info->command_buffers[image_id],
+	    vkal_scissor(vkal_info->default_command_buffers[image_id],
 			 0, 0,
 			 (float)width, (float)height);
 	    for (int i = 0; i < NUM_ENTITIES; ++i) {
@@ -376,7 +376,7 @@ int main(int argc, char ** argv)
 
 	    vkal_end_command_buffer(image_id);
 	    VkCommandBuffer command_buffers[1];
-	    command_buffers[0] = vkal_info->command_buffers[image_id];
+	    command_buffers[0] = vkal_info->default_command_buffers[image_id];
 	    vkal_queue_submit(command_buffers, 1);
 
 	    vkal_present(image_id);

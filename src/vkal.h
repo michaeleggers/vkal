@@ -36,10 +36,15 @@
 #define VKAL_MAX_VKSAMPLER				128
 #define VKAL_MAX_TEXTURES				10
 #define VKAL_MAX_VKFRAMEBUFFER			64
-#define VKAL_VSYNC_ON					0
+#define VKAL_VSYNC_ON					1
 #define VKAL_SHADOW_MAP_DIMENSION		2048
 
-#define DBG_VULKAN_ASSERT(result, msg) assert( (result == VK_SUCCESS) && msg)
+#define VKAL_ASSERT(result, msg)	\
+	if (result != VK_SUCCESS) {			\
+		printf("%s\n", msg);			\
+		getchar();						\
+		exit(-1);						\
+	}									\
 
 #define VKAL_MAKE_ARRAY(arr, type, count) \
 arr = (type *)malloc(count * sizeof(type));
@@ -56,7 +61,7 @@ sizeof(arr) / sizeof(arr[0])
 #define VKAL_MIN(a, b) (a < b ? a : b)
 #define VKAL_MAX(a, b) (a > b ? a : b)
 
-typedef struct Texture
+typedef struct VkalTexture
 {
     uint32_t  device_memory_id;
     VkSampler sampler;
@@ -67,7 +72,7 @@ typedef struct Texture
     uint32_t  channels;
     uint32_t  binding;
     char      texture_file[64];
-} Texture;
+} VkalTexture;
 
 typedef struct DeviceMemory
 {
@@ -234,36 +239,36 @@ typedef struct VkalInfo
     VkQueue present_queue;
     VkSurfaceKHR surface;
 
-    VkSwapchainKHR swapchain;
-    uint32_t should_recreate_swapchain; // = 0;
-    VkImage swapchain_images[VKAL_MAX_SWAPCHAIN_IMAGES];
-    uint32_t swapchain_image_count;
-    VkFormat swapchain_image_format;
-    VkExtent2D swapchain_extent;
-    VkImageView swapchain_image_views[VKAL_MAX_SWAPCHAIN_IMAGES];
-    uint32_t depth_stencil_image;
-    uint32_t depth_stencil_image_view;
-    uint32_t device_memory_depth_stencil;
+    VkSwapchainKHR	swapchain;
+    uint32_t		should_recreate_swapchain; // = 0;
+    VkImage			swapchain_images[VKAL_MAX_SWAPCHAIN_IMAGES];
+    uint32_t		swapchain_image_count;
+    VkFormat		swapchain_image_format;
+    VkExtent2D		swapchain_extent;
+    VkImageView		swapchain_image_views[VKAL_MAX_SWAPCHAIN_IMAGES];
+    uint32_t		depth_stencil_image;
+    uint32_t		depth_stencil_image_view;
+    uint32_t		device_memory_depth_stencil;
 
-    VkDeviceMemory device_memory_staging;
-    Buffer staging_buffer;
+    VkDeviceMemory	device_memory_staging;
+    Buffer			staging_buffer;
 
-    VkRenderPass render_pass;
-    VkRenderPass render_to_image_render_pass;
-    VkFramebuffer * framebuffers;
-    uint32_t framebuffer_count;
-    VkPipelineLayout pipeline_layout;
-    VkPipeline graphics_pipeline;
+    VkRenderPass		render_pass;
+    VkRenderPass		render_to_image_render_pass;
+    VkFramebuffer		* framebuffers;
+    uint32_t			framebuffer_count;
+    VkPipelineLayout	pipeline_layout;
+    VkPipeline			graphics_pipeline;
 
-    VkCommandPool	default_command_pools[VKAL_MAX_COMMAND_POOLS];
-    uint32_t		default_commandpool_count;
-    VkCommandBuffer	* default_command_buffers;
-    uint32_t		default_command_buffer_count;
+    VkCommandPool		default_command_pools[VKAL_MAX_COMMAND_POOLS];
+    uint32_t			default_commandpool_count;
+    VkCommandBuffer		* default_command_buffers;
+    uint32_t			default_command_buffer_count;
     
-    VkSemaphore image_available_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
-    VkSemaphore render_finished_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
-    VkFence     in_flight_fences[VKAL_MAX_IMAGES_IN_FLIGHT];
-    uint32_t	frames_rendered;
+    VkSemaphore			image_available_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
+    VkSemaphore			render_finished_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
+    VkFence				in_flight_fences[VKAL_MAX_IMAGES_IN_FLIGHT];
+    uint32_t			frames_rendered;
     //uint32_t current_frame;
     
 	Buffer			default_uniform_buffer;
@@ -345,8 +350,6 @@ void create_default_command_buffers(void);
 VkCommandBuffer create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uint32_t begin);
 void create_default_render_pass(void);
 void create_render_to_image_render_pass(void);
-void create_default_offscreen_render_pass(void);
-void create_default_offscreen_framebuffer(void);
 
 VkPipeline vkal_create_graphics_pipeline(
 	VkVertexInputBindingDescription * vertex_input_bindings,
@@ -388,7 +391,7 @@ void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDe
 void vkal_update_descriptor_set_texturearray(
 	VkDescriptorSet descriptor_set,
 	VkDescriptorType descriptor_type,
-	uint32_t array_element, Texture texture);
+	uint32_t array_element, VkalTexture texture);
 void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data);
 uint32_t check_memory_type_index(uint32_t const memory_requirement_bits, VkMemoryPropertyFlags const wanted_property);
 void upload_texture(VkImage const image, uint32_t w, uint32_t h, uint32_t n, uint32_t array_layer_count, unsigned char * texture_data);
@@ -449,7 +452,7 @@ VkWriteDescriptorSet create_write_descriptor_set_buffer2(
 	uint32_t dst_array_element,
 	uint32_t count, VkDescriptorType type, VkDescriptorBufferInfo * buffer_info);
 void vkal_allocate_descriptor_sets(VkDescriptorPool pool, VkDescriptorSetLayout * layout, uint32_t layout_count, VkDescriptorSet ** out_descriptor_set);
-Texture vkal_create_texture(
+VkalTexture vkal_create_texture(
 	uint32_t binding,
     unsigned char * texture_data, uint32_t width, uint32_t height, uint32_t channels, 
 	VkImageCreateFlags flags, VkImageViewType view_type, VkFormat format,
@@ -458,7 +461,7 @@ Texture vkal_create_texture(
     VkFilter min_filter, VkFilter mag_filter,
 	VkSamplerAddressMode sampler_u, VkSamplerAddressMode sampler_v, VkSamplerAddressMode sampler_w);
 RenderImage create_render_image(uint32_t width, uint32_t height);
-void vkal_update_descriptor_set_texture(VkDescriptorSet descriptor_set, Texture texture);
+void vkal_update_descriptor_set_texture(VkDescriptorSet descriptor_set, VkalTexture texture);
 void vkal_update_descriptor_set_render_image(
 	VkDescriptorSet descriptor_set, uint32_t binding,
 	VkImageView image_view, VkSampler sampler);
@@ -522,8 +525,6 @@ VkDescriptorSetLayout get_descriptor_set_layout(uint32_t id);
 void destroy_descriptor_set_layout(uint32_t id);
 QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
 void vkal_destroy_graphics_pipeline(VkPipeline pipeline);
-void offscreen_buffers_submit(uint32_t image_id);
-
 
 void set_image_layout(
     VkCommandBuffer         command_buffer,
