@@ -60,7 +60,7 @@ typedef struct Image
 
 typedef struct MyTexture
 {
-    Texture texture;
+    VkalTexture texture;
     uint32_t id;
 } MyTexture;
 
@@ -238,7 +238,7 @@ MyTexture create_texture(char const * file, uint32_t id)
 {
     MyTexture my_texture;
     Image img = load_image_file(file);
-    Texture tex = vkal_create_texture(1, img.data, img.width, img.height, 4,
+    VkalTexture tex = vkal_create_texture(1, img.data, img.width, img.height, 4,
 				      0, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
 				      0, 1,
 				      0, 1,
@@ -727,7 +727,7 @@ int main(int argc, char ** argv)
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
+    vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
     
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
@@ -858,10 +858,10 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(image_id);
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->command_buffers[image_id],
+	    vkal_viewport(vkal_info->default_command_buffers[image_id],
 			  0, 0,
 			  width, height);
-	    vkal_scissor(vkal_info->command_buffers[image_id],
+	    vkal_scissor(vkal_info->default_command_buffers[image_id],
 			 0, 0,
 			 width, height);	       
 	    for (uint32_t i = 0; i < render_cmd_count; ++i) {
@@ -870,7 +870,7 @@ int main(int argc, char ** argv)
 		uint32_t index_count = render_cmd.index_count;
 		if (render_cmd.type == RENDER_CMD_TEXTURED_RECT) {
 		    uint32_t texture_id = render_cmd.texture_id;
-		    vkCmdPushConstants(vkal_info->command_buffers[image_id], pipeline_layout_textured_rect,
+		    vkCmdPushConstants(vkal_info->default_command_buffers[image_id], pipeline_layout_textured_rect,
 				       VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), (void*)&render_cmd.texture_id);
 		    vkal_bind_descriptor_set(image_id, &descriptor_sets[1], pipeline_layout_textured_rect);
 		    vkal_draw_indexed_from_buffers(render_cmd.batch->index_buffer, index_offset, index_count,					       
@@ -887,7 +887,7 @@ int main(int argc, char ** argv)
 	
 	    vkal_end_renderpass(image_id);
 	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
+	    VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
 	    vkal_queue_submit(command_buffers1, 1);
 
 	    vkal_present(image_id);

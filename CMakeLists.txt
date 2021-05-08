@@ -82,3 +82,139 @@ target_include_directories(ModelLoading
 target_link_libraries(ModelLoading
     PUBLIC libvkal
     PUBLIC glfw)
+	
+# Primitives
+add_executable(Primitives
+    src/examples/primitives.c
+	src/examples/utils/tr_math.c
+	src/examples/utils/tr_math.h
+	src/platform.c
+	src/platform.h
+    src/examples/assets/shaders/primitives.vert
+    src/examples/assets/shaders/primitives.frag
+)
+target_include_directories(Primitives
+    PUBLIC external
+)
+target_link_libraries(Primitives
+    PUBLIC libvkal
+    PUBLIC glfw)
+	
+# Primitives Dynamic
+add_executable(PrimitivesDynamic
+    src/examples/primitives_dynamic.c
+	src/examples/utils/tr_math.c
+	src/examples/utils/tr_math.h
+	src/platform.c
+	src/platform.h
+    src/examples/assets/shaders/primitives.vert
+    src/examples/assets/shaders/primitives.frag
+)
+target_include_directories(PrimitivesDynamic
+    PUBLIC external
+)
+target_link_libraries(PrimitivesDynamic
+    PUBLIC libvkal
+    PUBLIC glfw)
+	
+# Render Texture
+add_executable(RenderToTexture
+    src/examples/rendertexture.c
+	src/examples/utils/tr_math.c
+	src/examples/utils/tr_math.h
+	src/platform.c
+	src/platform.h
+    src/examples/assets/shaders/rendertexture.vert
+    src/examples/assets/shaders/rendertexture.frag
+)
+target_include_directories(RenderToTexture
+    PUBLIC external
+)
+target_link_libraries(RenderToTexture
+    PUBLIC libvkal
+    PUBLIC glfw)
+	
+# Multiple Textures
+add_executable(MultipleTextures
+    src/examples/textures.c
+	src/examples/utils/tr_math.c
+	src/examples/utils/tr_math.h
+	src/platform.c
+	src/platform.h
+    src/examples/assets/shaders/textures.vert
+    src/examples/assets/shaders/textures.frag
+)
+target_include_directories(MultipleTextures
+    PUBLIC external
+)
+target_link_libraries(MultipleTextures
+    PUBLIC libvkal
+    PUBLIC glfw)
+	
+# Descriptor Array and Push Constant
+add_executable(DescriptorArrayPushConstant
+    src/examples/textures_descriptorarray_push_constant.c
+	src/examples/utils/tr_math.c
+	src/examples/utils/tr_math.h
+	src/platform.c
+	src/platform.h
+    src/examples/assets/shaders/textures_descriptorarray_push_constant.vert
+    src/examples/assets/shaders/textures_descriptorarray_push_constant.frag
+)
+target_include_directories(DescriptorArrayPushConstant
+    PUBLIC external
+)
+target_link_libraries(DescriptorArrayPushConstant
+    PUBLIC libvkal
+    PUBLIC glfw)
+	
+# Dynamic Uniform Buffer
+add_executable(DynamicUniformBuffer
+    src/examples/textures_dynamic_descriptor.c
+	src/examples/utils/tr_math.c
+	src/examples/utils/tr_math.h
+	src/platform.c
+	src/platform.h
+    src/examples/assets/shaders/textures_dynamic_descriptor.vert
+    src/examples/assets/shaders/textures_dynamic_descriptor.frag
+)
+target_include_directories(DynamicUniformBuffer
+    PUBLIC external
+)
+target_link_libraries(DynamicUniformBuffer
+    PUBLIC libvkal
+    PUBLIC glfw)
+	
+# TTF Drawing
+add_executable(TTFDrawing
+    src/examples/ttf_drawing.c
+	src/examples/utils/tr_math.c
+	src/examples/utils/tr_math.h
+	src/platform.c
+	src/platform.h
+    src/examples/assets/shaders/ttf_drawing.vert
+    src/examples/assets/shaders/ttf_drawing.frag
+)
+target_include_directories(TTFDrawing
+    PUBLIC external
+)
+target_link_libraries(TTFDrawing
+    PUBLIC libvkal
+    PUBLIC glfw)
+	
+# Mesh Skinning with GLM
+add_executable(MeshSkinningGLM
+    src/examples/mesh_skinning_glm.cpp
+	src/examples/utils/tr_math.c
+	src/examples/utils/tr_math.h
+	src/platform.c
+	src/platform.h
+    src/examples/assets/shaders/model_loading_md.vert
+    src/examples/assets/shaders/model_loading_md.frag
+)
+target_include_directories(MeshSkinningGLM
+    PUBLIC external src/examples/external/
+)
+target_link_libraries(MeshSkinningGLM
+    PUBLIC libvkal
+    PUBLIC glfw)

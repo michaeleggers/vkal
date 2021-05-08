@@ -39,7 +39,7 @@ typedef struct Image
 
 typedef struct TTFInfo
 {
-    Texture          texture;
+    VkalTexture          texture;
     float            size;
     uint32_t         num_chars_in_range;
     uint32_t         first_char;
@@ -239,7 +239,7 @@ void fill_rect(Batch * batch, float x, float y, float width, float height,
 
 void draw_text(Batch * batch, TTFInfo info, char * text)
 {
-    stbtt_aligned_quad quad = {};
+    stbtt_aligned_quad quad = { 0 };
     char * current_char = text;
     float x_offset = 0;
     float y_offset = info.size;
@@ -382,7 +382,7 @@ int main(int argc, char ** argv)
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     VkDescriptorSet * descriptor_set = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_set);
+    vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_set);
     
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
@@ -428,7 +428,7 @@ int main(int argc, char ** argv)
     stbtt_PackFontRange(&spc, (unsigned char*)ttf, 0, 72,
                         ' ', '~'-' ', chardata);
     stbtt_PackEnd(&spc);
-    Texture font_texture = vkal_create_texture(1, pixels, 1024, 1024, 1, 0,
+    VkalTexture font_texture = vkal_create_texture(1, pixels, 1024, 1024, 1, 0,
 					       VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8_UNORM,
 					       0, 1, 0, 1,
 					       VK_FILTER_NEAREST, VK_FILTER_NEAREST,
@@ -505,10 +505,10 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(image_id);
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->command_buffers[image_id],
+	    vkal_viewport(vkal_info->default_command_buffers[image_id],
 			  0, 0,
 			  width, height);
-	    vkal_scissor(vkal_info->command_buffers[image_id],
+	    vkal_scissor(vkal_info->default_command_buffers[image_id],
 			 0, 0,
 			 width, height);
 	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
@@ -517,7 +517,7 @@ int main(int argc, char ** argv)
 					   image_id, graphics_pipeline);
 	    vkal_end_renderpass(image_id);
 	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
+	    VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
 	    vkal_queue_submit(command_buffers1, 1);
 
 	    vkal_present(image_id);

@@ -188,8 +188,8 @@ int main(int argc, char ** argv)
     
     VkDescriptorSet * descriptor_set_tex_1 = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
     VkDescriptorSet * descriptor_set_tex_2 = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_set_tex_1);
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_set_tex_2);
+    vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, 1, &descriptor_set_tex_1);
+    vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, 1, &descriptor_set_tex_2);
 
     /* Push Constants */	
     VkPushConstantRange push_constant_ranges[] =
@@ -236,11 +236,11 @@ int main(int argc, char ** argv)
 
     /* Texture Data */
     Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
-    Texture texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
+    VkalTexture texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 					  VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     Image image2 = load_image_file("../src/examples/assets/textures/hk.jpg");
-    Texture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
+    VkalTexture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
 					   VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 					   VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     free(image.data);
@@ -279,36 +279,36 @@ int main(int argc, char ** argv)
 	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
 	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
-	{
-	    uint32_t image_id = vkal_get_image();
+		{
+			uint32_t image_id = vkal_get_image();
 
-	    vkal_begin_command_buffer(image_id);
-	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->command_buffers[image_id],
-			  0, 0,
-			  width, height);
-	    vkal_scissor(vkal_info->command_buffers[image_id],
-			 0, 0,
-			 width, height);
-	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_1[0], pipeline_layout);
-	    vkCmdPushConstants(vkal_info->command_buffers[image_id], pipeline_layout,
-			       VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ModelData), (void*)&model_data_tex_1);
-	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, index_count,
-			      offset_vertices);
-	    vkal_bind_descriptor_set(image_id, &descriptor_set_tex_2[0], pipeline_layout);
-	    vkCmdPushConstants(vkal_info->command_buffers[image_id], pipeline_layout,
-			       VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ModelData), (void*)&model_data_tex_2);
-	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, index_count,
-			      offset_vertices);
-	    vkal_end_renderpass(image_id);
-	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
-	    vkal_queue_submit(command_buffers1, 1);
+			vkal_begin_command_buffer(image_id);
+			vkal_begin_render_pass(image_id, vkal_info->render_pass);
+			vkal_viewport(vkal_info->default_command_buffers[image_id],
+				  0, 0,
+				  width, height);
+			vkal_scissor(vkal_info->default_command_buffers[image_id],
+				 0, 0,
+				 width, height);
+			vkal_bind_descriptor_set(image_id, &descriptor_set_tex_1[0], pipeline_layout);
+			vkCmdPushConstants(vkal_info->default_command_buffers[image_id], pipeline_layout,
+					   VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ModelData), (void*)&model_data_tex_1);
+			vkal_draw_indexed(image_id, graphics_pipeline,
+					  offset_indices, index_count,
+					  offset_vertices);
+			vkal_bind_descriptor_set(image_id, &descriptor_set_tex_2[0], pipeline_layout);
+			vkCmdPushConstants(vkal_info->default_command_buffers[image_id], pipeline_layout,
+					   VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ModelData), (void*)&model_data_tex_2);
+			vkal_draw_indexed(image_id, graphics_pipeline,
+					  offset_indices, index_count,
+					  offset_vertices);
+			vkal_end_renderpass(image_id);
+			vkal_end_command_buffer(image_id);
+			VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
+			vkal_queue_submit(command_buffers1, 1);
 
-	    vkal_present(image_id);
-	}
+			vkal_present(image_id);
+		}
     }
     
     vkal_cleanup();

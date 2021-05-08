@@ -192,20 +192,20 @@ int main(int argc, char ** argv)
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
 
     VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, 1, &descriptor_sets);
+    vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, 1, &descriptor_sets);
 	
     /* HACK: Update Texture Slots so validation layer won't complain */
     Image yakult_image = load_image_file("../src/examples/assets/textures/yakult.png");
-    Texture yakult_texture = vkal_create_texture(
+    VkalTexture yakult_texture = vkal_create_texture(
 	0, yakult_image.data, yakult_image.width, yakult_image.height, 4, 0,
 	VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 	VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     for (uint32_t i = 0; i < VKAL_MAX_TEXTURES; ++i) {
-	vkal_update_descriptor_set_texturearray(
-	    descriptor_sets[0], 
-	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-	    i, /* texture-id (index into array) */
-	    yakult_texture);
+		vkal_update_descriptor_set_texturearray(
+			descriptor_sets[0], 
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+			i, /* texture-id (index into array) */
+			yakult_texture);
     }
 
     /* Pipeline */
@@ -222,10 +222,10 @@ int main(int argc, char ** argv)
 
     /* Model Data */
     float cube_vertices[] = {
-	// Pos            // Color        // UV
-	-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
-	 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
-	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
+		// Pos            // Color        // UV
+		-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
+		 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
+		-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
     	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  1.0, 1.0
     };
     uint32_t vertex_count = sizeof(cube_vertices)/sizeof(*cube_vertices);
@@ -242,26 +242,26 @@ int main(int argc, char ** argv)
 
     /* Texture Data */
     Image image2 = load_image_file("../src/examples/assets/textures/hk.jpg");
-    Texture mario_texture = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
+    VkalTexture mario_texture = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
 						VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 						VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
-    Texture indy_texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
+    VkalTexture indy_texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
 					       VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 					       VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     free(image.data);
     free(image2.data);
     
     vkal_update_descriptor_set_texturearray(
-	descriptor_sets[0], 
-	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-	0, /* texture-id (index into array) */
-	indy_texture);
+		descriptor_sets[0], 
+		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+		0, /* texture-id (index into array) */
+		indy_texture);
     vkal_update_descriptor_set_texturearray(
-	descriptor_sets[0], 
-	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-	1, /* texture-id (index into array) */
-	mario_texture);
+		descriptor_sets[0], 
+		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+		1, /* texture-id (index into array) */
+		mario_texture);
 
     /* Material Uniform using Dynamic Descriptors */
     UniformBuffer material_ubo = vkal_create_uniform_buffer(sizeof(MaterialData), 2, 1);
@@ -301,10 +301,10 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(image_id);
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->command_buffers[image_id],
+	    vkal_viewport(vkal_info->default_command_buffers[image_id],
 			  0, 0,
 			  width, height);
-	    vkal_scissor(vkal_info->command_buffers[image_id],
+	    vkal_scissor(vkal_info->default_command_buffers[image_id],
 			 0, 0,
 			 width, height);
 	    vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, 0);
@@ -318,7 +318,7 @@ int main(int argc, char ** argv)
 	    vkal_end_renderpass(image_id);
 	    
 	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
+	    VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
 	    vkal_queue_submit(command_buffers1, 1);
 
 	    vkal_present(image_id);

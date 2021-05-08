@@ -779,7 +779,7 @@ void destroy_image(uint32_t id)
     }
 }
 
-static VkImage get_image(uint32_t id)
+VkImage get_image(uint32_t id)
 {
     assert(vkal_info.user_images[id].used > 0);
     return vkal_info.user_images[id].image;
@@ -832,14 +832,14 @@ static void destroy_image_view(uint32_t id)
     }
 }
 
-static VkImageView get_image_view(uint32_t id)
+VkImageView get_image_view(uint32_t id)
 {
     assert(id < VKAL_MAX_VKIMAGEVIEW);
     assert(vkal_info.user_image_views[id].used > 0);
     return vkal_info.user_image_views[id].image_view;
 }
 
-static VkSampler create_sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode u,
+VkSampler create_sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode u,
 			 VkSamplerAddressMode v, VkSamplerAddressMode w)
 {
     VkSampler sampler;
@@ -889,7 +889,7 @@ static VkSampler get_sampler(uint32_t id)
     return vkal_info.user_samplers[id].sampler;
 }
 
-static void destroy_sampler(uint32_t id)
+void destroy_sampler(uint32_t id)
 {
     if (vkal_info.user_samplers[id].used) {
 	vkDestroySampler(vkal_info.device, get_sampler(id), 0);

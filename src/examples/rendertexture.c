@@ -177,7 +177,7 @@ int main(int argc, char ** argv)
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count * sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
+    vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
 	
     /* Pipelines */
     /* Render Texture */
@@ -206,23 +206,26 @@ int main(int argc, char ** argv)
     /* Render Image (Should this be called render-texture?) */
     RenderImage render_image = create_render_image(1920, 1080);
     vkal_dbg_image_name(get_image(render_image.image), "Render Image 1920x1080");
-    VkSampler sampler = create_sampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, 
-				       VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 
-				       VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-    vkal_update_descriptor_set_render_image(descriptor_sets[2], 0,
-					    get_image_view(render_image.image_view), sampler);
+    VkSampler sampler = create_sampler(
+		VK_FILTER_NEAREST, VK_FILTER_NEAREST, 
+		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 
+		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+    vkal_update_descriptor_set_render_image(
+		descriptor_sets[2], 0,
+		get_image_view(render_image.image_view), sampler);
     
     RenderImage render_image2 = create_render_image(2048, 2048);
-    vkal_dbg_image_name(get_image(render_image2.image), "Render Image 2024x2024");
-    vkal_update_descriptor_set_render_image(descriptor_sets[2], 1,
-					    get_image_view(render_image2.image_view), sampler);
+    vkal_dbg_image_name(get_image(render_image2.image), "Render Image 1920x1080");
+    vkal_update_descriptor_set_render_image(
+		descriptor_sets[2], 1,
+		get_image_view(render_image2.image_view), sampler);
     
     /* Model Data */
     float rectvertices[] = {
-	// Pos            // Color        // UV
-	-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
-	 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
-	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
+		// Pos            // Color        // UV
+		-1.0,  1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0,
+		 1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  1.0, 0.0,
+		-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
     	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  1.0, 1.0
     };
     uint32_t vertex_count = sizeof(rectvertices)/sizeof(*rectvertices);
@@ -239,12 +242,12 @@ int main(int argc, char ** argv)
 
     /* Texture Data */
     Image image = load_image_file("../src/examples/assets/textures/hk.jpg");
-    Texture texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
+    VkalTexture texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 					  VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     free(image.data);
     Image image2 = load_image_file("../src/examples/assets/textures/brucelee.jpg");
-    Texture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
+    VkalTexture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
 					   VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 					   VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     
@@ -263,20 +266,20 @@ int main(int argc, char ** argv)
 
 	    vkal_begin_command_buffer(image_id);
 
-	    vkal_begin_render_to_image_render_pass(image_id, vkal_info->command_buffers[image_id],
+	    vkal_begin_render_to_image_render_pass(image_id, vkal_info->default_command_buffers[image_id],
 						   vkal_info->render_to_image_render_pass, render_image);
-	    vkal_viewport(vkal_info->command_buffers[image_id], 0, 0, render_image.width, render_image.height);
-	    vkal_scissor(vkal_info->command_buffers[image_id], 0, 0, render_image.width, render_image.height);
+	    vkal_viewport(vkal_info->default_command_buffers[image_id], 0, 0, render_image.width, render_image.height);
+	    vkal_scissor(vkal_info->default_command_buffers[image_id], 0, 0, render_image.width, render_image.height);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
 			      offset_vertices);
 	    vkal_end_renderpass(image_id);
 
-	    vkal_begin_render_to_image_render_pass(image_id, vkal_info->command_buffers[image_id],
+	    vkal_begin_render_to_image_render_pass(image_id, vkal_info->default_command_buffers[image_id],
 						   vkal_info->render_to_image_render_pass, render_image2);
-	    vkal_viewport(vkal_info->command_buffers[image_id], 0, 0, render_image2.width, render_image2.height);
-	    vkal_scissor(vkal_info->command_buffers[image_id], 0, 0, render_image2.width, render_image2.height);
+	    vkal_viewport(vkal_info->default_command_buffers[image_id], 0, 0, render_image2.width, render_image2.height);
+	    vkal_scissor(vkal_info->default_command_buffers[image_id], 0, 0, render_image2.width, render_image2.height);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[1], pipeline_layout);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
@@ -284,9 +287,9 @@ int main(int argc, char ** argv)
 	    vkal_end_renderpass(image_id);
 
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->command_buffers[image_id], 0, 0,
+	    vkal_viewport(vkal_info->default_command_buffers[image_id], 0, 0,
 			  2*image2.width, 2*image2.height);
-	    vkal_scissor(vkal_info->command_buffers[image_id], 0, 0,
+	    vkal_scissor(vkal_info->default_command_buffers[image_id], 0, 0,
 			 vkal_info->swapchain_extent.width, vkal_info->swapchain_extent.height);
 	    vkal_bind_descriptor_set(image_id, &descriptor_sets[2], pipeline_layout_composite);
 	    vkal_draw_indexed(image_id, graphics_pipeline_composite,
@@ -295,7 +298,7 @@ int main(int argc, char ** argv)
 	    vkal_end_renderpass(image_id);
 	    
 	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers1[] = { vkal_info->command_buffers[image_id] };
+	    VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
 	    vkal_queue_submit(command_buffers1, 1);
 
 	    vkal_present(image_id);

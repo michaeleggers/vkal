@@ -36,7 +36,7 @@
 #define VKAL_MAX_VKSAMPLER				128
 #define VKAL_MAX_TEXTURES				10
 #define VKAL_MAX_VKFRAMEBUFFER			64
-#define VKAL_VSYNC_ON					1
+#define VKAL_VSYNC_ON					0
 #define VKAL_SHADOW_MAP_DIMENSION		2048
 
 #define VKAL_ASSERT(result, msg)	\
@@ -407,7 +407,7 @@ static void create_image(
 	uint32_t width, uint32_t height, uint32_t mip_levels, uint32_t array_layers,
 	VkImageCreateFlags flags, VkFormat format, VkImageUsageFlags usage_flags, uint32_t * out_image_id);
 static void destroy_image(uint32_t id);
-static VkImage get_image(uint32_t id);
+VkImage get_image(uint32_t id);
 static void create_image_view(
 	VkImage image,
 	VkImageViewType view_type, VkFormat format, VkImageAspectFlags aspect_flags,
@@ -415,13 +415,13 @@ static void create_image_view(
 	uint32_t base_array_layer, uint32_t array_layer_count,
 	uint32_t * out_image_view);
 static void destroy_image_view(uint32_t id);
-static VkImageView get_image_view(uint32_t id);
-static VkSampler create_sampler(
+VkImageView get_image_view(uint32_t id);
+VkSampler create_sampler(
 	VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode u,
 	VkSamplerAddressMode v, VkSamplerAddressMode w);
 static void internal_create_sampler(VkSamplerCreateInfo create_info, uint32_t * out_sampler);
 static VkSampler get_sampler(uint32_t id);
-static void destroy_sampler(uint32_t id);
+void destroy_sampler(uint32_t id);
 VkPipelineLayout vkal_create_pipeline_layout(
     VkDescriptorSetLayout * descriptor_set_layouts, uint32_t descriptor_set_layout_count,
     VkPushConstantRange * push_constant_ranges, uint32_t push_constant_range_count);

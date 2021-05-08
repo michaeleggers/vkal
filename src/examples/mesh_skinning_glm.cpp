@@ -17,8 +17,8 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm.hpp"
-#include "ext.hpp"
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
 
 #include <GLFW/glfw3.h>
 
@@ -387,7 +387,7 @@ int main(int argc, char ** argv)
     
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
+    vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
 
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
@@ -592,10 +592,10 @@ int main(int argc, char ** argv)
 	    vkal_begin_command_buffer(image_id);
 
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->command_buffers[image_id],
+	    vkal_viewport(vkal_info->default_command_buffers[image_id],
 			  0, 0,
 			  (float)width, (float)height);
-	    vkal_scissor(vkal_info->command_buffers[image_id],
+	    vkal_scissor(vkal_info->default_command_buffers[image_id],
 			 0, 0,
 			 (float)width, (float)height);
 	    for (int i = 0; i < NUM_ENTITIES; ++i) {
@@ -619,7 +619,7 @@ int main(int argc, char ** argv)
 
 	    vkal_end_command_buffer(image_id);
 	    VkCommandBuffer command_buffers[1];
-	    command_buffers[0] = vkal_info->command_buffers[image_id];
+	    command_buffers[0] = vkal_info->default_command_buffers[image_id];
 	    vkal_queue_submit(command_buffers, 1);
 
 	    vkal_present(image_id);
