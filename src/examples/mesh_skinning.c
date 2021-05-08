@@ -171,8 +171,8 @@ MdMesh load_md_mesh(char * filename)
     Bone * bones = (Bone*)(index_data + result.index_count);
     memcpy(result.bones, bones, result.bone_count * sizeof(Bone));
     for (uint32_t i = 0; i < result.bone_count; ++i) {
-	result.animation_matrices[i] = mat4_identity();
-	result.tmp_matrices[i] = mat4_identity();
+		result.animation_matrices[i] = mat4_identity();
+		result.tmp_matrices[i] = mat4_identity();
     }
     Node * skeleton_nodes = (Node*)(bones + result.bone_count);
     memcpy(result.skeleton_nodes, skeleton_nodes, result.node_count * sizeof(Node));
@@ -185,20 +185,19 @@ void update_skeleton(MdMesh * mesh)
     Node * skeleton_nodes = mesh->skeleton_nodes;
     uint32_t node_count = mesh->node_count;
     for (uint32_t i = 0; i < node_count; ++i) {
-	Node * node = &(skeleton_nodes[i]);
-	int parent_index = node->parent_index;
-	uint32_t bone_index = node->bone_index;
-	mat4 local_transform = mesh->animation_matrices[bone_index];
-	mat4 offset_mat = mesh->bones[bone_index].offset_matrix;
-	if (parent_index >= 0) {
-	    uint32_t parent_bone_index = skeleton_nodes[parent_index].bone_index;
-	    mat4 parent_mat = mesh->tmp_matrices[parent_bone_index];
-	    mesh->tmp_matrices[bone_index] = mat4_x_mat4(parent_mat,
-							 local_transform);	    
-	}
-	else {
-	    mesh->tmp_matrices[bone_index] = local_transform;
-	}
+		Node * node = &(skeleton_nodes[i]);
+		int parent_index = node->parent_index;
+		uint32_t bone_index = node->bone_index;
+		mat4 local_transform = mesh->animation_matrices[bone_index];
+		mat4 offset_mat = mesh->bones[bone_index].offset_matrix;
+		if (parent_index >= 0) {
+			uint32_t parent_bone_index = skeleton_nodes[parent_index].bone_index;
+			mat4 parent_mat = mesh->tmp_matrices[parent_bone_index];
+			mesh->tmp_matrices[bone_index] = mat4_x_mat4(parent_mat, local_transform);	    
+		}
+		else {
+			mesh->tmp_matrices[bone_index] = local_transform;
+		}
     }
 }
 
@@ -206,8 +205,8 @@ void update_skeleton(MdMesh * mesh)
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-	printf("escape key pressed\n");
-	glfwSetWindowShouldClose(window, GLFW_TRUE);
+		printf("escape key pressed\n");
+		glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 }
 
@@ -275,7 +274,7 @@ int main(int argc, char ** argv)
     assert(device_count > 0);
     printf("Suitable Devices:\n");
     for (uint32_t i = 0; i < device_count; ++i) {
-	printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
+		printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
     vkal_select_physical_device(&devices[0]);
     VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
@@ -362,7 +361,7 @@ int main(int argc, char ** argv)
     
     uint32_t descriptor_set_layout_count = sizeof(layouts)/sizeof(*layouts);
     VkDescriptorSet * descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count*sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
+    vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
 
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
@@ -387,8 +386,8 @@ int main(int argc, char ** argv)
     uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
     
     uint16_t rect_indices[] = {
- 	0, 1, 2,
-	2, 1, 3
+ 		0, 1, 2,
+		2, 1, 3
     };
     uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
   
@@ -554,10 +553,10 @@ int main(int argc, char ** argv)
 	    vkal_begin_command_buffer(image_id);
 
 	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->command_buffers[image_id],
+	    vkal_viewport(vkal_info->default_command_buffers[image_id],
 			  0, 0,
 			  (float)width, (float)height);
-	    vkal_scissor(vkal_info->command_buffers[image_id],
+	    vkal_scissor(vkal_info->default_command_buffers[image_id],
 			 0, 0,
 			 (float)width, (float)height);
 	    for (int i = 0; i < NUM_ENTITIES; ++i) {
@@ -581,7 +580,7 @@ int main(int argc, char ** argv)
 
 	    vkal_end_command_buffer(image_id);
 	    VkCommandBuffer command_buffers[1];
-	    command_buffers[0] = vkal_info->command_buffers[image_id];
+	    command_buffers[0] = vkal_info->default_command_buffers[image_id];
 	    vkal_queue_submit(command_buffers, 1);
 
 	    vkal_present(image_id);

@@ -13,38 +13,8 @@
 
 #include "vkal.h"
 
-static void * vkal_memory;
 static VkalInfo vkal_info;
-static Texture g_texture;
 
-
-/* To make the NV extensions visible globally we must go through an indirection (_DEF). Otherwise the compiler will complain
-about redefinition of the NV function! We have to load them during load time since vulkan.lib does not expose those
-extensions to the linker!
-*/
-PFN_vkCreateAccelerationStructureNV                    vkCreateAccelerationStructureNV_DEF;
-#define vkCreateAccelerationStructureNV                vkCreateAccelerationStructureNV_DEF
-
-PFN_vkGetAccelerationStructureMemoryRequirementsNV     vkGetAccelerationStructureMemoryRequirementsNV_DEF;
-#define vkGetAccelerationStructureMemoryRequirementsNV vkGetAccelerationStructureMemoryRequirementsNV_DEF
-
-PFN_vkBindAccelerationStructureMemoryNV                vkBindAccelerationStructureMemoryNV_DEF;
-#define vkBindAccelerationStructureMemoryNV            vkBindAccelerationStructureMemoryNV_DEF
-
-PFN_vkGetAccelerationStructureHandleNV                 vkGetAccelerationStructureHandleNV_DEF;
-#define vkGetAccelerationStructureHandleNV             vkGetAccelerationStructureHandleNV_DEF
-
-PFN_vkCmdBuildAccelerationStructureNV                  vkCmdBuildAccelerationStructureNV_DEF;
-#define vkCmdBuildAccelerationStructureNV              vkCmdBuildAccelerationStructureNV_DEF
-
-PFN_vkCreateRayTracingPipelinesNV                      vkCreateRayTracingPipelinesNV_DEF;
-#define vkCreateRayTracingPipelinesNV	               vkCreateRayTracingPipelinesNV_DEF
-
-PFN_vkGetRayTracingShaderGroupHandlesNV                vkGetRayTracingShaderGroupHandlesNV_DEF;
-#define vkGetRayTracingShaderGroupHandlesNV            vkGetRayTracingShaderGroupHandlesNV_DEF
-
-PFN_vkCmdTraceRaysNV                                   vkCmdTraceRaysNV_DEF;
-#define vkCmdTraceRaysNV                               vkCmdTraceRaysNV_DEF
 
 /* Debug extensions */
 PFN_vkSetDebugUtilsObjectNameEXT                       vkSetDebugUtilsObjectNameEXT_DEF;
@@ -53,7 +23,6 @@ PFN_vkSetDebugUtilsObjectNameEXT                       vkSetDebugUtilsObjectName
 VkalInfo * vkal_init(
     char ** extensions, uint32_t extension_count)
 {
-    vkal_info.mapped_uniform_memory = 0;
 
 #ifdef _DEBUG
     // TODO: Do I really need to go the indirection through a #define here?
@@ -66,10 +35,6 @@ VkalInfo * vkal_init(
     create_image_views();
     create_default_render_pass();
     create_render_to_image_render_pass();
-    {
-	create_default_offscreen_render_pass();
-	create_default_offscreen_framebuffer();
-    }
     create_default_depth_buffer();
     create_default_framebuffers();
     create_default_descriptor_pool();
@@ -200,25 +165,6 @@ void vkal_create_instance(
 
 
 	
-void init_raytracing(void)
-{
-    vkal_info.nv_rt_ctx = (NvRaytracingCtx){0};
-    vkal_info.nv_rt_ctx.properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
-    VkPhysicalDeviceProperties2 properties = (VkPhysicalDeviceProperties2){0};
-    properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-    properties.pNext = &(vkal_info.nv_rt_ctx.properties);
-    vkGetPhysicalDeviceProperties2(vkal_info.physical_device, &properties);
-
-    /* Init function pointers */
-    vkCreateAccelerationStructureNV_DEF                = (PFN_vkCreateAccelerationStructureNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateAccelerationStructureNV");
-    vkGetAccelerationStructureMemoryRequirementsNV_DEF = (PFN_vkGetAccelerationStructureMemoryRequirementsNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureMemoryRequirementsNV");
-    vkBindAccelerationStructureMemoryNV_DEF            = (PFN_vkBindAccelerationStructureMemoryNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkBindAccelerationStructureMemoryNV");
-    vkGetAccelerationStructureHandleNV_DEF             = (PFN_vkGetAccelerationStructureHandleNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureHandleNV");
-    vkCmdBuildAccelerationStructureNV_DEF              = (PFN_vkCmdBuildAccelerationStructureNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkCmdBuildAccelerationStructureNV");
-    vkCreateRayTracingPipelinesNV_DEF                  = (PFN_vkCreateRayTracingPipelinesNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateRayTracingPipelinesNV");
-    vkCmdTraceRaysNV_DEF                               = (PFN_vkCmdTraceRaysNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkCmdTraceRaysNV");
-    vkGetRayTracingShaderGroupHandlesNV_DEF            = (PFN_vkGetRayTracingShaderGroupHandlesNV)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetRayTracingShaderGroupHandlesNV");
-}
 
 // Create an image memory barrier for changing the layout of
 // an image and put it into an active command buffer
@@ -353,7 +299,7 @@ void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int fre
 {
     if (command_buffer == VK_NULL_HANDLE)
     {
-	return;
+		return;
     }
 
     DBG_VULKAN_ASSERT(vkEndCommandBuffer(command_buffer), "failed to end command buffer");
@@ -378,157 +324,9 @@ void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int fre
 
     vkDestroyFence(vkal_info.device, fence, NULL);
 
-    if (vkal_info.command_pools[0] && free)
+    if (vkal_info.default_command_pools[0] && free)
     {
-	vkFreeCommandBuffers(vkal_info.device, vkal_info.command_pools[0], 1, &command_buffer);
-    }
-}
-
-/* Setup storage image the ray generation shader will be writing to */
-void create_rt_storage_image(void)
-{
-    // Image
-    {
-	create_image(
-	    VKAL_RT_SIZE_X, VKAL_RT_SIZE_Y,
-	    1, 1,
-	    0,  // flags
-	    vkal_info.swapchain_image_format,
-	    VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-	    &vkal_info.nv_rt_ctx.storage_image.image);
-	vkal_dbg_image_name(get_image(vkal_info.nv_rt_ctx.storage_image.image), "RT storage image");
-
-	// Back the image with actual memory:
-	VkMemoryRequirements image_memory_requirements = {0};
-	vkGetImageMemoryRequirements(
-	    vkal_info.device,
-	    get_image(vkal_info.nv_rt_ctx.storage_image.image),
-	    &image_memory_requirements);
-	uint32_t mem_type_bits = check_memory_type_index(
-	    image_memory_requirements.memoryTypeBits,
-	    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	create_device_memory(
-	    image_memory_requirements.size,
-	    mem_type_bits,
-	    &vkal_info.nv_rt_ctx.storage_image.device_memory_id);
-	VkResult result = vkBindImageMemory(
-	    vkal_info.device, get_image(vkal_info.nv_rt_ctx.storage_image.image),
-	    get_device_memory(vkal_info.nv_rt_ctx.storage_image.device_memory_id), 0);
-	DBG_VULKAN_ASSERT(result, "failed to bind texture image memory!");
-    }
-
-    // Image View
-    {
-	create_image_view(
-	    get_image(vkal_info.nv_rt_ctx.storage_image.image),
-	    VK_IMAGE_VIEW_TYPE_2D,
-	    vkal_info.swapchain_image_format,
-	    VK_IMAGE_ASPECT_COLOR_BIT,
-	    0, 1,
-	    0, 1,
-	    &vkal_info.nv_rt_ctx.storage_image.image_view);
-    }
-
-    // upload using staging buffer
-    {
-	VkCommandBuffer cmd_buf;
-	VkCommandBufferAllocateInfo allocate_info = {0};
-	allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocate_info.commandBufferCount = 1;
-	allocate_info.commandPool = vkal_info.command_pools[0]; // NOTE: What if present and graphics queue are not from the same family?
-	allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	vkAllocateCommandBuffers(vkal_info.device, &allocate_info, &cmd_buf);
-		
-	// start recording
-	VkCommandBufferBeginInfo cmd_begin_info = {0};
-	cmd_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	DBG_VULKAN_ASSERT(
-	    vkBeginCommandBuffer(cmd_buf, &cmd_begin_info), 
-	    "failed to put command buffer into recording state");
-
-	set_image_layout(
-	    cmd_buf, 
-	    get_image(vkal_info.nv_rt_ctx.storage_image.image),
-	    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-	    (VkImageSubresourceRange){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
-	flush_command_buffer(cmd_buf, vkal_info.graphics_queue, 1);
-    }
-}
-
-/* The image we will copy the raytracing storage image to. */
-void create_rt_target_image(void)
-{
-    // Image
-    {
-	create_image(
-	    VKAL_RT_SIZE_X, VKAL_RT_SIZE_Y,
-	    1, 1,
-	    0,  // flags
-	    vkal_info.swapchain_image_format,
-	    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-	    &vkal_info.nv_rt_ctx.target_image.image);
-	vkal_dbg_image_name(get_image(vkal_info.nv_rt_ctx.target_image.image), "RT target image");
-
-	// Back the image with actual memory:
-	VkMemoryRequirements image_memory_requirements = {0};
-	vkGetImageMemoryRequirements(
-	    vkal_info.device,
-	    get_image(vkal_info.nv_rt_ctx.target_image.image),
-	    &image_memory_requirements);
-	uint32_t mem_type_bits = check_memory_type_index(
-	    image_memory_requirements.memoryTypeBits,
-	    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	create_device_memory(
-	    image_memory_requirements.size,
-	    mem_type_bits,
-	    &vkal_info.nv_rt_ctx.target_image.device_memory_id);
-	VkResult result = vkBindImageMemory(
-	    vkal_info.device, get_image(vkal_info.nv_rt_ctx.target_image.image),
-	    get_device_memory(vkal_info.nv_rt_ctx.target_image.device_memory_id), 0);
-	DBG_VULKAN_ASSERT(result, "failed to bind texture image memory!");
-    }
-
-    // Image View
-    {
-	create_image_view(
-	    get_image(vkal_info.nv_rt_ctx.target_image.image),
-	    VK_IMAGE_VIEW_TYPE_2D,
-	    vkal_info.swapchain_image_format,
-	    VK_IMAGE_ASPECT_COLOR_BIT,
-	    0, 1,
-	    0, 1,
-	    &vkal_info.nv_rt_ctx.target_image.image_view);
-    }
-
-    // upload using staging buffer
-    {
-	VkCommandBuffer cmd_buf;
-	VkCommandBufferAllocateInfo allocate_info = {0};
-	allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocate_info.commandBufferCount = 1;
-	allocate_info.commandPool = vkal_info.command_pools[0]; // NOTE: What if present and graphics queue are not from the same family?
-	allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	vkAllocateCommandBuffers(vkal_info.device, &allocate_info, &cmd_buf);
-
-	// start recording
-	VkCommandBufferBeginInfo cmd_begin_info = {0};
-	cmd_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	DBG_VULKAN_ASSERT(
-	    vkBeginCommandBuffer(cmd_buf, &cmd_begin_info),
-	    "failed to put command buffer into recording state");
-
-	set_image_layout(
-	    cmd_buf,
-	    get_image(vkal_info.nv_rt_ctx.target_image.image),
-	    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-	    (VkImageSubresourceRange){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
-	flush_command_buffer(cmd_buf, vkal_info.graphics_queue, 1);
+		vkFreeCommandBuffers(vkal_info.device, vkal_info.default_command_pools[0], 1, &command_buffer);
     }
 }
 
@@ -541,75 +339,75 @@ VkalImage create_vkal_image(
     VkalImage vkal_image;
     // Image
     {
-	create_image(
-	    width, height,
-	    1, 1,
-	    0,  // flags
-	    format,
-	    usage_flags,
-	    &vkal_image.image);
-	vkal_dbg_image_name(get_image(vkal_image.image), name);
+		create_image(
+			width, height,
+			1, 1,
+			0,  // flags
+			format,
+			usage_flags,
+			&vkal_image.image);
+		vkal_dbg_image_name(get_image(vkal_image.image), name);
 
-	// Back the image with actual memory:
-	VkMemoryRequirements image_memory_requirements = { 0 };
-	vkGetImageMemoryRequirements(
-	    vkal_info.device,
-	    get_image(vkal_image.image),
-	    &image_memory_requirements);
-	uint32_t mem_type_bits = check_memory_type_index(
-	    image_memory_requirements.memoryTypeBits,
-	    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	create_device_memory(image_memory_requirements.size, mem_type_bits, &vkal_image.device_memory);
-	VkResult result = vkBindImageMemory(
-	    vkal_info.device, get_image(vkal_image.image),
-	    get_device_memory(vkal_image.device_memory), 0);
-	DBG_VULKAN_ASSERT(result, "failed to bind texture image memory!");
+		// Back the image with actual memory:
+		VkMemoryRequirements image_memory_requirements = { 0 };
+		vkGetImageMemoryRequirements(
+			vkal_info.device,
+			get_image(vkal_image.image),
+			&image_memory_requirements);
+		uint32_t mem_type_bits = check_memory_type_index(
+			image_memory_requirements.memoryTypeBits,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		create_device_memory(image_memory_requirements.size, mem_type_bits, &vkal_image.device_memory);
+		VkResult result = vkBindImageMemory(
+			vkal_info.device, get_image(vkal_image.image),
+			get_device_memory(vkal_image.device_memory), 0);
+		DBG_VULKAN_ASSERT(result, "failed to bind texture image memory!");
     }
 
     // Image View
     {
-	create_image_view(
-	    get_image(vkal_image.image),
-	    VK_IMAGE_VIEW_TYPE_2D,
-	    format,
-	    aspect_bits,
-	    0, 1,
-	    0, 1,
-	    &vkal_image.image_view);
+		create_image_view(
+			get_image(vkal_image.image),
+			VK_IMAGE_VIEW_TYPE_2D,
+			format,
+			aspect_bits,
+			0, 1,
+			0, 1,
+			&vkal_image.image_view);
     }
 
     // upload
     {
-	VkCommandBuffer cmd_buf;
-	VkCommandBufferAllocateInfo allocate_info = {0};
-	allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocate_info.commandBufferCount = 1;
-	allocate_info.commandPool = vkal_info.command_pools[0]; // NOTE: What if present and graphics queue are not from the same family?
-	allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	vkAllocateCommandBuffers(vkal_info.device, &allocate_info, &cmd_buf);
+		VkCommandBuffer cmd_buf;
+		VkCommandBufferAllocateInfo allocate_info = {0};
+		allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocate_info.commandBufferCount = 1;
+		allocate_info.commandPool = vkal_info.default_command_pools[0]; // NOTE: What if present and graphics queue are not from the same family?
+		allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		vkAllocateCommandBuffers(vkal_info.device, &allocate_info, &cmd_buf);
 
-	// start recording
-	VkCommandBufferBeginInfo cmd_begin_info = {0};
-	cmd_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	DBG_VULKAN_ASSERT(
-	    vkBeginCommandBuffer(cmd_buf, &cmd_begin_info),
-	    "failed to put command buffer into recording state");
+		// start recording
+		VkCommandBufferBeginInfo cmd_begin_info = {0};
+		cmd_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		DBG_VULKAN_ASSERT(
+			vkBeginCommandBuffer(cmd_buf, &cmd_begin_info),
+			"failed to put command buffer into recording state");
 
-	VkImageSubresourceRange subresource_range;
-	subresource_range.aspectMask     = aspect_bits;	
-	subresource_range.baseMipLevel   = 0;
-	subresource_range.levelCount     = 1;
-	subresource_range.baseArrayLayer = 0;
-	subresource_range.layerCount     = 1;
-	set_image_layout(
-	    cmd_buf,
-	    get_image(vkal_image.image),
-	    VK_IMAGE_LAYOUT_UNDEFINED, layout,
-	    subresource_range,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+		VkImageSubresourceRange subresource_range;
+		subresource_range.aspectMask     = aspect_bits;	
+		subresource_range.baseMipLevel   = 0;
+		subresource_range.levelCount     = 1;
+		subresource_range.baseArrayLayer = 0;
+		subresource_range.layerCount     = 1;
+		set_image_layout(
+			cmd_buf,
+			get_image(vkal_image.image),
+			VK_IMAGE_LAYOUT_UNDEFINED, layout,
+			subresource_range,
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-	flush_command_buffer(cmd_buf, vkal_info.graphics_queue, 1);
+		flush_command_buffer(cmd_buf, vkal_info.graphics_queue, 1);
     }
 
     vkal_image.width = width;
@@ -629,533 +427,77 @@ RenderImage create_render_image(uint32_t width, uint32_t height)
 	"render to image depth");
     // Image
     {
-	create_image(
-	    width, height,
-	    1, 1,
-	    0,  // flags
-	    vkal_info.swapchain_image_format,
-	    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-	    &render_image.image);
-	vkal_dbg_image_name(get_image(render_image.image), "RT target image");
+		create_image(
+			width, height,
+			1, 1,
+			0,  // flags
+			vkal_info.swapchain_image_format,
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+			&render_image.image);
+		vkal_dbg_image_name(get_image(render_image.image), "RT target image");
 
-	// Back the image with actual memory:
-	VkMemoryRequirements image_memory_requirements = { 0 };
-	vkGetImageMemoryRequirements(
-	    vkal_info.device,
-	    get_image(render_image.image),
-	    &image_memory_requirements);
-	uint32_t mem_type_bits = check_memory_type_index(
-	    image_memory_requirements.memoryTypeBits,
-	    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	create_device_memory(image_memory_requirements.size, mem_type_bits, &render_image.device_memory);
-	VkResult result = vkBindImageMemory(
-	    vkal_info.device, get_image(render_image.image),
-	    get_device_memory(render_image.device_memory), 0);
-	DBG_VULKAN_ASSERT(result, "failed to bind texture image memory!");
+		// Back the image with actual memory:
+		VkMemoryRequirements image_memory_requirements = { 0 };
+		vkGetImageMemoryRequirements(
+			vkal_info.device,
+			get_image(render_image.image),
+			&image_memory_requirements);
+		uint32_t mem_type_bits = check_memory_type_index(
+			image_memory_requirements.memoryTypeBits,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		create_device_memory(image_memory_requirements.size, mem_type_bits, &render_image.device_memory);
+		VkResult result = vkBindImageMemory(
+			vkal_info.device, get_image(render_image.image),
+			get_device_memory(render_image.device_memory), 0);
+		DBG_VULKAN_ASSERT(result, "failed to bind texture image memory!");
     }
 
     // Image View
     {
-	create_image_view(
-	    get_image(render_image.image),
-	    VK_IMAGE_VIEW_TYPE_2D,
-	    vkal_info.swapchain_image_format,
-	    VK_IMAGE_ASPECT_COLOR_BIT,
-	    0, 1,
-	    0, 1,
-	    &render_image.image_view);
+		create_image_view(
+			get_image(render_image.image),
+			VK_IMAGE_VIEW_TYPE_2D,
+			vkal_info.swapchain_image_format,
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			0, 1,
+			0, 1,
+			&render_image.image_view);
     }
 
     // upload
     {
-	VkCommandBuffer cmd_buf;
-	VkCommandBufferAllocateInfo allocate_info = { 0 };
-	allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocate_info.commandBufferCount = 1;
-	allocate_info.commandPool = vkal_info.command_pools[0]; // NOTE: What if present and graphics queue are not from the same family?
-	allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	vkAllocateCommandBuffers(vkal_info.device, &allocate_info, &cmd_buf);
+		VkCommandBuffer cmd_buf;
+		VkCommandBufferAllocateInfo allocate_info = { 0 };
+		allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocate_info.commandBufferCount = 1;
+		allocate_info.commandPool = vkal_info.default_command_pools[0]; // NOTE: What if present and graphics queue are not from the same family?
+		allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		vkAllocateCommandBuffers(vkal_info.device, &allocate_info, &cmd_buf);
 
-	// start recording
-	VkCommandBufferBeginInfo cmd_begin_info = { 0 };
-	cmd_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	DBG_VULKAN_ASSERT(
-	    vkBeginCommandBuffer(cmd_buf, &cmd_begin_info),
-	    "failed to put command buffer into recording state");
+		// start recording
+		VkCommandBufferBeginInfo cmd_begin_info = { 0 };
+		cmd_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		DBG_VULKAN_ASSERT(
+			vkBeginCommandBuffer(cmd_buf, &cmd_begin_info),
+			"failed to put command buffer into recording state");
 
-	set_image_layout(
-	    cmd_buf,
-	    get_image(render_image.image),
-	    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-	    (VkImageSubresourceRange){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+		set_image_layout(
+			cmd_buf,
+			get_image(render_image.image),
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			(VkImageSubresourceRange){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-	flush_command_buffer(cmd_buf, vkal_info.graphics_queue, 1);
+		flush_command_buffer(cmd_buf, vkal_info.graphics_queue, 1);
     }
 
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
-	render_image.framebuffers[i] = create_render_image_framebuffer(render_image, width, height);
+		render_image.framebuffers[i] = create_render_image_framebuffer(render_image, width, height);
     }
     render_image.width = width;
     render_image.height = height;
     return render_image;
-}
-
-/* BLAS: Contains scene's geometry (vertices, tris, ...) */
-void create_rt_blas(VkGeometryNV * geometries, uint32_t geometryNV_count)
-{
-    vkal_info.nv_rt_ctx.blas_count = geometryNV_count;
-    vkal_info.nv_rt_ctx.blas = (Blas*)malloc(geometryNV_count * sizeof(Blas));
-    for (uint32_t i = 0; i < geometryNV_count; ++i) {
-	{
-	    VkAccelerationStructureInfoNV acceleration_info = { 0 };
-	    acceleration_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-	    acceleration_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
-	    acceleration_info.instanceCount = 0;
-	    acceleration_info.geometryCount = 1;
-	    acceleration_info.pGeometries = &geometries[i];
-
-	    VkAccelerationStructureCreateInfoNV acceleration_create_info = { 0 };
-	    acceleration_create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
-	    acceleration_create_info.info = acceleration_info;
-	    DBG_VULKAN_ASSERT(vkCreateAccelerationStructureNV(
-				  vkal_info.device,
-				  &acceleration_create_info, 0, &vkal_info.nv_rt_ctx.blas[i].accel_structure), "Failed to create blas acceleration structure");
-	}
-
-	{
-	    VkAccelerationStructureMemoryRequirementsInfoNV memory_requirements = { 0 };
-	    memory_requirements.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
-	    memory_requirements.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
-	    memory_requirements.accelerationStructure = vkal_info.nv_rt_ctx.blas[i].accel_structure;
-		    
-	    VkMemoryRequirements2 memory_requirements_2 = (VkMemoryRequirements2){0};
-	    memory_requirements_2.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2;
-	    vkGetAccelerationStructureMemoryRequirementsNV(vkal_info.device, &memory_requirements, &memory_requirements_2);
-		    
-	    uint32_t mem_type_index = check_memory_type_index(
-		memory_requirements_2.memoryRequirements.memoryTypeBits,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	    create_device_memory(
-		memory_requirements_2.memoryRequirements.size,
-		mem_type_index, &vkal_info.nv_rt_ctx.blas[i].device_memory_handle);
-		    
-	    VkBindAccelerationStructureMemoryInfoNV accel_memory_info = { 0 };
-	    accel_memory_info.sType = VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
-	    accel_memory_info.accelerationStructure = vkal_info.nv_rt_ctx.blas[i].accel_structure;
-	    accel_memory_info.memory = get_device_memory(vkal_info.nv_rt_ctx.blas[i].device_memory_handle);
-	    DBG_VULKAN_ASSERT(vkBindAccelerationStructureMemoryNV(vkal_info.device, 1, &accel_memory_info),
-			      "Failed to bind blas acceleration structure to device memory");
-	}
-
-	DBG_VULKAN_ASSERT(vkGetAccelerationStructureHandleNV(vkal_info.device, vkal_info.nv_rt_ctx.blas[i].accel_structure,
-							     sizeof(uint64_t), &vkal_info.nv_rt_ctx.blas[i].handle),
-			  "Failed to get handle to blas acceleration structure");
-    }
-}
-
-/* Create TLAS: Contains scene's object instances. */
-void create_rt_tlas(uint32_t instance_count)
-{
-    VkAccelerationStructureInfoNV accel_info = { 0 };
-    accel_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-    accel_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
-    accel_info.instanceCount = instance_count;
-    accel_info.geometryCount = 0;
-
-    VkAccelerationStructureCreateInfoNV create_info = { 0 };
-    create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
-    create_info.info = accel_info;
-    DBG_VULKAN_ASSERT(vkCreateAccelerationStructureNV(vkal_info.device, &create_info, 0, 
-						      &vkal_info.nv_rt_ctx.tlas.accel_structure),
-		      "Failed to create TLAS structure");
-
-    VkAccelerationStructureMemoryRequirementsInfoNV mem_requirements = { 0 };
-    mem_requirements.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
-    mem_requirements.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
-    mem_requirements.accelerationStructure = vkal_info.nv_rt_ctx.tlas.accel_structure;
-
-    VkMemoryRequirements2 mem_requirements_2 = { 0 };
-    vkGetAccelerationStructureMemoryRequirementsNV(vkal_info.device, &mem_requirements, &mem_requirements_2);
-	
-    uint32_t mem_type_index = check_memory_type_index(
-	mem_requirements_2.memoryRequirements.memoryTypeBits,
-	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    create_device_memory(mem_requirements_2.memoryRequirements.size, mem_type_index, &vkal_info.nv_rt_ctx.tlas.device_memory_handle);
-
-    VkBindAccelerationStructureMemoryInfoNV accel_structure_mem_info = { 0 };
-    accel_structure_mem_info.sType = VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
-    accel_structure_mem_info.accelerationStructure = vkal_info.nv_rt_ctx.tlas.accel_structure;
-    accel_structure_mem_info.memory = get_device_memory(vkal_info.nv_rt_ctx.tlas.device_memory_handle);
-    DBG_VULKAN_ASSERT(vkBindAccelerationStructureMemoryNV(vkal_info.device, 1, &accel_structure_mem_info), 
-		      "Failed to bind acceleration structure to device memory");
-
-    DBG_VULKAN_ASSERT(vkGetAccelerationStructureHandleNV(
-			  vkal_info.device,
-			  vkal_info.nv_rt_ctx.tlas.accel_structure,
-			  sizeof(uint64_t), &vkal_info.nv_rt_ctx.tlas.handle),
-		      "failed to get TLAS structure handle");
-}
-
-VkDeviceSize copy_shader_identifier(uint8_t * data, uint8_t * shader_handle_storage, uint32_t group_index)
-{
-    uint32_t shader_group_handle_size = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize;
-    memcpy(data, shader_handle_storage + group_index * shader_group_handle_size, shader_group_handle_size);
-    data += shader_group_handle_size;
-    return shader_group_handle_size;
-}
-
-/* Create shader binding table: That will bind the shader-programs with the TLAS */
-void create_rt_shader_binding_table(void)
-{
-    uint32_t shader_binding_table_size = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize * 6; /* TODO: Use #define MAX_SHADER_TABLE_INDEX instead of '6'! */
-    vkal_info.nv_rt_ctx.shader_binding_table_device_memory = vkal_allocate_devicememory(
-	16 * MB, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV,
-	VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-	);
-    vkal_info.nv_rt_ctx.shader_binding_table = vkal_create_buffer(
-	shader_binding_table_size,
-	&vkal_info.nv_rt_ctx.shader_binding_table_device_memory,
-	VK_BUFFER_USAGE_RAY_TRACING_BIT_NV);
-    map_memory(
-	&vkal_info.nv_rt_ctx.shader_binding_table, VK_WHOLE_SIZE, vkal_info.nv_rt_ctx.shader_binding_table.offset);
-
-    uint8_t * shader_handle_storage = (uint8_t*)malloc(sizeof(uint8_t)*shader_binding_table_size);
-    vkGetRayTracingShaderGroupHandlesNV(
-	vkal_info.device,
-	vkal_info.nv_rt_ctx.pipeline,
-	0, // first group
-	6, // group count /* TODO use #define! */
-	shader_binding_table_size,
-	shader_handle_storage
-	);
-    uint8_t * data = (uint8_t*)vkal_info.nv_rt_ctx.shader_binding_table.mapped;
-    VkDeviceSize offset = 0;
-    data += copy_shader_identifier(data, shader_handle_storage, INDEX_RAYGEN);
-    data += copy_shader_identifier(data, shader_handle_storage, INDEX_MISS);
-    data += copy_shader_identifier(data, shader_handle_storage, INDEX_SHADOWMISS);
-    data += copy_shader_identifier(data, shader_handle_storage, INDEX_CLOSEST_HIT);
-    data += copy_shader_identifier(data, shader_handle_storage, INDEX_SHADOWHIT);
-    data += copy_shader_identifier(data, shader_handle_storage, INDEX_CLOSEST_HIT_DEBUG);
-    unmap_memory(&vkal_info.nv_rt_ctx.shader_binding_table);
-}
-
-/* Descriptor Set for Raytracing dispatch. Not sure yet if we need all of this.*/
-void create_rt_descriptor_sets(VkDescriptorSetLayout * layouts, uint32_t layout_count)
-{
-    VkDescriptorSetLayoutBinding set_layout[] = {
-	{   // TLAS
-	    0, // binding id ( matches with shader )
-	    VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV,
-	    1, // number of resources with this layout binding
-	    VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV,
-	    0
-	},
-	{   // store result of raytacer in this attachment
-	    1,
-	    VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-	    1,
-	    VK_SHADER_STAGE_RAYGEN_BIT_NV,
-	    0
-	},
-	{   // inverse view-/projectionmatrix
-	    2,
-	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	    1,
-	    VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV,
-	    0
-	},
-	{   // Vertex buffer
-	    3,
-	    VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-	    2,
-	    VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV,
-	    0
-	},
-	{   // Index buffer
-	    4,
-	    VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-	    2,
-	    VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV,
-	    0
-	}
-    };
-    uint32_t set_layout_binding_count = sizeof(set_layout) / sizeof(*set_layout);
-    vkal_info.nv_rt_ctx.descset_layout = vkal_create_descriptor_set_layout(set_layout, set_layout_binding_count);
-
-    /* Actually allocate out Raytracing descriptor set. Exciting! */
-    VkDescriptorPoolSize pool_sizes[] = {
-	{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 1},
-	{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
-	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
-	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4},
-	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 }
-    };
-    VkDescriptorPoolCreateInfo descpool_create_info = { 0 };
-    descpool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    descpool_create_info.poolSizeCount = sizeof(pool_sizes) / sizeof(*pool_sizes);
-    descpool_create_info.pPoolSizes = pool_sizes;
-    descpool_create_info.maxSets = 1 + layout_count;
-    DBG_VULKAN_ASSERT(vkCreateDescriptorPool(vkal_info.device, &descpool_create_info, 0, &vkal_info.nv_rt_ctx.descriptor_pool),
-		      "Failed to create Raytracing Descriptor Pool!");
-
-    /*MemoryArena arena = { 0 };
-      initialize_arena(&arena, vkal_memory, 12 * sizeof(VkDescriptorSetLayout));*/
-    VkDescriptorSetLayout * _layouts = (VkDescriptorSetLayout*)malloc((1 + layout_count)*sizeof(VkDescriptorSetLayout));
-    memcpy(_layouts, &vkal_info.nv_rt_ctx.descset_layout, sizeof(VkDescriptorSetLayout));
-    memcpy(_layouts + 1, layouts, layout_count * sizeof(VkDescriptorSetLayout));
-    vkal_info.nv_rt_ctx.descriptor_sets = (VkDescriptorSet*)malloc((layout_count + 1) * sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(
-	vkal_info.nv_rt_ctx.descriptor_pool,
-	_layouts,
-	1 + layout_count,
-	&vkal_info.nv_rt_ctx.descriptor_sets
-	);
-
-    /* TLAS Write Info */
-    VkWriteDescriptorSetAccelerationStructureNV desc_acceleration_info = { 0 };
-    desc_acceleration_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
-    desc_acceleration_info.accelerationStructureCount = 1;
-    desc_acceleration_info.pAccelerationStructures = &vkal_info.nv_rt_ctx.tlas.accel_structure;
-    VkWriteDescriptorSet acceleration_write = { 0 };
-    acceleration_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    acceleration_write.pNext = &desc_acceleration_info;
-    acceleration_write.dstSet = vkal_info.nv_rt_ctx.descriptor_sets[0];
-    acceleration_write.dstBinding = 0;
-    acceleration_write.descriptorCount = 1;
-    acceleration_write.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
-
-    /* Storage Image Info */
-    VkDescriptorImageInfo storage_image_descriptor = { 0 };
-    storage_image_descriptor.imageView = get_image_view(vkal_info.nv_rt_ctx.storage_image.image_view);
-    storage_image_descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    VkWriteDescriptorSet image_write = create_write_descriptor_set_image(
-	vkal_info.nv_rt_ctx.descriptor_sets[0], 1, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &storage_image_descriptor
-	);
-
-    /* Uniform Buffer Info for global data like inverse view/projection matrices */
-    VkDescriptorBufferInfo buffer_descriptor_info = { 0 };
-    // NOTE: 'offset' and 'range' refer to the data within the buffer and NOT within the VkDeviceMemory!
-    // so with offset = 0 does not mean the beginning of the VkDeviceMemory but rather the beginning
-    // of the buffer.
-    buffer_descriptor_info.buffer = vkal_info.nv_rt_ctx.ubo.buffer;
-    buffer_descriptor_info.offset = 0;
-    buffer_descriptor_info.range = VK_WHOLE_SIZE;
-    VkWriteDescriptorSet uniform_buffer_write = create_write_descriptor_set_buffer(
-	vkal_info.nv_rt_ctx.descriptor_sets[0], 2, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &buffer_descriptor_info);
-
-    VkWriteDescriptorSet descriptor_sets[3];
-    descriptor_sets[0] = acceleration_write;
-    descriptor_sets[1] = image_write;
-    descriptor_sets[2] = uniform_buffer_write;
-    uint32_t write_count = sizeof(descriptor_sets) / sizeof(*descriptor_sets);
-    vkUpdateDescriptorSets(vkal_info.device, write_count, descriptor_sets, 0, VK_NULL_HANDLE);
-}
-
-/* Raytracing pipeline */
-void create_rt_pipeline(VkDescriptorSetLayout * layouts, uint32_t layout_count)
-{
-    VkPipelineLayoutCreateInfo pipeline_info = { 0 };
-    pipeline_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    VkDescriptorSetLayout * _layouts = (VkDescriptorSetLayout*)malloc((1 + layout_count) * sizeof(VkDescriptorSetLayout));
-    memcpy(_layouts, &vkal_info.nv_rt_ctx.descset_layout, sizeof(VkDescriptorSetLayout));
-    memcpy(_layouts + 1, layouts, layout_count * sizeof(VkDescriptorSetLayout));
-    pipeline_info.setLayoutCount = 1 + layout_count;
-    pipeline_info.pSetLayouts = _layouts;
-    DBG_VULKAN_ASSERT(vkCreatePipelineLayout(vkal_info.device, &pipeline_info, 0, &vkal_info.nv_rt_ctx.pipeline_layout),
-		      "Failed to create Raytracing pipeline layout.");
-    free(_layouts);
-
-    uint32_t shader_index_raygen = 0;
-    uint32_t shader_index_miss = 2;
-    uint32_t shader_index_shadowmiss = 1;
-    uint32_t shader_index_chit = 3;
-    uint32_t shader_index_chit_debug = 4;
-
-    uint8_t * rgen_code = 0;
-    uint8_t * rmiss_code = 0;
-    uint8_t * chit_code = 0;
-    uint8_t * shadowmiss_code = 0;
-    uint8_t * chit_debug_code = 0;
-    int rgen_code_size = 0;
-    int rmiss_code_size = 0;
-    int chit_code_size = 0;
-    int shadowmiss_code_size = 0;
-    int chit_debug_code_size = 0;
-// TODO: load shaders from spirv bytecode.
-    uint32_t rgen_module;
-    uint32_t rmiss_module;
-    uint32_t chit_module;
-    uint32_t shadowmiss_module;
-    uint32_t chit_debug_module;
-    create_shader_module(rgen_code, rgen_code_size, &rgen_module);
-    create_shader_module(rmiss_code, rmiss_code_size, &rmiss_module);
-    create_shader_module(chit_code, chit_code_size, &chit_module);
-    create_shader_module(shadowmiss_code, shadowmiss_code_size, &shadowmiss_module);
-    create_shader_module(chit_debug_code, chit_debug_code_size, &chit_debug_module);
-
-    /* Indices in the shader_stages array will be used as unique identifiers for the shaders in the
-       shader binding table
-    */
-    VkPipelineShaderStageCreateInfo shader_stages[5];
-    shader_stages[shader_index_raygen] = create_shader_stage_info(get_shader_module(rgen_module), VK_SHADER_STAGE_RAYGEN_BIT_NV);
-    shader_stages[shader_index_miss] = create_shader_stage_info(get_shader_module(rmiss_module), VK_SHADER_STAGE_MISS_BIT_NV);
-    shader_stages[shader_index_shadowmiss] = create_shader_stage_info(get_shader_module(shadowmiss_module), VK_SHADER_STAGE_MISS_BIT_NV);
-    shader_stages[shader_index_chit] = create_shader_stage_info(get_shader_module(chit_module), VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
-    shader_stages[shader_index_chit_debug] = create_shader_stage_info(get_shader_module(chit_debug_module), VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
-
-    /* Setup raytracing shader groups */
-    VkRayTracingShaderGroupCreateInfoNV groups[6];
-    for (int i = 0; i < 6; ++i) {
-	groups[i] = (VkRayTracingShaderGroupCreateInfoNV){0};
-	groups[i].sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
-	groups[i].generalShader = VK_SHADER_UNUSED_NV;
-	groups[i].closestHitShader = VK_SHADER_UNUSED_NV;
-	groups[i].anyHitShader = VK_SHADER_UNUSED_NV;
-	groups[i].intersectionShader = VK_SHADER_UNUSED_NV;
-    }
-
-    // link shaders and types to raytracing shader groups
-    groups[INDEX_RAYGEN].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-    groups[INDEX_RAYGEN].generalShader = shader_index_raygen;
-	
-    groups[INDEX_MISS].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-    groups[INDEX_MISS].generalShader = shader_index_miss;
-    groups[INDEX_SHADOWMISS].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-    groups[INDEX_SHADOWMISS].generalShader = shader_index_shadowmiss;
-	
-    groups[INDEX_CLOSEST_HIT].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-    groups[INDEX_CLOSEST_HIT].generalShader = VK_SHADER_UNUSED_NV;
-    groups[INDEX_CLOSEST_HIT].closestHitShader = shader_index_chit;
-    groups[INDEX_SHADOWHIT].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-    groups[INDEX_SHADOWHIT].generalShader = shader_index_chit_debug; //VK_SHADER_UNUSED_NV;
-    //groups[INDEX_SHADOWHIT].closestHitShader = shader_index_shadowmiss;
-
-    groups[INDEX_CLOSEST_HIT_DEBUG].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-    groups[INDEX_CLOSEST_HIT_DEBUG].generalShader = VK_SHADER_UNUSED_NV;
-    groups[INDEX_CLOSEST_HIT_DEBUG].closestHitShader = shader_index_chit_debug;
-
-    VkRayTracingPipelineCreateInfoNV rt_pipeline_info = { 0 };
-    rt_pipeline_info.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV;
-    rt_pipeline_info.stageCount = sizeof(shader_stages) / sizeof(shader_stages[0]);
-    rt_pipeline_info.pStages = shader_stages;
-    rt_pipeline_info.groupCount = sizeof(groups) / sizeof(groups[0]);
-    rt_pipeline_info.pGroups = groups;
-    rt_pipeline_info.maxRecursionDepth = 2;
-    rt_pipeline_info.layout = vkal_info.nv_rt_ctx.pipeline_layout;
-    DBG_VULKAN_ASSERT(vkCreateRayTracingPipelinesNV(
-			  vkal_info.device,
-			  VK_NULL_HANDLE,
-			  1,
-			  &rt_pipeline_info,
-			  NULL,
-			  &vkal_info.nv_rt_ctx.pipeline),
-		      "Failed to create RayTracing pipeline."
-	);
-}
-
-void create_rt_command_buffers(void)
-{
-    vkal_info.nv_rt_ctx.command_buffers = (VkCommandBuffer*)malloc(vkal_info.swapchain_image_count * sizeof(VkCommandBuffer));
-    VkCommandBufferAllocateInfo allocate_info = { 0 };
-    allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocate_info.commandBufferCount = vkal_info.swapchain_image_count;
-    allocate_info.commandPool = vkal_info.command_pools[0];
-    allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    DBG_VULKAN_ASSERT( vkAllocateCommandBuffers(
-			   vkal_info.device,
-			   &allocate_info,
-			   vkal_info.nv_rt_ctx.command_buffers),
-		       "Failed to allocate Raytracing command buffers!" );
-}
-
-/* RayTracing Command Buffer generation */
-void build_rt_commandbuffers(void)
-{
-    VkCommandBufferBeginInfo cmd_buf_info = (VkCommandBufferBeginInfo){0};
-    cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    VkImageSubresourceRange subresource_rage = (VkImageSubresourceRange){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-	
-    for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
-	vkBeginCommandBuffer(vkal_info.nv_rt_ctx.command_buffers[i], &cmd_buf_info);
-
-	/* Dispatch RayTracing commands */
-	vkCmdBindPipeline(vkal_info.nv_rt_ctx.command_buffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
-			  vkal_info.nv_rt_ctx.pipeline);
-	vkCmdBindDescriptorSets(vkal_info.nv_rt_ctx.command_buffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
-				vkal_info.nv_rt_ctx.pipeline_layout, 0, 2, vkal_info.nv_rt_ctx.descriptor_sets, 0, 0);
-
-	// Calculate shader binding offsets
-	VkDeviceSize bind_offset_raygen_shader = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize*INDEX_RAYGEN;
-	VkDeviceSize bind_offset_miss_shader = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize*INDEX_MISS;
-	/* NOTE: INDEX_SHADOWMISS is implied here. INDEX_CLOSEST_HIT value is 3, not 2! */
-	VkDeviceSize bind_offset_hit_shader = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize*INDEX_CLOSEST_HIT;
-	VkDeviceSize bind_offset_hit_debug_shader = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize*INDEX_CLOSEST_HIT_DEBUG;
-	VkDeviceSize bind_stride = vkal_info.nv_rt_ctx.properties.shaderGroupHandleSize;
-	vkCmdTraceRaysNV(
-	    vkal_info.nv_rt_ctx.command_buffers[i],
-	    vkal_info.nv_rt_ctx.shader_binding_table.buffer, bind_offset_raygen_shader,
-	    vkal_info.nv_rt_ctx.shader_binding_table.buffer, bind_offset_miss_shader, bind_stride,
-	    vkal_info.nv_rt_ctx.shader_binding_table.buffer, bind_offset_hit_shader, bind_stride,
-	    VK_NULL_HANDLE, 0, 0,
-	    VKAL_RT_SIZE_X, VKAL_RT_SIZE_Y, 1);
-
-	/* Copy RayTracing output to the target image */
-
-	// prepare current target image as transfer destination
-	set_image_layout(
-	    vkal_info.nv_rt_ctx.command_buffers[i],
-	    get_image(vkal_info.nv_rt_ctx.target_image.image),
-	    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-	    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	    subresource_rage,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
-	// prepare raytracing output image as transfer source
-	set_image_layout(
-	    vkal_info.nv_rt_ctx.command_buffers[i],
-	    get_image(vkal_info.nv_rt_ctx.storage_image.image),
-	    VK_IMAGE_LAYOUT_GENERAL,
-	    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-	    subresource_rage,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
-	VkImageCopy copy_region = { 0 };
-	copy_region.srcSubresource = (VkImageSubresourceLayers){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-	copy_region.srcOffset = (VkOffset3D){ 0, 0, 0 };
-	copy_region.dstSubresource = (VkImageSubresourceLayers){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-	copy_region.dstOffset = (VkOffset3D){ 0, 0, 0 };
-	copy_region.extent = (VkExtent3D){ VKAL_RT_SIZE_X, VKAL_RT_SIZE_Y, 1 };
-	vkCmdCopyImage(
-	    vkal_info.nv_rt_ctx.command_buffers[i],
-	    get_image(vkal_info.nv_rt_ctx.storage_image.image), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-	    get_image(vkal_info.nv_rt_ctx.target_image.image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
-
-	// Transition target image back for sampling
-	set_image_layout(
-	    vkal_info.nv_rt_ctx.command_buffers[i],
-	    get_image(vkal_info.nv_rt_ctx.target_image.image),
-	    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-	    subresource_rage,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
-	// Transition RayTracing output image back to to general layout
-	set_image_layout(
-	    vkal_info.nv_rt_ctx.command_buffers[i],
-	    get_image(vkal_info.nv_rt_ctx.storage_image.image),
-	    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-	    VK_IMAGE_LAYOUT_GENERAL,
-	    subresource_rage,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
-	vkEndCommandBuffer(vkal_info.nv_rt_ctx.command_buffers[i]);
-    }
 }
 
 VkResult map_memory(Buffer * buffer, VkDeviceSize size, VkDeviceSize offset)
@@ -1166,144 +508,17 @@ VkResult map_memory(Buffer * buffer, VkDeviceSize size, VkDeviceSize offset)
 void unmap_memory(Buffer * buffer)
 {
     if (buffer->mapped) {
-	vkUnmapMemory(vkal_info.device, buffer->device_memory);
-	buffer->mapped = NULL;
+		vkUnmapMemory(vkal_info.device, buffer->device_memory);
+		buffer->mapped = NULL;
     }
 }
 
-void build_rt_acceleration_structure(VkGeometryNV * geometry, uint32_t geometryNV_count, VkBuffer instance_buffer)
-{
-    /* Scratch memory needed to store temporary information. */
-    VkAccelerationStructureMemoryRequirementsInfoNV mem_requirements_info = { 0 };
-    mem_requirements_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
-    mem_requirements_info.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV;
-
-    VkMemoryRequirements2 mem_req_blas;
-    VkDeviceSize biggest_blas_accel = 0;
-    for (uint32_t i = 0; i < vkal_info.nv_rt_ctx.blas_count; ++i) {
-	mem_requirements_info.accelerationStructure = vkal_info.nv_rt_ctx.blas[i].accel_structure;
-	vkGetAccelerationStructureMemoryRequirementsNV(vkal_info.device, &mem_requirements_info, &mem_req_blas);
-	if (mem_req_blas.memoryRequirements.size > biggest_blas_accel) {
-	    biggest_blas_accel = mem_req_blas.memoryRequirements.size;
-	}
-    }
-
-    VkMemoryRequirements2 mem_req_tlas;
-    mem_requirements_info.accelerationStructure = vkal_info.nv_rt_ctx.tlas.accel_structure;
-    vkGetAccelerationStructureMemoryRequirementsNV(vkal_info.device, &mem_requirements_info, &mem_req_tlas);
-
-    VkDeviceSize scratch_buffer_size = VKAL_MAX(biggest_blas_accel, mem_req_tlas.memoryRequirements.size);
-    DeviceMemory scratch_memory = vkal_allocate_devicememory(10 * 1024*1024,
-							     VK_BUFFER_USAGE_RAY_TRACING_BIT_NV, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    Buffer scratch_buffer = vkal_create_buffer(scratch_buffer_size, &scratch_memory, VK_BUFFER_USAGE_RAY_TRACING_BIT_NV);
-
-
-    VkMemoryBarrier memory_barrier = (VkMemoryBarrier){0};
-    memory_barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-    memory_barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
-    memory_barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
-
-    /* Now, build the actual BLAS */
-    VkAccelerationStructureInfoNV build_info = { 0 };
-    build_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-    build_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
-    build_info.geometryCount = 1;
-    VkCommandBuffer command_buffer = create_command_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
-    for (uint32_t i = 0; i < geometryNV_count; ++i) {
-	build_info.pGeometries = &geometry[i];
-	vkCmdBuildAccelerationStructureNV(
-	    command_buffer,
-	    &build_info,
-	    VK_NULL_HANDLE,
-	    0,
-	    VK_FALSE,
-	    vkal_info.nv_rt_ctx.blas[i].accel_structure,
-	    VK_NULL_HANDLE,
-	    scratch_buffer.buffer,
-	    0);
-
-	vkCmdPipelineBarrier(
-	    command_buffer,
-	    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-	    VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-	    0,
-	    1,
-	    &memory_barrier,
-	    0,
-	    0,
-	    0,
-	    0
-	    );
-    }
-
-    /* Build the actual TLAS */
-    build_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
-    build_info.pGeometries = 0;
-    build_info.geometryCount = 0;
-    build_info.instanceCount = geometryNV_count;
-    vkCmdBuildAccelerationStructureNV(
-	command_buffer,
-	&build_info,
-	instance_buffer,
-	0, // instance offset
-	VK_FALSE,
-	vkal_info.nv_rt_ctx.tlas.accel_structure,
-	VK_NULL_HANDLE,
-	scratch_buffer.buffer,
-	0
-	);
-
-    vkCmdPipelineBarrier(
-	command_buffer,
-	VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-	VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-	0,
-	1,
-	&memory_barrier,
-	0,
-	0,
-	0,
-	0
-	);
-	
-
-    flush_command_buffer(command_buffer, vkal_info.graphics_queue, 1);
-}
-
-/* Convert vulkan vertex buffer object to Nvidias GeometryNV.
-   The BLAS (create_rt_blas) expects the data to be in this format.
-*/
-/*
-  VkGeometryNV model_to_geometryNV(Model model)
-  {
-  VkGeometryNV geo = { 0 };
-  geo.sType = VK_STRUCTURE_TYPE_GEOMETRY_NV;
-  geo.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_NV;
-  geo.geometry.triangles.sType = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
-  geo.geometry.triangles.vertexData = vkal_info.vertex_buffer.buffer;
-  geo.geometry.triangles.vertexOffset = model.offset;
-  geo.geometry.triangles.vertexCount = model.vertex_count;
-  geo.geometry.triangles.vertexStride = sizeof(Vertex);
-  geo.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-  geo.geometry.triangles.indexData = vkal_info.index_buffer.buffer;
-  geo.geometry.triangles.indexOffset = model.index_buffer_offset;
-  geo.geometry.triangles.indexCount = model.index_count;
-  geo.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
-  geo.geometry.triangles.transformData = VK_NULL_HANDLE;
-  geo.geometry.triangles.transformOffset = 0;
-  geo.geometry.aabbs = (VkGeometryAABBNV){0};
-  geo.geometry.aabbs.sType = VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
-  geo.flags = VK_GEOMETRY_OPAQUE_BIT_NV;
-
-  return geo;
-  }
-*/
 
 void create_surface(void)
 {
 
 #if defined (VKAL_GLFW)
-    VkResult result = glfwCreateWindowSurface(vkal_info.instance, vkal_info.window, 0, &vkal_info.surface);
+	VkResult result = glfwCreateWindowSurface(vkal_info.instance, vkal_info.window, 0, &vkal_info.surface);
 #elif defined (VKAL_SDL)
     // TODO: Implement
 #endif
@@ -1411,8 +626,8 @@ void cleanup_swapchain(void)
     }
     VKAL_KILL_ARRAY(vkal_info.framebuffers);
     
-    vkFreeCommandBuffers(vkal_info.device, vkal_info.command_pools[0], vkal_info.command_buffer_count, vkal_info.command_buffers);
-    VKAL_KILL_ARRAY(vkal_info.command_buffers);
+    vkFreeCommandBuffers(vkal_info.device, vkal_info.default_command_pools[0], vkal_info.default_command_buffer_count, vkal_info.default_command_buffers);
+    VKAL_KILL_ARRAY(vkal_info.default_command_buffers);
     
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
 	vkDestroyImageView(vkal_info.device, vkal_info.swapchain_image_views[i], 0);
@@ -1479,12 +694,12 @@ void create_swapchain(void)
     }
     
     create_info.preTransform = swap_chain_support.capabilities.currentTransform;
-    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     create_info.presentMode = present_mode;
     create_info.clipped = VK_TRUE;
     create_info.oldSwapchain = VK_NULL_HANDLE;
     
-    VkResult result = vkCreateSwapchainKHR(vkal_info.device, &create_info, 0, &vkal_info.swapchain);
+	VkResult result = vkCreateSwapchainKHR(vkal_info.device, &create_info, 0, &vkal_info.swapchain);
     DBG_VULKAN_ASSERT(result, "failed to create swapchain!");
     
     vkGetSwapchainImagesKHR(vkal_info.device, vkal_info.swapchain, &image_count, 0);
@@ -1501,26 +716,25 @@ void create_image_views(void)
 //    VKAL_MAKE_ARRAY(vkal_info.swapchain_image_views, VkImageView, vkal_info.swapchain_image_count);
     
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
-	VkImageViewCreateInfo create_info = { 0 };
-	create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	create_info.image = vkal_info.swapchain_images[i];
-	create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	create_info.format = vkal_info.swapchain_image_format;
-	create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-	create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-	create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-	create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-	create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	create_info.subresourceRange.baseMipLevel = 0;
-	create_info.subresourceRange.levelCount = 1;
-	create_info.subresourceRange.baseArrayLayer = 0;
-	create_info.subresourceRange.layerCount = 1;
-	VkResult result = vkCreateImageView(vkal_info.device, &create_info, 0, &vkal_info.swapchain_image_views[i]);
-	DBG_VULKAN_ASSERT(result, "failed to create image view!");
+		VkImageViewCreateInfo create_info = { 0 };
+		create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		create_info.image = vkal_info.swapchain_images[i];
+		create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		create_info.format = vkal_info.swapchain_image_format;
+		create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		create_info.subresourceRange.baseMipLevel = 0;
+		create_info.subresourceRange.levelCount = 1;
+		create_info.subresourceRange.baseArrayLayer = 0;
+		create_info.subresourceRange.layerCount = 1;
+		VkResult result = vkCreateImageView(vkal_info.device, &create_info, 0, &vkal_info.swapchain_image_views[i]);
+		DBG_VULKAN_ASSERT(result, "failed to create image view!");
     }
 }
 
-static int images_created = 0;
 // TODO: VkImageCreateFlags param seems to be important for cube maps. For normal textures set to 0.
 void create_image(uint32_t width, uint32_t height, uint32_t mip_levels, uint32_t array_layers, 
 		  VkImageCreateFlags flags, VkFormat format, VkImageUsageFlags usage_flags, uint32_t * out_image_id)
@@ -1545,25 +759,22 @@ void create_image(uint32_t width, uint32_t height, uint32_t mip_levels, uint32_t
     image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     uint32_t free_image_index;
     for (free_image_index = 0; free_image_index < VKAL_MAX_VKIMAGE; ++free_image_index) {
-	if (vkal_info.user_images[free_image_index].used) { 
-	    continue;
-	} 
-	break;
+		if (vkal_info.user_images[free_image_index].used) { 
+			continue;
+		} 
+		break;
     }
     VkResult result = vkCreateImage(vkal_info.device, &image_info, 0, &vkal_info.user_images[ free_image_index ].image);
     DBG_VULKAN_ASSERT(result, "failed to create VkImage!");
     vkal_info.user_images[free_image_index].used = 1;
     *out_image_id = free_image_index;
-    images_created++;
 }
 
-static int images_destroyed = 0;
 void destroy_image(uint32_t id)
 {
     if (vkal_info.user_images[id].used) {
-	vkDestroyImage(vkal_info.device, get_image(id), 0);
-	vkal_info.user_images[id].used = 0;
-	images_destroyed++;
+		vkDestroyImage(vkal_info.device, get_image(id), 0);
+		vkal_info.user_images[id].used = 0;
     }
 }
 
@@ -1659,10 +870,10 @@ static void internal_create_sampler(VkSamplerCreateInfo create_info, uint32_t * 
 {
     uint32_t free_index;
     for (free_index = 0; free_index < VKAL_MAX_VKSAMPLER; ++free_index) {
-	if (vkal_info.user_samplers[free_index].used) {
-	    continue;
-	}
-	break;
+		if (vkal_info.user_samplers[free_index].used) {
+			continue;
+		}
+		break;
     }
     VkResult result = vkCreateSampler(vkal_info.device, &create_info, 0, &vkal_info.user_samplers[free_index].sampler);
     DBG_VULKAN_ASSERT(result, "failed to create VkSampler!");
@@ -1766,20 +977,6 @@ Texture vkal_create_texture(uint32_t binding,
     upload_texture(get_image(texture.image), width, height, channels, array_layer_count, texture_data);
     
     return texture;
-}
-
-void create_offscreen_descriptor_set(VkDescriptorSetLayout descriptor_set_layout, uint32_t binding)
-{
-    vkal_info.offscreen_pass.descriptor_sets = (VkDescriptorSet*)malloc(sizeof(VkDescriptorSet)); /* TODO: make sure this is configurable, or use render image feature! */
-    vkal_allocate_descriptor_sets(vkal_info.descriptor_pool, &descriptor_set_layout, 1, &vkal_info.offscreen_pass.descriptor_sets);
-    VkDescriptorImageInfo image_info = { 0 };
-    image_info.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-    image_info.imageView = get_image_view(vkal_info.offscreen_pass.image_view);
-    image_info.sampler = vkal_info.offscreen_pass.depth_sampler;
-    vkal_info.offscreen_pass.image_descriptor = image_info;
-    VkWriteDescriptorSet write_set = create_write_descriptor_set_image(vkal_info.offscreen_pass.descriptor_sets[0], binding, 1, 
-								       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &vkal_info.offscreen_pass.image_descriptor);
-    vkUpdateDescriptorSets(vkal_info.device, 1, &write_set, 0, 0);
 }
 
 // TODO: can we use this buffer for any kind of data to stage??
@@ -1931,8 +1128,8 @@ void upload_texture(VkImage const image,
     // Actual upload to GPU
     VkCommandBufferBeginInfo begin_info = { 0 };
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    for (uint32_t i = 0; i < vkal_info.command_buffer_count; ++i) {
-	vkBeginCommandBuffer(vkal_info.command_buffers[i], &begin_info);
+    for (uint32_t i = 0; i < vkal_info.default_command_buffer_count; ++i) {
+	vkBeginCommandBuffer(vkal_info.default_command_buffers[i], &begin_info);
         
 	VkImageSubresourceRange image_subresource_range = { 0 };
 	image_subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1948,7 +1145,7 @@ void upload_texture(VkImage const image,
 	image_memory_barrier_undef_to_transfer.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 	image_memory_barrier_undef_to_transfer.image = image;
 	image_memory_barrier_undef_to_transfer.subresourceRange = image_subresource_range;
-	vkCmdPipelineBarrier(vkal_info.command_buffers[i], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+	vkCmdPipelineBarrier(vkal_info.default_command_buffers[i], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                              VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, 0, 0, 0, 1, &image_memory_barrier_undef_to_transfer);
         
 	VkBufferImageCopy copy_info = { 0 };
@@ -1963,7 +1160,7 @@ void upload_texture(VkImage const image,
 	copy_info.imageExtent.width  = w;
 	copy_info.imageExtent.height = h;
 	copy_info.imageExtent.depth  = 1;
-	vkCmdCopyBufferToImage(vkal_info.command_buffers[i], vkal_info.staging_buffer.buffer, image,
+	vkCmdCopyBufferToImage(vkal_info.default_command_buffers[i], vkal_info.staging_buffer.buffer, image,
                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
         
 	VkImageMemoryBarrier image_memory_barrier_transfer_to_shader_read = { 0 };
@@ -1974,16 +1171,16 @@ void upload_texture(VkImage const image,
 	image_memory_barrier_transfer_to_shader_read.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	image_memory_barrier_transfer_to_shader_read.image = image;
 	image_memory_barrier_transfer_to_shader_read.subresourceRange = image_subresource_range;
-	vkCmdPipelineBarrier(vkal_info.command_buffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT,
+	vkCmdPipelineBarrier(vkal_info.default_command_buffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT,
                              VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, 0, 0, 0, 1, &image_memory_barrier_transfer_to_shader_read);
         
-	vkEndCommandBuffer(vkal_info.command_buffers[i]);
+	vkEndCommandBuffer(vkal_info.default_command_buffers[i]);
         
     }
     VkSubmitInfo submit_info = { 0 };
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = vkal_info.command_buffer_count;
-    submit_info.pCommandBuffers = vkal_info.command_buffers;
+    submit_info.commandBufferCount = vkal_info.default_command_buffer_count;
+    submit_info.pCommandBuffers = vkal_info.default_command_buffers;
     vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
     vkDeviceWaitIdle(vkal_info.device);	
 }
@@ -2243,10 +1440,10 @@ void create_shader_module(uint8_t const * shader_byte_code, int size, uint32_t *
     create_info.pCode = (uint32_t*)shader_byte_code;
     uint32_t free_index;
     for (free_index = 0; free_index < VKAL_MAX_VKSHADERMODULE; ++free_index) {
-	if (vkal_info.user_shader_modules[free_index].used) {
-	} 
-	else break;
-    }
+		if (vkal_info.user_shader_modules[free_index].used) {
+		} 
+		else break;
+	}
     VkResult result = vkCreateShaderModule(vkal_info.device, &create_info, 0, &vkal_info.user_shader_modules[free_index].shader_module);
     DBG_VULKAN_ASSERT(result, "failed to create shader module!");
     vkal_info.user_shader_modules[free_index].used = 1;
@@ -2297,108 +1494,10 @@ void create_default_descriptor_pool(void)
     descriptor_pool_info.poolSizeCount = sizeof(pool_sizes)/sizeof(*pool_sizes);
     descriptor_pool_info.pPoolSizes = pool_sizes;
     
-    VkResult  result = vkCreateDescriptorPool(vkal_info.device, &descriptor_pool_info, 0, &vkal_info.descriptor_pool);
+    VkResult  result = vkCreateDescriptorPool(vkal_info.device, &descriptor_pool_info, 0, &vkal_info.default_descriptor_pool);
     DBG_VULKAN_ASSERT(result, "failed to create descriptor pool!");
 }
 
-void create_default_offscreen_render_pass(void)
-{
-    VkAttachmentDescription attachments[] = 
-	{
-	    // Depth Attachment for Shadow map
-	    {
-		0,
-		VK_FORMAT_D32_SFLOAT,
-		VK_SAMPLE_COUNT_1_BIT,
-		VK_ATTACHMENT_LOAD_OP_CLEAR,
-		VK_ATTACHMENT_STORE_OP_STORE,
-		VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-		VK_ATTACHMENT_STORE_OP_DONT_CARE,
-		VK_IMAGE_LAYOUT_UNDEFINED,						// layout before rendering
-		VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL // final layout: going to read from it in the second subpass
-	    }
-	};
-
-    VkAttachmentReference depth_reference =
-	{
-	    0, // This is the index into the above array of attachments
-	    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL // translate layout into a layout so that the GPU can use efficient memory access.	
-	};
-
-    VkSubpassDescription subpass = { 0 };
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 0;
-    subpass.pDepthStencilAttachment = &depth_reference;
-
-    // dependency actually not used here
-    VkSubpassDependency dependencies[2] = { 0 };
-    dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[0].dstSubpass = 0;
-    dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-    dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    dependencies[1].srcSubpass = 0;
-    dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[1].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-    dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    VkRenderPassCreateInfo info = { 0 };
-    info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    info.attachmentCount = 1;
-    info.pAttachments = attachments;
-    info.subpassCount = 1;
-    info.pSubpasses = &subpass;
-    info.dependencyCount = 0;// sizeof(dependencies) / sizeof(*dependencies);
-    info.pDependencies = 0; //dependencies;
-
-    VkResult result = vkCreateRenderPass(vkal_info.device, &info, 0, &vkal_info.offscreen_pass.render_pass);
-}
-
-void create_default_offscreen_framebuffer(void)
-{
-    vkal_info.offscreen_pass.width  = VKAL_SHADOW_MAP_DIMENSION;
-    vkal_info.offscreen_pass.height = VKAL_SHADOW_MAP_DIMENSION;
-	
-    VkFormat color_format = VK_FORMAT_R8G8B8A8_UNORM;
-
-    create_image(VKAL_SHADOW_MAP_DIMENSION, VKAL_SHADOW_MAP_DIMENSION, 1, 1, 0,
-		 VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-		 &vkal_info.offscreen_pass.image);
-
-    VkMemoryRequirements memory_requirements;
-    vkGetImageMemoryRequirements(vkal_info.device, get_image(vkal_info.offscreen_pass.image), &memory_requirements);
-    uint32_t mem_type_index = check_memory_type_index(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    create_device_memory(memory_requirements.size, mem_type_index, &vkal_info.offscreen_pass.device_memory);
-    VkResult result = vkBindImageMemory(vkal_info.device, get_image(vkal_info.offscreen_pass.image), get_device_memory(vkal_info.offscreen_pass.device_memory), 0);
-    DBG_VULKAN_ASSERT(result, "failed to bind offscreen image to offscreen memory!");
-
-    create_image_view(get_image(vkal_info.offscreen_pass.image),
-		      VK_IMAGE_VIEW_TYPE_2D, 
-		      VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT,
-		      0, 1, 
-		      0, 1,
-		      &vkal_info.offscreen_pass.image_view);
-
-    vkal_info.offscreen_pass.depth_sampler = create_sampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, 
-							    VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-
-    VkFramebufferCreateInfo info = { 0 };
-    info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    info.renderPass = vkal_info.offscreen_pass.render_pass;
-    info.attachmentCount = 1;
-    VkImageView image_view = get_image_view(vkal_info.offscreen_pass.image_view);
-    info.pAttachments = &image_view;
-    info.width = vkal_info.offscreen_pass.width;
-    info.height = vkal_info.offscreen_pass.height;
-    info.layers = 1;
-    internal_create_framebuffer(info, &vkal_info.offscreen_pass.framebuffer);
-}
 
 void create_render_to_image_render_pass(void)
 {
@@ -2539,109 +1638,7 @@ void create_default_render_pass(void)
     render_pass_info.pDependencies = &dependency;
     VkResult result = vkCreateRenderPass(vkal_info.device, &render_pass_info, 0, &vkal_info.render_pass);
     DBG_VULKAN_ASSERT(result, "failed to create render pass!");
-    
-    
-    // ImGui Renderpass
-    {
-	VkResult err;
-	// Create the Render Pass
-	{
-	    VkAttachmentReference depthAttachmentRef = { 0 };
-	    depthAttachmentRef.attachment = 1;
-	    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            
-	    VkAttachmentDescription depthAttachment = { 0 };
-	    depthAttachment.format = VK_FORMAT_D32_SFLOAT;
-	    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            
-	    VkAttachmentDescription attachment = { 0 };
-	    attachment.format = vkal_info.swapchain_image_format;
-	    attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	    attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	    attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	    attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	    attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	    attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-			
-	    VkAttachmentReference color_attachment = { 0 };
-	    color_attachment.attachment = 0;
-	    color_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            
-	    VkSubpassDescription subpass = { 0 };
-	    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	    subpass.colorAttachmentCount = 1;
-	    subpass.pColorAttachments = &color_attachment;
-	    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-            
-	    VkSubpassDependency dependency = { 0 };
-	    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	    dependency.dstSubpass = 0;
-	    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	    dependency.srcAccessMask = 0;
-	    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            
-	    VkAttachmentDescription attachments[2];
-	    attachments[0] = attachment;
-	    attachments[1] = depthAttachment;
-	    VkRenderPassCreateInfo info = { 0 };
-	    info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	    info.attachmentCount = 2;
-	    info.pAttachments = attachments;
-	    info.subpassCount = 1;
-	    info.pSubpasses = &subpass;
-	    info.dependencyCount = 1;
-	    info.pDependencies = &dependency;
-	    err = vkCreateRenderPass(vkal_info.device, &info, NULL, &vkal_info.imgui_render_pass);
-	    DBG_VULKAN_ASSERT(err, "ImGui Renderpass could not be created!");
-	}
-    }
-}
 
-/* Renderpass uses raytracing output as input attachment */
-void create_rt_renderpass(void)
-{
-    VkAttachmentDescription attachments[3];
-    attachments[0].flags = 0;
-    attachments[0].format = vkal_info.swapchain_image_format;
-    attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-    attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    attachments[1].flags = 0;
-    attachments[1].format = VK_FORMAT_D32_SFLOAT;
-    attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-    attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attachments[1].stencilStoreOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    attachments[2].flags = 0;
-    attachments[2].format = vkal_info.swapchain_image_format;
-    attachments[2].samples = VK_SAMPLE_COUNT_1_BIT;
-    attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachments[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachments[2].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference swapchain_image_ref = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-    VkAttachmentReference depth_ref = { 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
-    VkAttachmentReference input_image_ref = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 }
 
 void create_default_framebuffers(void)
@@ -2761,10 +1758,11 @@ void create_pipeline_layout(
     layout_info.pPushConstantRanges = push_constant_ranges;
     uint32_t free_index = 0;
     for (free_index = 0; free_index < VKAL_MAX_VKPIPELINELAYOUT; ++free_index) {
-	if (vkal_info.user_pipeline_layouts[free_index].used) {
+		if (vkal_info.user_pipeline_layouts[free_index].used) {
 
-	}
-	else break;
+		}
+		else 
+			break;
     }
     VkResult result = vkCreatePipelineLayout(vkal_info.device, &layout_info, 0, &vkal_info.user_pipeline_layouts[free_index].pipeline_layout);
     DBG_VULKAN_ASSERT(result, "failed to create pipeline layout!");
@@ -2775,8 +1773,8 @@ void create_pipeline_layout(
 void destroy_pipeline_layout(uint32_t id)
 {
     if (vkal_info.user_pipeline_layouts[id].used) {
-	vkDestroyPipelineLayout(vkal_info.device, get_pipeline_layout(id), 0);
-	vkal_info.user_pipeline_layouts[id].used = 0;
+		vkDestroyPipelineLayout(vkal_info.device, get_pipeline_layout(id), 0);
+		vkal_info.user_pipeline_layouts[id].used = 0;
     }
 }
 
@@ -2876,17 +1874,20 @@ void vkal_destroy_graphics_pipeline(VkPipeline pipeline)
     vkDestroyPipeline(vkal_info.device, pipeline, 0);
 }
 
-VkPipeline vkal_create_graphics_pipeline(VkVertexInputBindingDescription * vertex_input_bindings,
-					 uint32_t vertex_input_binding_count,
-					 VkVertexInputAttributeDescription * vertex_attributes,
-					 uint32_t vertex_attribute_count,
-					 ShaderStageSetup shader_setup, 
-                                         VkBool32 depth_test_enable, VkCompareOp depth_compare_op, 
-                                         VkCullModeFlags cull_mode,
-                                         VkPolygonMode polygon_mode,
-                                         VkPrimitiveTopology primitive_topology,
-                                         VkFrontFace face_winding, VkRenderPass render_pass,
-					 VkPipelineLayout pipeline_layout)
+VkPipeline vkal_create_graphics_pipeline(
+	VkVertexInputBindingDescription * vertex_input_bindings, 
+	uint32_t vertex_input_binding_count,
+	VkVertexInputAttributeDescription * vertex_attributes, 
+	uint32_t vertex_attribute_count,
+	ShaderStageSetup shader_setup, 
+    VkBool32 depth_test_enable, 
+	VkCompareOp depth_compare_op, 
+    VkCullModeFlags cull_mode,
+    VkPolygonMode polygon_mode,
+    VkPrimitiveTopology primitive_topology,
+    VkFrontFace face_winding, 
+	VkRenderPass render_pass,
+	VkPipelineLayout pipeline_layout)
 {    
     VkPipelineShaderStageCreateInfo shader_stages_infos[2];
     shader_stages_infos[0] = shader_setup.vertex_shader_create_info;
@@ -3027,8 +2028,8 @@ VkPipeline get_graphics_pipeline(uint32_t id)
 void destroy_graphics_pipeline(uint32_t id)
 {
     if (vkal_info.user_pipelines[id].used) {
-	vkDestroyPipeline(vkal_info.device, get_graphics_pipeline(id), 0);
-	vkal_info.user_pipelines[id].used = 0;
+		vkDestroyPipeline(vkal_info.device, get_graphics_pipeline(id), 0);
+		vkal_info.user_pipelines[id].used = 0;
     }
 }
 
@@ -3063,8 +2064,9 @@ VkWriteDescriptorSet create_write_descriptor_set_image2(VkDescriptorSet dst_desc
     return write_set;
 }
 
-VkWriteDescriptorSet create_write_descriptor_set_buffer(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,
-                                                        uint32_t count, VkDescriptorType type, VkDescriptorBufferInfo * buffer_info)
+VkWriteDescriptorSet create_write_descriptor_set_buffer(
+	VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,
+    uint32_t count, VkDescriptorType type, VkDescriptorBufferInfo * buffer_info)
 {
     VkWriteDescriptorSet write_set = { 0 };
     write_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -3100,47 +2102,45 @@ void create_default_command_pool(void)
     
     QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_device, vkal_info.surface);
     if (indicies.has_graphics_family && indicies.has_present_family) {
-	if (indicies.graphics_family != indicies.present_family) {
-	    cmdpool_info.queueFamilyIndex = indicies.graphics_family;
-	    VkResult result = vkCreateCommandPool(vkal_info.device, &cmdpool_info, 0, &vkal_info.command_pools[0]);
-	    DBG_VULKAN_ASSERT(result, "failed to create command pool for graphics family");
+		if (indicies.graphics_family != indicies.present_family) {
+			cmdpool_info.queueFamilyIndex = indicies.graphics_family;
+			VkResult result = vkCreateCommandPool(vkal_info.device, &cmdpool_info, 0, &vkal_info.default_command_pools[0]);
+			DBG_VULKAN_ASSERT(result, "failed to create command pool for graphics family");
             
-	    cmdpool_info.queueFamilyIndex = indicies.present_family;
-	    result = vkCreateCommandPool(vkal_info.device, &cmdpool_info, 0, &vkal_info.command_pools[1]);
-	    DBG_VULKAN_ASSERT(result, "failed to create command pool for present family");
-	    vkal_info.commandpool_count = 2;
-	}
+			cmdpool_info.queueFamilyIndex = indicies.present_family;
+			result = vkCreateCommandPool(vkal_info.device, &cmdpool_info, 0, &vkal_info.default_command_pools[1]);
+			DBG_VULKAN_ASSERT(result, "failed to create command pool for present family");
+			vkal_info.default_commandpool_count = 2;
+		}
+		else {
+			cmdpool_info.queueFamilyIndex = indicies.graphics_family;
+			VkResult result = vkCreateCommandPool(vkal_info.device, &cmdpool_info, 0, &vkal_info.default_command_pools[0]);
+			DBG_VULKAN_ASSERT(result, "failed to create command pool for both present and graphics families");
+			vkal_info.default_commandpool_count = 1;
+		}
+    }
 	else {
-	    cmdpool_info.queueFamilyIndex = indicies.graphics_family;
-	    VkResult result = vkCreateCommandPool(vkal_info.device, &cmdpool_info, 0, &vkal_info.command_pools[0]);
-	    DBG_VULKAN_ASSERT(result, "failed to create command pool for both present and graphics families");
-	    vkal_info.commandpool_count = 1;
+		printf("no graphics and present queues available!\n");
+		getchar();
+		exit(-1);
 	}
-    }
-    else {
-	printf("no graphics and present queues available!\n");
-	getchar();
-	exit(-1);
-    }
 }
 
 VkCommandBuffer create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uint32_t begin)
 {
     VkCommandBufferAllocateInfo alloc_info = { 0 };
     alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    alloc_info.commandPool = vkal_info.command_pools[0];
+    alloc_info.commandPool = vkal_info.default_command_pools[0];
     alloc_info.level = cmd_buffer_level;
     alloc_info.commandBufferCount = 1;
 
     VkCommandBuffer command_buffer;
-    DBG_VULKAN_ASSERT(vkAllocateCommandBuffers(vkal_info.device, &alloc_info,
-					       &command_buffer), "Failed to allocate command buffer from pool");
+    DBG_VULKAN_ASSERT(vkAllocateCommandBuffers(vkal_info.device, &alloc_info, &command_buffer), "Failed to allocate command buffer from pool");
 
     if (begin) {
-	VkCommandBufferBeginInfo begin_info = {0};
-	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	DBG_VULKAN_ASSERT(vkBeginCommandBuffer(command_buffer, &begin_info),
-			  "Failed to begin command buffer recording");
+		VkCommandBufferBeginInfo begin_info = {0};
+		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		DBG_VULKAN_ASSERT(vkBeginCommandBuffer(command_buffer, &begin_info), "Failed to begin command buffer recording");
     }
 
     return command_buffer;
@@ -3148,39 +2148,14 @@ VkCommandBuffer create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uin
 
 void create_default_command_buffers(void)
 {
-    // Regular
-    {
-	VKAL_MAKE_ARRAY(vkal_info.command_buffers, VkCommandBuffer, vkal_info.framebuffer_count);
-	vkal_info.command_buffer_count = vkal_info.framebuffer_count;
+	VKAL_MAKE_ARRAY(vkal_info.default_command_buffers, VkCommandBuffer, vkal_info.framebuffer_count);
+	vkal_info.default_command_buffer_count = vkal_info.framebuffer_count;
 	VkCommandBufferAllocateInfo allocate_info = { 0 };
 	allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocate_info.commandBufferCount = vkal_info.command_buffer_count;
-	allocate_info.commandPool = vkal_info.command_pools[0]; // NOTE: What if present and graphics queue are not from the same family?
+	allocate_info.commandBufferCount = vkal_info.default_command_buffer_count;
+	allocate_info.commandPool = vkal_info.default_command_pools[0]; // NOTE: What if present and graphics queue are not from the same family?
 	allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	vkAllocateCommandBuffers(vkal_info.device, &allocate_info, vkal_info.command_buffers);
-    }
-    // ImGui
-    {
-	VKAL_MAKE_ARRAY(vkal_info.command_buffers_imgui, VkCommandBuffer, vkal_info.framebuffer_count);
-	vkal_info.command_buffer_imgui_count = vkal_info.framebuffer_count;
-	VkCommandBufferAllocateInfo allocate_info = { 0 };
-	allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocate_info.commandBufferCount = vkal_info.command_buffer_imgui_count;
-	allocate_info.commandPool = vkal_info.command_pools[0]; // NOTE: What if present and graphics queue are not from the same family?
-	allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	vkAllocateCommandBuffers(vkal_info.device, &allocate_info, vkal_info.command_buffers_imgui);
-    }
-    // Offscreen Rendering (Shadow Map)
-    {
-	VKAL_MAKE_ARRAY(vkal_info.offscreen_pass.command_buffers, VkCommandBuffer, vkal_info.framebuffer_count);
-	vkal_info.offscreen_pass.command_buffer_count = vkal_info.framebuffer_count;
-	VkCommandBufferAllocateInfo allocate_info = { 0 };
-	allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocate_info.commandBufferCount = vkal_info.offscreen_pass.command_buffer_count;
-	allocate_info.commandPool = vkal_info.command_pools[0]; // NOTE: What if present and graphics queue are not from the same family?
-	allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	vkAllocateCommandBuffers(vkal_info.device, &allocate_info, vkal_info.offscreen_pass.command_buffers);
-    }
+	vkAllocateCommandBuffers(vkal_info.device, &allocate_info, vkal_info.default_command_buffers); 
 }
 
 void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass)
@@ -3218,18 +2193,21 @@ void vkal_begin_render_pass(uint32_t image_id, VkRenderPass render_pass)
 
     pass_begin_info.clearValueCount = 2;
     pass_begin_info.pClearValues = clear_values;
-    vkCmdBeginRenderPass(vkal_info.command_buffers[image_id], &pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(vkal_info.default_command_buffers[image_id], &pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 void vkal_begin_command_buffer(uint32_t image_id)
 {
     VkCommandBufferBeginInfo begin_info = {0};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    vkBeginCommandBuffer(vkal_info.command_buffers[image_id], &begin_info);
+    vkBeginCommandBuffer(vkal_info.default_command_buffers[image_id], &begin_info);
 }
 
-void vkal_begin_render_to_image_render_pass(uint32_t image_id, VkCommandBuffer command_buffer,
-					    VkRenderPass render_pass, RenderImage render_image)
+void vkal_begin_render_to_image_render_pass(
+	uint32_t image_id, 
+	VkCommandBuffer command_buffer,
+	VkRenderPass render_pass, 
+	RenderImage render_image)
 {
     VkRenderPassBeginInfo pass_begin_info = {0};
     pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -3253,12 +2231,12 @@ void vkal_begin_render_to_image_render_pass(uint32_t image_id, VkCommandBuffer c
 
 void vkal_end_renderpass(uint32_t image_id)
 {
-    vkCmdEndRenderPass(vkal_info.command_buffers[image_id]);
+    vkCmdEndRenderPass(vkal_info.default_command_buffers[image_id]);
 }
 
 void vkal_end_command_buffer(uint32_t image_id)
 {
-    VkResult result = vkEndCommandBuffer(vkal_info.command_buffers[image_id]);
+    VkResult result = vkEndCommandBuffer(vkal_info.default_command_buffers[image_id]);
     DBG_VULKAN_ASSERT(result, "failed to end command buffer");
 }
 
@@ -3269,38 +2247,46 @@ void vkal_end(VkCommandBuffer command_buffer)
     DBG_VULKAN_ASSERT(result, "failed to end command buffer");
 }
 
-void vkal_bind_descriptor_set(uint32_t image_id,
-			      VkDescriptorSet * descriptor_sets,
-			      VkPipelineLayout pipeline_layout)
+void vkal_bind_descriptor_set(
+	uint32_t image_id,
+	VkDescriptorSet * descriptor_sets,
+	VkPipelineLayout pipeline_layout)
 {
-    vkCmdBindDescriptorSets(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, 
-                            pipeline_layout, 0, 1, descriptor_sets, 0, 0);
+    vkCmdBindDescriptorSets(
+		vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipeline_layout, 0, 1, descriptor_sets, 0, 0);
 }
 
-void vkal_bind_descriptor_sets(uint32_t image_id,
-			       VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,
-			       uint32_t * dynamic_offsets, uint32_t dynamic_offset_count,
-			       VkPipelineLayout pipeline_layout)
+void vkal_bind_descriptor_sets(
+	uint32_t image_id,
+	VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,
+	uint32_t * dynamic_offsets, uint32_t dynamic_offset_count,
+	VkPipelineLayout pipeline_layout)
 {
-    vkCmdBindDescriptorSets(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, 
-                            pipeline_layout, 0, descriptor_set_count, descriptor_sets,
-			    dynamic_offset_count, dynamic_offsets);
+    vkCmdBindDescriptorSets(
+		vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipeline_layout, 0, descriptor_set_count, descriptor_sets,
+		dynamic_offset_count, dynamic_offsets);
 }
 
-void vkal_bind_descriptor_set_dynamic(uint32_t image_id,
-				      VkDescriptorSet * descriptor_sets,
-				      VkPipelineLayout pipeline_layout, uint32_t dynamic_offset)
+void vkal_bind_descriptor_set_dynamic(
+	uint32_t image_id,
+	VkDescriptorSet * descriptor_sets,
+	VkPipelineLayout pipeline_layout, uint32_t dynamic_offset)
 {
-    vkCmdBindDescriptorSets(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, 
-                            pipeline_layout, 0, 1, descriptor_sets, 1, &dynamic_offset);
+    vkCmdBindDescriptorSets(
+		vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipeline_layout, 0, 1, descriptor_sets, 1, &dynamic_offset);
 }
 
-void vkal_bind_descriptor_set2(VkCommandBuffer command_buffer,
-			      uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,
-			      VkPipelineLayout pipeline_layout)
+void vkal_bind_descriptor_set2(
+	VkCommandBuffer command_buffer,
+	uint32_t first_set, VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,
+	VkPipelineLayout pipeline_layout)
 {
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
-                            pipeline_layout, first_set, descriptor_set_count, descriptor_sets, 0, 0);
+    vkCmdBindDescriptorSets(
+		command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
+        pipeline_layout, first_set, descriptor_set_count, descriptor_sets, 0, 0);
 }
 
 void vkal_viewport(VkCommandBuffer command_buffer, float x, float y, float width, float height)
@@ -3331,61 +2317,67 @@ void vkal_draw_indexed(
     VkDeviceSize index_buffer_offset, uint32_t index_count,
     VkDeviceSize vertex_buffer_offset)
 {
-    vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);    
-    vkCmdBindIndexBuffer(vkal_info.command_buffers[image_id],
-			 vkal_info.index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
+    vkCmdBindPipeline(vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    vkCmdBindIndexBuffer(
+		vkal_info.default_command_buffers[image_id],
+		vkal_info.default_index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
     uint64_t vertex_buffer_offsets[1];
     vertex_buffer_offsets[0] = vertex_buffer_offset;
     VkBuffer vertex_buffers[1];
-    vertex_buffers[0] = vkal_info.vertex_buffer.buffer;
-    vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
-    vkCmdDrawIndexed(vkal_info.command_buffers[image_id], index_count, 1, 0, 0, 0);
+	vertex_buffers[0] = vkal_info.default_vertex_buffer.buffer;
+    vkCmdBindVertexBuffers(vkal_info.default_command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
+    vkCmdDrawIndexed(vkal_info.default_command_buffers[image_id], index_count, 1, 0, 0, 0);
 }
 
 void vkal_draw_indexed_from_buffers(
-    Buffer index_buffer, uint64_t index_buffer_offset, uint32_t index_count, Buffer vertex_buffer, uint64_t vertex_buffer_offset,
-    uint32_t image_id, VkPipeline pipeline)
+    Buffer index_buffer, uint64_t index_buffer_offset, 
+	uint32_t index_count, 
+	Buffer vertex_buffer, uint64_t vertex_buffer_offset,
+    uint32_t image_id, 
+	VkPipeline pipeline)
 {
-    vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);    
-    vkCmdBindIndexBuffer(vkal_info.command_buffers[image_id],
+    vkCmdBindPipeline(vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    vkCmdBindIndexBuffer(vkal_info.default_command_buffers[image_id],
 			 index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
     uint64_t vertex_buffer_offsets[1];
     vertex_buffer_offsets[0] = vertex_buffer_offset;
     VkBuffer vertex_buffers[1];
     vertex_buffers[0] = vertex_buffer.buffer;
-    vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
-    vkCmdDrawIndexed(vkal_info.command_buffers[image_id], index_count, 1, 0, 0, 0);
+    vkCmdBindVertexBuffers(vkal_info.default_command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
+    vkCmdDrawIndexed(vkal_info.default_command_buffers[image_id], index_count, 1, 0, 0, 0);
 }
 
 void vkal_draw(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize vertex_buffer_offset, uint32_t vertex_count)
 {
-    vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);    
+    vkCmdBindPipeline(vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
     uint64_t vertex_buffer_offsets[1];
     vertex_buffer_offsets[0] = vertex_buffer_offset;
     VkBuffer vertex_buffers[1];
-    vertex_buffers[0] = vkal_info.vertex_buffer.buffer;
-    vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
-    vkCmdDraw(vkal_info.command_buffers[image_id], vertex_count, 1, 0, 0);
+    vertex_buffers[0] = vkal_info.default_vertex_buffer.buffer;
+    vkCmdBindVertexBuffers(vkal_info.default_command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
+    vkCmdDraw(vkal_info.default_command_buffers[image_id], vertex_count, 1, 0, 0);
 }
 
 void vkal_draw_from_buffers(
     Buffer vertex_buffer,
-    uint32_t image_id, VkPipeline pipeline,
+    uint32_t image_id, 
+	VkPipeline pipeline,
     VkDeviceSize vertex_buffer_offset, uint32_t vertex_count)
 {
-    vkCmdBindPipeline(vkal_info.command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);    
+    vkCmdBindPipeline(vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
     uint64_t vertex_buffer_offsets[1];
     vertex_buffer_offsets[0] = vertex_buffer_offset;
     VkBuffer vertex_buffers[1];
     vertex_buffers[0] = vertex_buffer.buffer;
-    vkCmdBindVertexBuffers(vkal_info.command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
-    vkCmdDraw(vkal_info.command_buffers[image_id], vertex_count, 1, 0, 0);
+    vkCmdBindVertexBuffers(vkal_info.default_command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
+    vkCmdDraw(vkal_info.default_command_buffers[image_id], vertex_count, 1, 0, 0);
 }
 
 void vkal_draw_indexed2(
-    VkCommandBuffer command_buffer, VkPipeline pipeline,
+    VkCommandBuffer command_buffer, 
+	VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,
     VkDeviceSize vertex_buffer_offset)
 {
@@ -3406,11 +2398,11 @@ void vkal_draw_indexed2(
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
     
     vkCmdBindIndexBuffer(command_buffer,
-			 vkal_info.index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
+			 vkal_info.default_index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
     uint64_t vertex_buffer_offsets[1];
     vertex_buffer_offsets[0] = vertex_buffer_offset;
     VkBuffer vertex_buffers[1];
-    vertex_buffers[0] = vkal_info.vertex_buffer.buffer;
+    vertex_buffers[0] = vkal_info.default_vertex_buffer.buffer;
     vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_buffer_offsets);
     vkCmdDrawIndexed(command_buffer, index_count, 1, 0, 0, 0);
 }
@@ -3462,17 +2454,6 @@ void vkal_queue_submit(VkCommandBuffer * command_buffers, uint32_t command_buffe
     DBG_VULKAN_ASSERT(result, "Failed to submit command buffer to queue!");
 }
 
-void offscreen_buffers_submit(uint32_t image_id)
-{
-    VkSubmitInfo submit_info = { 0 };
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &vkal_info.offscreen_pass.command_buffers[image_id];
-    VkResult result = vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
-    DBG_VULKAN_ASSERT(result, "failed to submit offscreen command buffers!");
-    //vkDeviceWaitIdle(vkal_info.device); // wait until stuff is on GPU
-}
-
 void vkal_present(uint32_t image_id)
 {
     VkPresentInfoKHR present_info = { 0 };
@@ -3489,12 +2470,12 @@ void vkal_present(uint32_t image_id)
     VkResult result = vkQueuePresentKHR(vkal_info.present_queue, &present_info);
     
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || vkal_info.should_recreate_swapchain) {
-	vkal_info.should_recreate_swapchain = 0;
-	recreate_swapchain();
-	return;
+		vkal_info.should_recreate_swapchain = 0;
+		recreate_swapchain();
+		return;
     }
     else {
-	// TODO
+		// TODO
     }
     
     vkal_info.frames_rendered = (vkal_info.frames_rendered+1) % VKAL_MAX_IMAGES_IN_FLIGHT;
@@ -3503,17 +2484,17 @@ void vkal_present(uint32_t image_id)
 void create_default_semaphores(void)
 {
     for (int i = 0; i < VKAL_MAX_IMAGES_IN_FLIGHT; ++i) {
-	VkFenceCreateInfo fenceInfo;
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.pNext = NULL;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	VkResult result = vkCreateFence(vkal_info.device, &fenceInfo, NULL, &vkal_info.in_flight_fences[i]);
-	DBG_VULKAN_ASSERT(result, "failed to create draw-fence");
+		VkFenceCreateInfo fenceInfo;
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.pNext = NULL;
+		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+		VkResult result = vkCreateFence(vkal_info.device, &fenceInfo, NULL, &vkal_info.in_flight_fences[i]);
+		DBG_VULKAN_ASSERT(result, "failed to create draw-fence");
 
-	VkSemaphoreCreateInfo sem_info = (VkSemaphoreCreateInfo){ 0 };
-	sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	vkCreateSemaphore(vkal_info.device, &sem_info, 0, &vkal_info.image_available_semaphores[i]);
-	vkCreateSemaphore(vkal_info.device, &sem_info, 0, &vkal_info.render_finished_semaphores[i]);
+		VkSemaphoreCreateInfo sem_info = (VkSemaphoreCreateInfo){ 0 };
+		sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		vkCreateSemaphore(vkal_info.device, &sem_info, 0, &vkal_info.image_available_semaphores[i]);
+		vkCreateSemaphore(vkal_info.device, &sem_info, 0, &vkal_info.render_finished_semaphores[i]);
 
     }
     //memset(vkal_info.image_in_flight_fences, VK_NULL_HANDLE, vkal_info.swapchain_image_count * sizeof(VkFence));
@@ -3522,24 +2503,26 @@ void create_default_semaphores(void)
 void allocate_default_device_memory_uniform(void)
 {
     VkMemoryRequirements buffer_memory_requirements;
-    vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.uniform_buffer.buffer, &buffer_memory_requirements);
-    uint32_t mem_type_index = check_memory_type_index(buffer_memory_requirements.memoryTypeBits, 
-						      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-    vkal_info.device_memory_uniform = allocate_memory(buffer_memory_requirements.size, mem_type_index);
+    vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.default_uniform_buffer.buffer, &buffer_memory_requirements);
+    uint32_t mem_type_index = check_memory_type_index(
+		buffer_memory_requirements.memoryTypeBits, 
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+	vkal_info.default_device_memory_uniform = allocate_memory(buffer_memory_requirements.size, mem_type_index);
     
-    VkResult result = vkBindBufferMemory(vkal_info.device, vkal_info.uniform_buffer.buffer,
-					 vkal_info.device_memory_uniform, 0); // the last param is the memory offset!
+    VkResult result = vkBindBufferMemory(
+		vkal_info.device, vkal_info.default_uniform_buffer.buffer,
+		vkal_info.default_device_memory_uniform, 0); // the last param is the memory offset!
     DBG_VULKAN_ASSERT(result, "failed to bind uniform buffer to device memory!");
 }
 
 void allocate_default_device_memory_vertex(void)
 {
     VkMemoryRequirements buffer_memory_requirements;
-    vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.vertex_buffer.buffer, &buffer_memory_requirements);
+    vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.default_vertex_buffer.buffer, &buffer_memory_requirements);
     uint32_t mem_type_index = check_memory_type_index(buffer_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    vkal_info.device_memory_vertex = allocate_memory(buffer_memory_requirements.size, mem_type_index);
+    vkal_info.default_device_memory_vertex = allocate_memory(buffer_memory_requirements.size, mem_type_index);
     
-    VkResult result = vkBindBufferMemory(vkal_info.device, vkal_info.vertex_buffer.buffer, vkal_info.device_memory_vertex, 0);
+    VkResult result = vkBindBufferMemory(vkal_info.device, vkal_info.default_vertex_buffer.buffer, vkal_info.default_device_memory_vertex, 0);
     DBG_VULKAN_ASSERT(result, "failed to bind vertex buffer memory!");
     
 }
@@ -3547,19 +2530,19 @@ void allocate_default_device_memory_vertex(void)
 void allocate_default_device_memory_index(void)
 {
     VkMemoryRequirements buffer_memory_requirements;
-    vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.index_buffer.buffer, &buffer_memory_requirements);
+    vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.default_index_buffer.buffer, &buffer_memory_requirements);
     uint32_t mem_type_index = check_memory_type_index(buffer_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    vkal_info.device_memory_index = allocate_memory(buffer_memory_requirements.size, mem_type_index);
+    vkal_info.default_device_memory_index = allocate_memory(buffer_memory_requirements.size, mem_type_index);
     
-    VkResult result = vkBindBufferMemory(vkal_info.device, vkal_info.index_buffer.buffer, vkal_info.device_memory_index, 0);
+    VkResult result = vkBindBufferMemory(vkal_info.device, vkal_info.default_index_buffer.buffer, vkal_info.default_device_memory_index, 0);
     DBG_VULKAN_ASSERT(result, "failed to bind vertex buffer memory!");
 }
 
 void create_default_uniform_buffer(uint32_t size)
 {
-    vkal_info.uniform_buffer = create_buffer(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    vkal_info.default_uniform_buffer = create_buffer(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 #ifdef _DEBUG
-    vkal_dbg_buffer_name(vkal_info.uniform_buffer, "Global Uniform Buffer");
+    vkal_dbg_buffer_name(vkal_info.default_uniform_buffer, "Global Uniform Buffer");
 #endif
 }
 
@@ -3568,7 +2551,7 @@ void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data)
     void * mapped_uniform_memory = 0;
     VkResult result = vkMapMemory(
 	vkal_info.device, 
-	vkal_info.device_memory_uniform, 
+	vkal_info.default_device_memory_uniform, 
 	uniform_buffer->offset, uniform_buffer->size, 
 	0, 
 	&mapped_uniform_memory);
@@ -3581,7 +2564,7 @@ void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data)
     VkMappedMemoryRange flush_range;
     flush_range.sType  = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     flush_range.pNext  = 0;
-    flush_range.memory = vkal_info.device_memory_uniform;
+    flush_range.memory = vkal_info.default_device_memory_uniform;
     flush_range.offset = uniform_buffer->offset;
     flush_range.size   = VK_WHOLE_SIZE;
     
@@ -3589,17 +2572,17 @@ void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data)
     DBG_VULKAN_ASSERT(result, "failed to flush mapped memory range(s)!");
     result = vkInvalidateMappedMemoryRanges(vkal_info.device, 1, &flush_range);
     DBG_VULKAN_ASSERT(result, "failed to invalidate mapped memory range(s)!");
-    vkUnmapMemory(vkal_info.device, vkal_info.device_memory_uniform); // invalidated _all_ previously acquired pointers via vkMapMemory
+    vkUnmapMemory(vkal_info.device, vkal_info.default_device_memory_uniform); // invalidated _all_ previously acquired pointers via vkMapMemory
 }
 
 void create_device_memory(VkDeviceSize size, uint32_t mem_type_bits, uint32_t * out_memory_id)
 {
     uint32_t free_index;
     for (free_index = 0; free_index < VKAL_MAX_VKDEVICEMEMORY; ++free_index) {
-	if (vkal_info.user_device_memory[free_index].used) {
-	    continue;
-	}
-	break;
+		if (vkal_info.user_device_memory[free_index].used) {
+			continue;
+		}
+		break;
     }
     vkal_info.user_device_memory[free_index].device_memory = allocate_memory(size, mem_type_bits);
     vkal_info.user_device_memory[free_index].used = 1;
@@ -3625,10 +2608,8 @@ uint32_t destroy_device_memory(uint32_t id)
 }
 
 
-static int memory_allocs = 0;
 VkDeviceMemory allocate_memory(VkDeviceSize size, uint32_t mem_type_bits)
 {
-    memory_allocs++;
     VkDeviceMemory memory;
     VkMemoryAllocateInfo memory_info_image = { 0 };
     memory_info_image.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -3661,19 +2642,19 @@ Buffer create_buffer(uint32_t size, VkBufferUsageFlags usage)
 
 void create_default_vertex_buffer(uint32_t size)
 {
-    vkal_info.vertex_buffer = create_buffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    vkal_info.vertex_buffer_offset = 0;
+    vkal_info.default_vertex_buffer = create_buffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    vkal_info.default_vertex_buffer_offset = 0;
 #ifdef _DEBUG
-    vkal_dbg_buffer_name(vkal_info.vertex_buffer, "Global Vertex Buffer");
+    vkal_dbg_buffer_name(vkal_info.default_vertex_buffer, "Global Vertex Buffer");
 #endif
 }
 
 void create_default_index_buffer(uint32_t size)
 {
-    vkal_info.index_buffer = create_buffer(size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    vkal_info.index_buffer_offset = 0;
+    vkal_info.default_index_buffer = create_buffer(size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    vkal_info.default_index_buffer_offset = 0;
 #ifdef _DEBUG
-    vkal_dbg_buffer_name(vkal_info.index_buffer, "Global Index Buffer");
+    vkal_dbg_buffer_name(vkal_info.default_index_buffer, "Global Index Buffer");
 #endif
 }
 
@@ -3693,18 +2674,20 @@ void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src
     DBG_VULKAN_ASSERT(result, "failed to invalidate mapped memory range(s) for vertex buffer!");
 }
 
-void vkal_update_descriptor_set_uniform(VkDescriptorSet descriptor_set, UniformBuffer uniform_buffer,
-					VkDescriptorType descriptor_type)
+void vkal_update_descriptor_set_uniform(
+	VkDescriptorSet descriptor_set, 
+	UniformBuffer uniform_buffer,
+	VkDescriptorType descriptor_type)
 {
     assert (uniform_buffer.size < vkal_info.physical_device_properties.limits.maxUniformBufferRange);
     VkDescriptorBufferInfo buffer_infos[1];
-    buffer_infos[0].buffer = vkal_info.uniform_buffer.buffer;
+    buffer_infos[0].buffer = vkal_info.default_uniform_buffer.buffer;
     buffer_infos[0].range = uniform_buffer.size;
     buffer_infos[0].offset = uniform_buffer.offset;
     VkWriteDescriptorSet write_set_uniform = create_write_descriptor_set_buffer(
-	descriptor_set, 
-	uniform_buffer.binding, 1,
-	descriptor_type, buffer_infos);
+		descriptor_set, 
+		uniform_buffer.binding, 1,
+		descriptor_type, buffer_infos);
 
     vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_uniform, 0, 0);
 }
@@ -3727,14 +2710,14 @@ void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDe
 UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint32_t binding)
 {
     UniformBuffer uniform_buffer = { 0 };
-    uniform_buffer.offset = vkal_info.uniform_buffer_offset;
+    uniform_buffer.offset = vkal_info.default_uniform_buffer_offset;
 //    uniform_buffer.size = size;
     uniform_buffer.binding = binding;
     uint64_t min_ubo_alignment = vkal_info.physical_device_properties.limits.minUniformBufferOffsetAlignment;
     uniform_buffer.alignment = (size + min_ubo_alignment - 1) & ~(min_ubo_alignment - 1);
     uniform_buffer.size = elements * uniform_buffer.alignment;
     uint64_t next_offset = uniform_buffer.size;
-    vkal_info.uniform_buffer_offset += next_offset;
+    vkal_info.default_uniform_buffer_offset += next_offset;
     return uniform_buffer;
 }
 
@@ -3751,24 +2734,24 @@ uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
     
     // copy vertex buffer data from staging memory (host visible) to device local memory for every command buffer
-    uint64_t offset = vkal_info.vertex_buffer_offset;
+    uint64_t offset = vkal_info.default_vertex_buffer_offset;
     VkCommandBufferBeginInfo begin_info = { 0 };
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     for (int i = 0; i < 1; ++i) {
-	vkBeginCommandBuffer(vkal_info.command_buffers[i], &begin_info);
+	vkBeginCommandBuffer(vkal_info.default_command_buffers[i], &begin_info);
 	VkBufferCopy buffer_copy = { 0 };
 	buffer_copy.dstOffset = offset;
 	buffer_copy.srcOffset = 0;
 	buffer_copy.size = vertices_in_bytes;
-	vkCmdCopyBuffer(vkal_info.command_buffers[i],
-			vkal_info.staging_buffer.buffer, vkal_info.vertex_buffer.buffer, 1, &buffer_copy);
-	vkEndCommandBuffer(vkal_info.command_buffers[i]);
+	vkCmdCopyBuffer(vkal_info.default_command_buffers[i],
+			vkal_info.staging_buffer.buffer, vkal_info.default_vertex_buffer.buffer, 1, &buffer_copy);
+	vkEndCommandBuffer(vkal_info.default_command_buffers[i]);
     }
     
     VkSubmitInfo submit_info = { 0 };
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = 1;// vkal_info.command_buffer_count;
-    submit_info.pCommandBuffers = &vkal_info.command_buffers[0];
+    submit_info.pCommandBuffers = &vkal_info.default_command_buffers[0];
     vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
     vkDeviceWaitIdle(vkal_info.device);
     
@@ -3777,7 +2760,7 @@ uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     // See: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkMappedMemoryRange.html
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
     uint64_t next_offset = (vertices_in_bytes + alignment - 1) & ~(alignment - 1);
-    vkal_info.vertex_buffer_offset += next_offset;
+    vkal_info.default_vertex_buffer_offset += next_offset;
     
     return offset;
 }
@@ -3794,23 +2777,23 @@ uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
     
     // copy vertex index data from staging memory (host visible) to device local memory for every command buffer
-    uint64_t offset = vkal_info.index_buffer_offset;
+    uint64_t offset = vkal_info.default_index_buffer_offset;
     VkCommandBufferBeginInfo begin_info = { 0 };
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    for (uint32_t i = 0; i < vkal_info.command_buffer_count; ++i) {
-	vkBeginCommandBuffer(vkal_info.command_buffers[i], &begin_info);
+    for (uint32_t i = 0; i < vkal_info.default_command_buffer_count; ++i) {
+	vkBeginCommandBuffer(vkal_info.default_command_buffers[i], &begin_info);
 	VkBufferCopy buffer_copy = { 0 };
 	buffer_copy.dstOffset = offset;
 	buffer_copy.srcOffset = 0;
 	buffer_copy.size = indices_in_bytes;
-	vkCmdCopyBuffer(vkal_info.command_buffers[i], vkal_info.staging_buffer.buffer, vkal_info.index_buffer.buffer, 1, &buffer_copy);
-	vkEndCommandBuffer(vkal_info.command_buffers[i]);
+	vkCmdCopyBuffer(vkal_info.default_command_buffers[i], vkal_info.staging_buffer.buffer, vkal_info.default_index_buffer.buffer, 1, &buffer_copy);
+	vkEndCommandBuffer(vkal_info.default_command_buffers[i]);
     }
     
     VkSubmitInfo submit_info = { 0 };
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = vkal_info.command_buffer_count;
-    submit_info.pCommandBuffers = vkal_info.command_buffers;
+    submit_info.commandBufferCount = vkal_info.default_command_buffer_count;
+    submit_info.pCommandBuffers = vkal_info.default_command_buffers;
     vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
     vkDeviceWaitIdle(vkal_info.device);
     
@@ -3819,14 +2802,13 @@ uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
     // See: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkMappedMemoryRange.html
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
     uint64_t next_offset = (indices_in_bytes + alignment - 1) & ~(alignment - 1);
-    vkal_info.index_buffer_offset += next_offset;
+    vkal_info.default_index_buffer_offset += next_offset;
     
     return offset;
 }
 
 void vkal_cleanup(void) {
 
-    static int memory_destroyed = 0;
     vkQueueWaitIdle(vkal_info.graphics_queue);
     
     VKAL_KILL_ARRAY(vkal_info.available_instance_extensions);
@@ -3836,88 +2818,82 @@ void vkal_cleanup(void) {
     
 
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
-	vkDestroyImageView(vkal_info.device, vkal_info.swapchain_image_views[i], 0);
+		vkDestroyImageView(vkal_info.device, vkal_info.swapchain_image_views[i], 0);
     }
     for (uint32_t i = 0; i < vkal_info.framebuffer_count; ++i) {
-	vkDestroyFramebuffer(vkal_info.device, vkal_info.framebuffers[i], 0);
+		vkDestroyFramebuffer(vkal_info.device, vkal_info.framebuffers[i], 0);
     }
     vkDestroyRenderPass(vkal_info.device, vkal_info.render_pass, 0);
-    vkDestroyRenderPass(vkal_info.device, vkal_info.imgui_render_pass, 0);
     vkDestroyRenderPass(vkal_info.device, vkal_info.render_to_image_render_pass, 0);
-    vkDestroyRenderPass(vkal_info.device, vkal_info.offscreen_pass.render_pass, 0);
 
     vkDestroySwapchainKHR(vkal_info.device, vkal_info.swapchain, 0);
     glfwDestroyWindow(vkal_info.window);
     vkDestroySurfaceKHR(vkal_info.instance, vkal_info.surface, 0);
 	
-    for (uint32_t i = 0; i < vkal_info.commandpool_count; ++i) {
-	vkFreeCommandBuffers(vkal_info.device, vkal_info.command_pools[0], 1, &vkal_info.command_buffers[i]);
+    for (uint32_t i = 0; i < vkal_info.default_commandpool_count; ++i) {
+		vkFreeCommandBuffers(vkal_info.device, vkal_info.default_command_pools[0], 1, &vkal_info.default_command_buffers[i]);
     }
-    for (uint32_t i = 0; i < vkal_info.commandpool_count; ++i) {
-	vkDestroyCommandPool(vkal_info.device, vkal_info.command_pools[i], 0);
+    for (uint32_t i = 0; i < vkal_info.default_commandpool_count; ++i) {
+		vkDestroyCommandPool(vkal_info.device, vkal_info.default_command_pools[i], 0);
     }
 
 	
     for (uint32_t i = 0; i < VKAL_MAX_VKDEVICEMEMORY; ++i) {
-	if ( destroy_device_memory(i) ) {
-	    memory_destroyed++;
-	}
+		destroy_device_memory(i);
     }
-    vkFreeMemory(vkal_info.device, vkal_info.device_memory_staging, 0); memory_destroyed++;
-    vkFreeMemory(vkal_info.device, vkal_info.device_memory_index, 0); memory_destroyed++;
-    vkFreeMemory(vkal_info.device, vkal_info.device_memory_uniform, 0); memory_destroyed++;
-    vkFreeMemory(vkal_info.device, vkal_info.device_memory_vertex, 0); memory_destroyed++;
+    vkFreeMemory(vkal_info.device, vkal_info.device_memory_staging, 0); 
+    vkFreeMemory(vkal_info.device, vkal_info.default_device_memory_index, 0);
+    vkFreeMemory(vkal_info.device, vkal_info.default_device_memory_uniform, 0);
+    vkFreeMemory(vkal_info.device, vkal_info.default_device_memory_vertex, 0);
     
     for (uint32_t i = 0; i < VKAL_MAX_IMAGES_IN_FLIGHT; ++i) {
-	vkDestroyFence(vkal_info.device, vkal_info.in_flight_fences[i], NULL);
-	vkDestroySemaphore(vkal_info.device, vkal_info.render_finished_semaphores[i], NULL);
-	vkDestroySemaphore(vkal_info.device, vkal_info.image_available_semaphores[i], NULL);
+		vkDestroyFence(vkal_info.device, vkal_info.in_flight_fences[i], NULL);
+		vkDestroySemaphore(vkal_info.device, vkal_info.render_finished_semaphores[i], NULL);
+		vkDestroySemaphore(vkal_info.device, vkal_info.image_available_semaphores[i], NULL);
     }
     
-    vkDestroyBuffer(vkal_info.device, vkal_info.uniform_buffer.buffer, 0);
-    vkDestroyBuffer(vkal_info.device, vkal_info.vertex_buffer.buffer, 0);
-    vkDestroyBuffer(vkal_info.device, vkal_info.index_buffer.buffer, 0);
+    vkDestroyBuffer(vkal_info.device, vkal_info.default_uniform_buffer.buffer, 0);
+    vkDestroyBuffer(vkal_info.device, vkal_info.default_vertex_buffer.buffer, 0);
+    vkDestroyBuffer(vkal_info.device, vkal_info.default_index_buffer.buffer, 0);
     vkDestroyBuffer(vkal_info.device, vkal_info.staging_buffer.buffer, 0);
     
     for (uint32_t i = 0; i < VKAL_MAX_VKIMAGEVIEW; ++i) {
-	destroy_image_view(i);
+		destroy_image_view(i);
     }
     for (uint32_t i = 0; i < VKAL_MAX_VKIMAGE; ++i) {
-	destroy_image(i);
+		destroy_image(i);
     }
 
     for (uint32_t i = 0; i < VKAL_MAX_VKSHADERMODULE; ++i) {
-	destroy_shader_module(i);
+		destroy_shader_module(i);
     }
 
     for (uint32_t i = 0; i < VKAL_MAX_VKPIPELINELAYOUT; ++i) {
-	destroy_pipeline_layout(i);
+		destroy_pipeline_layout(i);
     }
 
     for (uint32_t i = 0; i < VKAL_MAX_VKDESCRIPTORSETLAYOUT; ++i) {
-	destroy_descriptor_set_layout(i);
+		destroy_descriptor_set_layout(i);
     }
 
     for (uint32_t i = 0; i < VKAL_MAX_VKPIPELINE; ++i) {
-	destroy_graphics_pipeline(i);
+		destroy_graphics_pipeline(i);
     }
 
     for (uint32_t i = 0; i < VKAL_MAX_VKSAMPLER; ++i) {
-	destroy_sampler(i);
+		destroy_sampler(i);
     }
 
     for (uint32_t i = 0; i < VKAL_MAX_VKFRAMEBUFFER; ++i) {
-	destroy_framebuffer(i);
+		destroy_framebuffer(i);
     }
 
-    vkDestroyDescriptorPool(vkal_info.device, vkal_info.descriptor_pool, 0);
+    vkDestroyDescriptorPool(vkal_info.device, vkal_info.default_descriptor_pool, 0);
     
     vkDestroyDevice(vkal_info.device, 0);
     vkDestroyInstance(vkal_info.instance, 0);
 
-    printf("Memory Allocs: %d\n", memory_allocs);
-    printf("Memory Destroyed: %d\n", memory_destroyed);
-    printf("Images Created: %d\n", images_created);
-    printf("Images Destroyed: %d\n", images_destroyed);
+#ifdef VKAL_GLFW
     glfwTerminate();
+#endif
 }
