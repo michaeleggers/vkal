@@ -1,7 +1,14 @@
+#make a build folder, go into it and call
+#cmake -G "Visual Studio 15 2017 Win64" -DWINDOWING=VKAL_GLFW ..
+#to use GLFW as a windowing backend.
+
+
 cmake_minimum_required(VERSION 3.10)
 project(VKAL VERSION 1.0)
 cmake_minimum_required(VERSION 3.12)
 find_package(Vulkan REQUIRED)
+
+
 
 # GLFW, https://www.glfw.org/docs/latest/build.html#build_link_cmake_source
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -22,8 +29,9 @@ target_link_libraries(libvkal PUBLIC
     Vulkan::Vulkan 
     glfw
 )
-add_compile_definitions(VKAL_GLFW) 
 
+
+add_compile_definitions(${WINDOWING})
 
 
 # Basic Texture Example
