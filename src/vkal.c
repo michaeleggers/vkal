@@ -20,25 +20,18 @@
 
 static VkalInfo vkal_info;
 
-
-/* Debug extensions */
-PFN_vkSetDebugUtilsObjectNameEXT                       vkSetDebugUtilsObjectNameEXT_DEF;
-#define vkSetDebugUtilsObjectNameEXT                   vkSetDebugUtilsObjectNameEXT_DEF
-
-VkalInfo * vkal_init(
-    char ** extensions, uint32_t extension_count)
+VkalInfo * vkal_init(char ** extensions, uint32_t extension_count)
 {
 
-#ifdef _DEBUG
-    // TODO: Do I really need to go the indirection through a #define here?
-	#if defined (VKAL_GLFW)
-		vkSetDebugUtilsObjectNameEXT_DEF = (PFN_vkSetDebugUtilsObjectNameEXT)glfwGetInstanceProcAddress(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
-	#elif defined (VKAL_WIN32)
-		// TODO
-	#elif defined (VKAL_SDL)
-		// TODO
-	#endif
-#endif 
+	#ifdef _DEBUG
+		#if defined (VKAL_GLFW)
+			vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)glfwGetInstanceProcAddress(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
+		#elif defined (VKAL_WIN32)
+			vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
+		#elif defined (VKAL_SDL)
+			// TODO
+		#endif
+	#endif 
 
 //    pick_physical_device(extensions, extension_count);
     create_logical_device(extensions, extension_count);
@@ -86,11 +79,11 @@ void vkal_create_instance_glfw(
 
     // Query available extensions.
     {
-	vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count, 0);
-	VKAL_MAKE_ARRAY(vkal_info.available_instance_extensions, VkExtensionProperties,
-			vkal_info.available_instance_extension_count);
-	vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count,
-					       vkal_info.available_instance_extensions);
+		vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count, 0);
+		VKAL_MAKE_ARRAY(vkal_info.available_instance_extensions, VkExtensionProperties,
+				vkal_info.available_instance_extension_count);
+		vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count,
+							   vkal_info.available_instance_extensions);
     }
     
     // If debug build check if validation layers defined in struct are available and load them
@@ -110,10 +103,10 @@ void vkal_create_instance_glfw(
 		layer_ok = check_instance_layer_support(instance_layers[i],
 							vkal_info.available_instance_layers,
 							vkal_info.available_instance_layer_count);
-		if (!layer_ok) {
-		    printf("validation layer not available: %s\n", instance_layers[i]);
-		    VKAL_ASSERT(VK_ERROR_LAYER_NOT_PRESENT, "requested isntance layer not present!");
-		}
+			if (!layer_ok) {
+				printf("validation layer not available: %s\n", instance_layers[i]);
+				VKAL_ASSERT(VK_ERROR_LAYER_NOT_PRESENT, "requested isntance layer not present!");
+			}
 	    }
 	}
 	if (layer_ok) {
@@ -453,8 +446,8 @@ VkalImage create_vkal_image(
 			0,  // flags
 			format,
 			usage_flags,
-			&vkal_image.image);
-		vkal_dbg_image_name(get_image(vkal_image.image), name);
+			&vkal_image.image);	
+		VKAL_DBG_IMAGE_NAME(get_image(vkal_image.image), name); // TODO: Should actually be called by the user!
 
 		// Back the image with actual memory:
 		VkMemoryRequirements image_memory_requirements = { 0 };
@@ -542,7 +535,7 @@ RenderImage create_render_image(uint32_t width, uint32_t height)
 			vkal_info.swapchain_image_format,
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 			&render_image.image);
-		vkal_dbg_image_name(get_image(render_image.image), "RT target image");
+		VKAL_DBG_IMAGE_NAME(get_image(render_image.image), "Render Image"); // TODO: should be called by user.
 
 		// Back the image with actual memory:
 		VkMemoryRequirements image_memory_requirements = { 0 };
@@ -1121,12 +1114,11 @@ VkalTexture vkal_create_texture(
 }
 
 // TODO: can we use this buffer for any kind of data to stage??
-void create_staging_buffer(uint32_t size)
+// TODO: Should this also be called the default_staging_buffer?
+void create_staging_buffer(uint32_t size) 
 {
     vkal_info.staging_buffer = create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-#ifdef _DEBUG
-    vkal_dbg_buffer_name(vkal_info.staging_buffer, "Global Staging Buffer");
-#endif
+	VKAL_DBG_BUFFER_NAME(vkal_info.staging_buffer, "Default Staging Buffer");
     // Allocate staging buffer memory
     VkMemoryRequirements buffer_memory_requirements = { 0 };
     vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.staging_buffer.buffer, &buffer_memory_requirements);
@@ -1197,33 +1189,6 @@ Buffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBuf
     device_memory->free = next_offset;
 
     return result;
-}
-
-void vkal_dbg_buffer_name(Buffer buffer, char const * name)
-{
-#ifdef _DEBUG
-	// TODO: make this more robust! Make a dedicated Macro, so user can create the name, not implicitly!
-    //VkDebugUtilsObjectNameInfoEXT obj_info = { 0 };
-    //obj_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-    //obj_info.objectType = VK_OBJECT_TYPE_BUFFER;
-    //obj_info.objectHandle = (uint64_t)buffer.buffer;
-    //obj_info.pObjectName = name;
-    //VKAL_ASSERT(vkSetDebugUtilsObjectNameEXT(vkal_info.device, &obj_info),
-		  //    "Failed to create debug name for Buffer");
-#endif
-}
-
-void vkal_dbg_image_name(VkImage image, char const * name)
-{
-#ifdef _DEBUG
-    VkDebugUtilsObjectNameInfoEXT obj_info = { 0 };
-    obj_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-    obj_info.objectType = VK_OBJECT_TYPE_IMAGE;
-    obj_info.objectHandle = (uint64_t)image;
-    obj_info.pObjectName = name;
-    VKAL_ASSERT(vkSetDebugUtilsObjectNameEXT(vkal_info.device, &obj_info),
-		      "Failed to create debug name for Buffer");
-#endif
 }
 
 void vkal_update_buffer(Buffer buffer, uint8_t* data)
@@ -2688,9 +2653,7 @@ void allocate_default_device_memory_index(void)
 void create_default_uniform_buffer(uint32_t size)
 {
     vkal_info.default_uniform_buffer = create_buffer(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-#ifdef _DEBUG
-    vkal_dbg_buffer_name(vkal_info.default_uniform_buffer, "Global Uniform Buffer");
-#endif
+	VKAL_DBG_BUFFER_NAME(vkal_info.default_uniform_buffer, "Default Uniform Buffer");
 }
 
 void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data)
@@ -2791,18 +2754,14 @@ void create_default_vertex_buffer(uint32_t size)
 {
     vkal_info.default_vertex_buffer = create_buffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     vkal_info.default_vertex_buffer_offset = 0;
-#ifdef _DEBUG
-    vkal_dbg_buffer_name(vkal_info.default_vertex_buffer, "Global Vertex Buffer");
-#endif
+	VKAL_DBG_BUFFER_NAME(vkal_info.default_vertex_buffer, "Default Vertex Buffer");
 }
 
 void create_default_index_buffer(uint32_t size)
 {
     vkal_info.default_index_buffer = create_buffer(size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     vkal_info.default_index_buffer_offset = 0;
-#ifdef _DEBUG
-    vkal_dbg_buffer_name(vkal_info.default_index_buffer, "Global Index Buffer");
-#endif
+	VKAL_DBG_BUFFER_NAME(vkal_info.default_index_buffer, "Default Index Buffer");
 }
 
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset)

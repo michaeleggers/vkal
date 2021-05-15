@@ -68,6 +68,32 @@
 #define VKAL_MIN(a, b) (a < b ? a : b)
 #define VKAL_MAX(a, b) (a > b ? a : b)
 
+						/* Debug extensions */
+#ifdef _DEBUG
+	PFN_vkSetDebugUtilsObjectNameEXT                       vkSetDebugUtilsObjectName;
+#endif 
+
+#if _DEBUG																	
+	#define VKAL_DBG_BUFFER_NAME(vkal_buffer, name) 																	\
+		VkDebugUtilsObjectNameInfoEXT obj_info = { 0 };																	\
+		obj_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;											\
+		obj_info.objectType = VK_OBJECT_TYPE_BUFFER;																	\
+		obj_info.objectHandle = (uint64_t)vkal_buffer.buffer;															\
+		obj_info.pObjectName = name;																					\
+		VKAL_ASSERT(vkSetDebugUtilsObjectName(vkal_info.device, &obj_info),	"Failed to create debug name for Buffer");
+
+	#define VKAL_DBG_IMAGE_NAME(image, name)																			\
+		VkDebugUtilsObjectNameInfoEXT obj_info = { 0 };																	\
+		obj_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;											\
+		obj_info.objectType = VK_OBJECT_TYPE_IMAGE;																		\
+		obj_info.objectHandle = (uint64_t)image;																		\
+		obj_info.pObjectName = name;																					\
+		VKAL_ASSERT(vkSetDebugUtilsObjectName(vkal_info.device, &obj_info), "Failed to create debug name for Buffer");	
+#else
+	#define VKAL_DBG_BUFFER_NAME(buffer, name) ()
+	#define VKAL_DBG_IMAGE_NAME(image, name)   ()
+#endif																					
+
 typedef struct VkalTexture
 {
     uint32_t  device_memory_id;
@@ -426,8 +452,6 @@ void upload_texture(VkImage const image, uint32_t w, uint32_t h, uint32_t n, uin
 void create_staging_buffer(uint32_t size);
 Buffer create_buffer(uint32_t size, VkBufferUsageFlags usage);
 Buffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags);
-void vkal_dbg_buffer_name(Buffer buffer, char const * name);
-void vkal_dbg_image_name(VkImage image, char const * name);
 VkResult map_memory(Buffer * buffer, VkDeviceSize size, VkDeviceSize offset);
 void unmap_memory(Buffer * buffer);
 void vkal_update_buffer(Buffer buffer, uint8_t* data);

@@ -9,13 +9,13 @@ cmake_minimum_required(VERSION 3.12)
 find_package(Vulkan REQUIRED)
 
 
-
-# GLFW, https://www.glfw.org/docs/latest/build.html#build_link_cmake_source
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-add_subdirectory(src/external/glfw332src)
-
+if (${WINDOWING} STREQUAL "VKAL_GLFW")
+	# GLFW, https://www.glfw.org/docs/latest/build.html#build_link_cmake_source
+	set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+	set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+	set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+	add_subdirectory(src/external/glfw332src)
+endif()
 
 # Vulkan Abstraction Layer
 add_library(libvkal
@@ -27,13 +27,19 @@ target_include_directories(libvkal
 )
 target_link_libraries(libvkal PUBLIC
     Vulkan::Vulkan 
-    glfw
 )
+
+if (${WINDOWING} STREQUAL "VKAL_GLFW")
+	target_link_libraries(libvkal PUBLIC
+		glfw
+	)
+endif()	
+
 target_compile_definitions(libvkal PUBLIC ${WINDOWING})
 
 
 # Basic Texture Example
-add_executable(Texture
+add_executable(GLFW_Texture
     src/examples/texture.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
@@ -42,15 +48,15 @@ add_executable(Texture
     src/examples/assets/shaders/texture.vert
     src/examples/assets/shaders/texture.frag
 )
-target_include_directories(Texture
+target_include_directories(GLFW_Texture
     PUBLIC external
 )
-target_link_libraries(Texture
+target_link_libraries(GLFW_Texture
     PUBLIC libvkal
-    PUBLIC glfw)
+	PUBLIC glfw)
 	
 # Basic Texture Example without GLFW
-add_executable(TexturePureWin32 WIN32
+add_executable(Win32_Texture WIN32
     src/examples/texture_win32.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
@@ -59,14 +65,14 @@ add_executable(TexturePureWin32 WIN32
     src/examples/assets/shaders/texture.vert
     src/examples/assets/shaders/texture.frag
 )
-target_include_directories(TexturePureWin32
+target_include_directories(Win32_Texture
     PUBLIC external
 )
-target_link_libraries(TexturePureWin32
+target_link_libraries(Win32_Texture
     PUBLIC libvkal)
 	
 # Mesh Skinning
-add_executable(MeshSkinning
+add_executable(GLFW_MeshSkinning
     src/examples/mesh_skinning.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
@@ -77,15 +83,15 @@ add_executable(MeshSkinning
     src/examples/assets/shaders/texture.vert
     src/examples/assets/shaders/texture.frag
 )
-target_include_directories(MeshSkinning
+target_include_directories(GLFW_MeshSkinning
     PUBLIC external
 )
-target_link_libraries(MeshSkinning
+target_link_libraries(GLFW_MeshSkinning
     PUBLIC libvkal
     PUBLIC glfw)
 	
 # Model Loading
-add_executable(ModelLoading
+add_executable(GLFW_ModelLoading
     src/examples/model_loading.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
@@ -96,15 +102,15 @@ add_executable(ModelLoading
     src/examples/assets/shaders/model_loading.vert
     src/examples/assets/shaders/model_loading.frag
 )
-target_include_directories(ModelLoading
+target_include_directories(GLFW_ModelLoading
     PUBLIC external
 )
-target_link_libraries(ModelLoading
+target_link_libraries(GLFW_ModelLoading
     PUBLIC libvkal
     PUBLIC glfw)
 	
 # Primitives
-add_executable(Primitives
+add_executable(GLFW_Primitives
     src/examples/primitives.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
@@ -113,15 +119,15 @@ add_executable(Primitives
     src/examples/assets/shaders/primitives.vert
     src/examples/assets/shaders/primitives.frag
 )
-target_include_directories(Primitives
+target_include_directories(GLFW_Primitives
     PUBLIC external
 )
-target_link_libraries(Primitives
+target_link_libraries(GLFW_Primitives
     PUBLIC libvkal
     PUBLIC glfw)
 	
 # Primitives Dynamic
-add_executable(PrimitivesDynamic
+add_executable(GLFW_PrimitivesDynamic
     src/examples/primitives_dynamic.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
@@ -130,15 +136,15 @@ add_executable(PrimitivesDynamic
     src/examples/assets/shaders/primitives.vert
     src/examples/assets/shaders/primitives.frag
 )
-target_include_directories(PrimitivesDynamic
+target_include_directories(GLFW_PrimitivesDynamic
     PUBLIC external
 )
-target_link_libraries(PrimitivesDynamic
+target_link_libraries(GLFW_PrimitivesDynamic
     PUBLIC libvkal
     PUBLIC glfw)
 	
 # Render Texture
-add_executable(RenderToTexture
+add_executable(GLFW_RenderToTexture
     src/examples/rendertexture.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
@@ -147,15 +153,15 @@ add_executable(RenderToTexture
     src/examples/assets/shaders/rendertexture.vert
     src/examples/assets/shaders/rendertexture.frag
 )
-target_include_directories(RenderToTexture
+target_include_directories(GLFW_RenderToTexture
     PUBLIC external
 )
-target_link_libraries(RenderToTexture
+target_link_libraries(GLFW_RenderToTexture
     PUBLIC libvkal
     PUBLIC glfw)
 	
 # Multiple Textures
-add_executable(MultipleTextures
+add_executable(GLFW_MultipleTextures
     src/examples/textures.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
@@ -164,15 +170,15 @@ add_executable(MultipleTextures
     src/examples/assets/shaders/textures.vert
     src/examples/assets/shaders/textures.frag
 )
-target_include_directories(MultipleTextures
+target_include_directories(GLFW_MultipleTextures
     PUBLIC external
 )
-target_link_libraries(MultipleTextures
+target_link_libraries(GLFW_MultipleTextures
     PUBLIC libvkal
     PUBLIC glfw)
 	
 # Descriptor Array and Push Constant
-add_executable(DescriptorArrayPushConstant
+add_executable(GLFW_DescriptorArrayPushConstant
     src/examples/textures_descriptorarray_push_constant.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
@@ -181,15 +187,15 @@ add_executable(DescriptorArrayPushConstant
     src/examples/assets/shaders/textures_descriptorarray_push_constant.vert
     src/examples/assets/shaders/textures_descriptorarray_push_constant.frag
 )
-target_include_directories(DescriptorArrayPushConstant
+target_include_directories(GLFW_DescriptorArrayPushConstant
     PUBLIC external
 )
-target_link_libraries(DescriptorArrayPushConstant
+target_link_libraries(GLFW_DescriptorArrayPushConstant
     PUBLIC libvkal
     PUBLIC glfw)
 	
 # Dynamic Uniform Buffer
-add_executable(DynamicUniformBuffer
+add_executable(GLFW_DynamicUniformBuffer
     src/examples/textures_dynamic_descriptor.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
@@ -198,15 +204,15 @@ add_executable(DynamicUniformBuffer
     src/examples/assets/shaders/textures_dynamic_descriptor.vert
     src/examples/assets/shaders/textures_dynamic_descriptor.frag
 )
-target_include_directories(DynamicUniformBuffer
+target_include_directories(GLFW_DynamicUniformBuffer
     PUBLIC external
 )
-target_link_libraries(DynamicUniformBuffer
+target_link_libraries(GLFW_DynamicUniformBuffer
     PUBLIC libvkal
     PUBLIC glfw)
 	
 # TTF Drawing
-add_executable(TTFDrawing
+add_executable(GLFW_TTFDrawing
     src/examples/ttf_drawing.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
@@ -215,15 +221,15 @@ add_executable(TTFDrawing
     src/examples/assets/shaders/ttf_drawing.vert
     src/examples/assets/shaders/ttf_drawing.frag
 )
-target_include_directories(TTFDrawing
+target_include_directories(GLFW_TTFDrawing
     PUBLIC external
 )
-target_link_libraries(TTFDrawing
+target_link_libraries(GLFW_TTFDrawing
     PUBLIC libvkal
     PUBLIC glfw)
 	
 # Mesh Skinning with GLM
-add_executable(MeshSkinningGLM
+add_executable(GLFW_MeshSkinningGLM
     src/examples/mesh_skinning_glm.cpp
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
@@ -232,9 +238,9 @@ add_executable(MeshSkinningGLM
     src/examples/assets/shaders/model_loading_md.vert
     src/examples/assets/shaders/model_loading_md.frag
 )
-target_include_directories(MeshSkinningGLM
+target_include_directories(GLFW_MeshSkinningGLM
     PUBLIC external src/examples/external/
 )
-target_link_libraries(MeshSkinningGLM
+target_link_libraries(GLFW_MeshSkinningGLM
     PUBLIC libvkal
     PUBLIC glfw)
