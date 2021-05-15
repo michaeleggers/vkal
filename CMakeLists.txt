@@ -17,7 +17,7 @@ if (${WINDOWING} STREQUAL "VKAL_GLFW")
 	add_subdirectory(src/external/glfw332src)
 endif()
 
-# Vulkan Abstraction Layer
+# Vulkan Abstraction Layer Lib
 add_library(libvkal
     src/vkal.c
     src/vkal.h
@@ -28,14 +28,14 @@ target_include_directories(libvkal
 target_link_libraries(libvkal PUBLIC
     Vulkan::Vulkan 
 )
-
 if (${WINDOWING} STREQUAL "VKAL_GLFW")
 	target_link_libraries(libvkal PUBLIC
 		glfw
 	)
 endif()	
-
 target_compile_definitions(libvkal PUBLIC ${WINDOWING})
+
+
 
 
 # Basic Texture Example
@@ -52,10 +52,10 @@ target_include_directories(GLFW_Texture
     PUBLIC external
 )
 target_link_libraries(GLFW_Texture
-    PUBLIC libvkal
+	PUBLIC libvkal
 	PUBLIC glfw)
 	
-# Basic Texture Example without GLFW
+# Basic Texture Example without GLFW, just WinMain...
 add_executable(Win32_Texture WIN32
     src/examples/texture_win32.c
 	src/examples/utils/tr_math.c

@@ -594,4 +594,3 @@ void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int fre
 
 
 #endif
-
