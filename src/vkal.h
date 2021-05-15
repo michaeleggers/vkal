@@ -7,14 +7,21 @@
 #include <stdint.h>
 #include <assert.h>
 
+#if defined (VKAL_WIN32)
+	#define VK_USE_PLATFORM_WIN32_KHR
+#endif
+
 #include <vulkan/vulkan.h>
 
 #if defined (VKAL_GLFW)
     #include <GLFW/glfw3.h>
+#elif defined (VKAL_WIN32)
+	#include <Windows.h>
 #elif defined (VKAL_SDL)
 //TODO: implement
-
 #endif
+
+#define VKAL_NULL                       0
 
 #define MB								(1024 * 1024)
 #define STAGING_BUFFER_SIZE				(64 * MB)
@@ -46,17 +53,17 @@
 		exit(-1);						\
 	}									\
 
-#define VKAL_MAKE_ARRAY(arr, type, count) \
-arr = (type *)malloc(count * sizeof(type));
+#define VKAL_MAKE_ARRAY(arr, type, count)		\
+	arr = (type *)malloc(count * sizeof(type)); \
 
-#define VKAL_MAKE_ARRAY2(arr, type, count) \
-type * arr = (type *)malloc(count * sizeof(type));
+#define VKAL_MAKE_ARRAY2(arr, type, count)				\
+	type * arr = (type *)malloc(count * sizeof(type));	\
 
-#define VKAL_KILL_ARRAY(arr) \
-free(arr)
+#define VKAL_KILL_ARRAY(arr)	\
+	free(arr)					\
 
-#define VKAL_ARRAY_LENGTH(arr) \
-sizeof(arr) / sizeof(arr[0])
+#define VKAL_ARRAY_LENGTH(arr)		\
+	sizeof(arr) / sizeof(arr[0])	\
 
 #define VKAL_MIN(a, b) (a < b ? a : b)
 #define VKAL_MAX(a, b) (a > b ? a : b)
@@ -198,6 +205,8 @@ typedef struct VkalInfo
     
 #if defined (VKAL_GLFW)
     GLFWwindow * window;
+#elif defined (VKAL_WIN32)
+	HWND window;
 #elif defined (VKAL_SDL)
     // TODO: Implement
 #endif
@@ -234,9 +243,9 @@ typedef struct VkalInfo
     VkalSamplerHandle				user_samplers[VKAL_MAX_VKSAMPLER];
     VkalFramebufferHandle			user_framebuffers[VKAL_MAX_VKFRAMEBUFFER];
 
-    VkDevice device; 
-    VkQueue graphics_queue;
-    VkQueue present_queue;
+    VkDevice	 device; 
+    VkQueue		 graphics_queue;
+    VkQueue      present_queue;
     VkSurfaceKHR surface;
 
     VkSwapchainKHR	swapchain;
@@ -316,10 +325,21 @@ extern "C"{
 #endif 
 
 VkalInfo * vkal_init(char ** extensions, uint32_t extension_count);
-void vkal_create_instance(
-    void * window,
-    char ** instance_extensions, uint32_t instance_extension_count,
-    char ** instance_layers, uint32_t instance_layer_count);
+
+#if defined (VKAL_GLFW)
+	void vkal_create_instance_glfw(
+		GLFWwindow * window,
+		char ** instance_extensions, uint32_t instance_extension_count,
+		char ** instance_layers, uint32_t instance_layer_count);
+#elif defined (VKAL_WIN32)
+	void vkal_create_instance_win32(
+		HWND window, HINSTANCE hInstance,
+		char ** instance_extensions, uint32_t instance_extension_count,
+		char ** instance_layers, uint32_t instance_layer_count);
+#elif defined (VKAL_SDL)
+	// TODO
+#endif
+
 void vkal_find_suitable_devices(
 	char ** extensions, uint32_t extension_count,
 	VkalPhysicalDevice ** out_devices, uint32_t * out_device_count);
@@ -382,7 +402,15 @@ void vkal_cleanup(void);
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset);
 uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count);
 uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count);
-void create_surface(void);
+
+#if defined (VKAL_GLFW)
+	void create_glfw_surface(void);
+#elif defined (VKAL_WIN32)
+	void create_win32_surface(HINSTANCE hInstance);
+#elif defined (VKAL_SDL)
+	// TODO: Implement
+#endif
+
 UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint32_t binding);
 void vkal_update_descriptor_set_uniform(
 	VkDescriptorSet descriptor_set, UniformBuffer uniform_buffer,

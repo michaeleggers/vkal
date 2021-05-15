@@ -3,15 +3,18 @@
    Simple example showing how to draw a rect (two triangles) and mapping
    a texture on it.
 */
+#ifndef UNICODE
+#define UNICODE
+#endif
 
+#include <Windows.h>
 
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
 
-#include <GLFW/glfw3.h>
-
 #include "../vkal.h"
+
 #include "../platform.h"
 #include "utils/tr_math.h"
 
@@ -23,8 +26,8 @@
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
 
-static GLFWwindow * window;
-static Platform p;
+static HWND      window;
+static Platform  p;
 
 typedef struct Image
 {
@@ -47,23 +50,6 @@ typedef struct Camera
 	vec3 right;
 } Camera;
 
-// GLFW callbacks
-static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
-{
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-	printf("escape key pressed\n");
-	glfwSetWindowShouldClose(window, GLFW_TRUE);
-    }
-}
-
-void init_window()
-{
-    glfwInit();
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: texture.c", 0, 0);
-    glfwSetKeyCallback(window, glfw_key_callback);
-}
 
 Image load_image_file(char const * file)
 {
@@ -78,11 +64,56 @@ Image load_image_file(char const * file)
     return image;
 }
 
-int main(int argc, char ** argv)
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
-    init_window();
+	// Register the window class.
+	const wchar_t CLASS_NAME[] = L"Sample Window Class";
+
+	WNDCLASS wc = { 0 };
+
+	wc.lpfnWndProc = WindowProc;
+	wc.hInstance = hInstance;
+	wc.lpszClassName = CLASS_NAME;
+
+	RegisterClass(&wc);
+
+	// Create the window.
+	window = CreateWindowEx(
+		0,                              // Optional window styles.
+		CLASS_NAME,                     // Window class
+		L"AzTech Engine 0.0.1",    // Window text
+		WS_OVERLAPPEDWINDOW,            // Window style
+
+										// Size and position
+		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+
+		NULL,       // Parent window    
+		NULL,       // Menu
+		hInstance,  // Instance handle
+		NULL        // Additional application data
+	);
+
+	if (window == NULL)
+	{
+		return 0;
+	}
+
+	ShowWindow(window, nCmdShow);
+
+	// init console
+	AllocConsole();
+	FILE* pCin;
+	FILE* pCout;
+	FILE* pCerr;
+	freopen_s(&pCin, "conin$", "r", stdin);
+	freopen_s(&pCout, "conout$", "w", stdout);
+	freopen_s(&pCerr, "conout$", "w", stderr);
+
     init_platform(&p);
     
+	// Init VKAL
     char * device_extensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	VK_KHR_MAINTENANCE3_EXTENSION_NAME
@@ -106,18 +137,20 @@ int main(int argc, char ** argv)
     instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);    
 #endif
    
-    vkal_create_instance_glfw(window,
-			 instance_extensions, instance_extension_count,
- 			 instance_layers, instance_layer_count);
+	vkal_create_instance_win32(
+		window, hInstance,
+		instance_extensions, instance_extension_count,
+ 		instance_layers, instance_layer_count);
     
     VkalPhysicalDevice * devices = 0;
     uint32_t device_count;
-    vkal_find_suitable_devices(device_extensions, device_extension_count,
-			       &devices, &device_count);
+    vkal_find_suitable_devices(
+		device_extensions, device_extension_count,
+		&devices, &device_count);
     assert(device_count > 0);
     printf("Suitable Devices:\n");
     for (uint32_t i = 0; i < device_count; ++i) {
-	printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
+		printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
     vkal_select_physical_device(&devices[0]);
     VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
@@ -130,8 +163,8 @@ int main(int argc, char ** argv)
     int fragment_code_size;
     p.read_file("../src/examples/assets/shaders/texture_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
-	vertex_byte_code, vertex_code_size, 
-	fragment_byte_code, fragment_code_size);
+		vertex_byte_code, vertex_code_size, 
+		fragment_byte_code, fragment_code_size);
 
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
@@ -227,14 +260,28 @@ int main(int argc, char ** argv)
     view_proj_data.image_aspect = (float)texture.width/(float)texture.height;
 
     // Main Loop
-    while (!glfwWindowShouldClose(window))
+	int running = 1;
+    while (running)
     {
-	glfwPollEvents();
+		MSG msg = { 0 };
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			if (msg.message == WM_QUIT) {
+				running = 0;
+			}
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
 
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
-	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
+		int width, height;
+		RECT rect;
+		GetClientRect(vkal_info->window, &rect);
+		width = rect.right;
+		height = rect.bottom;
+
+		//glfwGetFramebufferSize(window, &width, &height);
+		view_proj_data.proj = perspective(tr_radians(45.f), (float)width / (float)height, 0.1f, 100.f);
+		vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
 		{
 			vkDeviceWaitIdle(vkal_info->device);
@@ -245,15 +292,15 @@ int main(int argc, char ** argv)
 			vkal_begin_command_buffer(image_id);
 			vkal_begin_render_pass(image_id, vkal_info->render_pass);
 			vkal_viewport(vkal_info->default_command_buffers[image_id],
-				  0, 0,
-				  width, height);
+				0, 0,
+				width, height);
 			vkal_scissor(vkal_info->default_command_buffers[image_id],
-				 0, 0,
-				 width, height);
+				0, 0,
+				width, height);
 			vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
 			vkal_draw_indexed(image_id, graphics_pipeline,
-					  offset_indices, index_count,
-					  offset_vertices);
+				offset_indices, index_count,
+				offset_vertices);
 			vkal_end_renderpass(image_id);
 			vkal_end_command_buffer(image_id);
 			VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
@@ -261,13 +308,42 @@ int main(int argc, char ** argv)
 
 			vkal_present(image_id);
 		}
+		
+		
     }
+
+	// Close Console
+	fclose(pCin);
+	fclose(pCout);
+	fclose(pCerr);
+	FreeConsole();
     
     vkal_cleanup();
-
-    glfwDestroyWindow(window);
  
-    glfwTerminate();
-    
+	DestroyWindow(window);
+
     return 0;
+}
+
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg)
+	{
+	case WM_CLOSE:
+	{
+		PostQuitMessage(0);
+		return 0;
+	}
+	break;
+	//case WM_PAINT:
+	//{
+	//	PAINTSTRUCT ps;
+	//	HDC hdc = BeginPaint(hwnd, &ps);
+	//		FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
+	//	EndPaint(hwnd, &ps);
+	//}
+	//return 0;
+
+	}
+	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }

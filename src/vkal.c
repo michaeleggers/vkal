@@ -2,13 +2,18 @@
 
 #include <assert.h>
 
+#if defined (VKAL_WIN32)
+	#define VK_USE_PLATFORM_WIN32_KHR
+#endif
+
 #include <vulkan/vulkan.h>
 
 #if defined (VKAL_GLFW)
     #include <GLFW/glfw3.h>
+#elif defined (VKAL_WIN32)
+	#include <Windows.h>
 #elif defined (VKAL_SDL)
 //TODO: implement
-
 #endif
 
 #include "vkal.h"
@@ -26,7 +31,13 @@ VkalInfo * vkal_init(
 
 #ifdef _DEBUG
     // TODO: Do I really need to go the indirection through a #define here?
-    vkSetDebugUtilsObjectNameEXT_DEF = (PFN_vkSetDebugUtilsObjectNameEXT)glfwGetInstanceProcAddress(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
+	#if defined (VKAL_GLFW)
+		vkSetDebugUtilsObjectNameEXT_DEF = (PFN_vkSetDebugUtilsObjectNameEXT)glfwGetInstanceProcAddress(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
+	#elif defined (VKAL_WIN32)
+		// TODO
+	#elif defined (VKAL_SDL)
+		// TODO
+	#endif
 #endif 
 
 //    pick_physical_device(extensions, extension_count);
@@ -54,18 +65,13 @@ VkalInfo * vkal_init(
     return &vkal_info;
 }
 
-void vkal_create_instance(
-    void * window,
+#if defined(VKAL_GLFW)
+void vkal_create_instance_glfw(
+    GLFWwindow * window,
     char ** instance_extensions, uint32_t instance_extension_count,
     char ** instance_layers, uint32_t instance_layer_count)
 {
-
-#if defined(VKAL_GLFW)
-    vkal_info.window = (GLFWwindow*)window;
-#elif defined (VKAL_SDL)
-    // TODO: Implement
-#endif
-    
+    vkal_info.window = window;
     VkApplicationInfo app_info = {0};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     app_info.pApplicationName = "VKAL Application";
@@ -121,11 +127,7 @@ void vkal_create_instance(
 		uint32_t required_extension_count = 0;
 		char const ** required_extensions;
 	
-	#if defined(VKAL_GLFW)
 		required_extensions = glfwGetRequiredInstanceExtensions(&required_extension_count);
-	#elif defined (VKAL_SDL)
-		// TODO: Implement
-	#endif
     
 		uint32_t total_instance_ext_count = required_extension_count + instance_extension_count;
 		char ** all_instance_extensions;
@@ -160,8 +162,113 @@ void vkal_create_instance(
 		}
     }
 
-    create_surface();
+    create_glfw_surface();
 }
+
+#elif defined (VKAL_WIN32)
+void vkal_create_instance_win32(
+	HWND window, HINSTANCE hInstance,
+	char ** instance_extensions, uint32_t instance_extension_count,
+	char ** instance_layers, uint32_t instance_layer_count)
+{
+	vkal_info.window = window;
+	VkApplicationInfo app_info = { 0 };
+	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	app_info.pApplicationName = "VKAL Application";
+	app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+	app_info.pEngineName = "VKAL Engine";
+	app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+	app_info.apiVersion = VK_API_VERSION_1_2;
+
+	VkInstanceCreateInfo create_info = { 0 };
+	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	create_info.pApplicationInfo = &app_info;
+
+	// Query available extensions.
+	{
+		vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count, 0);
+		VKAL_MAKE_ARRAY(vkal_info.available_instance_extensions, VkExtensionProperties,
+			vkal_info.available_instance_extension_count);
+		vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count,
+			vkal_info.available_instance_extensions);
+	}
+
+	// If debug build check if validation layers defined in struct are available and load them
+	{
+		vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count, 0);
+		VKAL_MAKE_ARRAY(vkal_info.available_instance_layers, VkLayerProperties, vkal_info.available_instance_layer_count);
+		vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count,
+			vkal_info.available_instance_layers);
+#ifdef _DEBUG
+		vkal_info.enable_instance_layers = 1;
+#else
+		vkal_info.enable_instance_layers = 0;
+#endif
+		int layer_ok = 0;
+		if (vkal_info.enable_instance_layers) {
+			for (uint32_t i = 0; i < instance_layer_count; ++i) {
+				layer_ok = check_instance_layer_support(instance_layers[i],
+					vkal_info.available_instance_layers,
+					vkal_info.available_instance_layer_count);
+				if (!layer_ok) {
+					printf("validation layer not available: %s\n", instance_layers[i]);
+					VKAL_ASSERT(VK_ERROR_LAYER_NOT_PRESENT, "requested isntance layer not present!");
+				}
+			}
+		}
+		if (layer_ok) {
+			create_info.enabledLayerCount = instance_layer_count;
+			create_info.ppEnabledLayerNames = (const char * const *)instance_layers;
+		}
+	}
+
+	// Check if requested instance extensions are available and if so, load them.
+	{
+		char const * required_extensions[] = 
+		{
+			"VK_KHR_surface",
+			"VK_KHR_win32_surface"
+		};
+		uint32_t required_extension_count = sizeof(required_extensions)/sizeof(*required_extensions);
+
+		uint32_t total_instance_ext_count = required_extension_count + instance_extension_count;
+		char ** all_instance_extensions;
+		all_instance_extensions = (char**)malloc(total_instance_ext_count * sizeof(char*));
+		for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
+			all_instance_extensions[i] = (char*)malloc(256 * sizeof(char));
+		}
+		uint32_t i = 0;
+		for (; i < required_extension_count; ++i) {
+			strcpy(all_instance_extensions[i], required_extensions[i]);
+		}
+		for (uint32_t j = 0; i < total_instance_ext_count; ++i) {
+			strcpy(all_instance_extensions[i], instance_extensions[j++]);
+		}
+		int extension_ok = 0;
+		for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
+			extension_ok = check_instance_extension_support(all_instance_extensions[i],
+				vkal_info.available_instance_extensions,
+				vkal_info.available_instance_extension_count);
+			if (!extension_ok) {
+				printf("instance extension not available: %s\n", all_instance_extensions[i]);
+				VKAL_ASSERT(VK_ERROR_EXTENSION_NOT_PRESENT, "requested instance extension not present!");
+			}
+		}
+		create_info.enabledExtensionCount = total_instance_ext_count;
+		create_info.ppEnabledExtensionNames = (const char * const *)all_instance_extensions;
+
+		VKAL_ASSERT(vkCreateInstance(&create_info, 0, &vkal_info.instance), "failed to create VkInstance");
+
+		for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
+			free(all_instance_extensions[i]);
+		}
+	}
+
+	create_win32_surface(hInstance);
+}
+#elif defined (VKAL_SDL)
+// TODO: Implement
+#endif
 
 
 
@@ -515,17 +622,29 @@ void unmap_memory(Buffer * buffer)
 }
 
 
-void create_surface(void)
-{
-
 #if defined (VKAL_GLFW)
-	VkResult result = glfwCreateWindowSurface(vkal_info.instance, vkal_info.window, 0, &vkal_info.surface);
-#elif defined (VKAL_SDL)
-    // TODO: Implement
-#endif
-    
+void create_glfw_surface(void)
+{
+	VkResult result = glfwCreateWindowSurface(vkal_info.instance, vkal_info.window, VKAL_NULL, &vkal_info.surface);
     VKAL_ASSERT(result, "failed to create window surface");
 }
+
+#elif defined (VKAL_WIN32)
+void create_win32_surface(HINSTANCE hInstance)
+{
+	VkWin32SurfaceCreateInfoKHR surface_create_info;
+	surface_create_info.sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+	surface_create_info.pNext     = VKAL_NULL;
+	surface_create_info.flags     = 0;
+	surface_create_info.hinstance = GetModuleHandle(NULL);
+	surface_create_info.hwnd      = vkal_info.window;
+	vkCreateWin32SurfaceKHR(vkal_info.instance, &surface_create_info, VKAL_NULL, &vkal_info.surface);
+}
+
+#elif defined (VKAL_SDL)
+    // TODO: Implement
+#endif    
+
 
 int check_instance_layer_support(char const * requested_layer,
 				   VkLayerProperties * available_layers, uint32_t available_layer_count)
@@ -608,9 +727,15 @@ VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR * capabilities)
 
 #if defined (VKAL_GLFW)
 	glfwGetFramebufferSize(vkal_info.window, &width, &height);
+#elif defined (VKAL_WIN32)
+	RECT rect;
+	GetClientRect(vkal_info.window, &rect);
+	width  = rect.right;
+	height = rect.bottom;
 #elif defined (VKAL_SDL)
 	// TODO: Implement
 #endif
+
 	VkExtent2D actual_extent;
 	actual_extent.width  = width;
 	actual_extent.height = height;
@@ -666,7 +791,7 @@ void create_swapchain(void)
     
     uint32_t image_count = VKAL_MAX_SWAPCHAIN_IMAGES;
     if (swap_chain_support.capabilities.maxImageCount > 0) {
-	image_count = VKAL_MIN(image_count, swap_chain_support.capabilities.maxImageCount);
+		image_count = VKAL_MIN(image_count, swap_chain_support.capabilities.maxImageCount);
     }
     
     VkSwapchainCreateInfoKHR create_info = { 0 };
@@ -1077,13 +1202,14 @@ Buffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBuf
 void vkal_dbg_buffer_name(Buffer buffer, char const * name)
 {
 #ifdef _DEBUG
-    VkDebugUtilsObjectNameInfoEXT obj_info = { 0 };
-    obj_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-    obj_info.objectType = VK_OBJECT_TYPE_BUFFER;
-    obj_info.objectHandle = (uint64_t)buffer.buffer;
-    obj_info.pObjectName = name;
-    VKAL_ASSERT(vkSetDebugUtilsObjectNameEXT(vkal_info.device, &obj_info),
-		      "Failed to create debug name for Buffer");
+	// TODO: make this more robust! Make a dedicated Macro, so user can create the name, not implicitly!
+    //VkDebugUtilsObjectNameInfoEXT obj_info = { 0 };
+    //obj_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    //obj_info.objectType = VK_OBJECT_TYPE_BUFFER;
+    //obj_info.objectHandle = (uint64_t)buffer.buffer;
+    //obj_info.pObjectName = name;
+    //VKAL_ASSERT(vkSetDebugUtilsObjectNameEXT(vkal_info.device, &obj_info),
+		  //    "Failed to create debug name for Buffer");
 #endif
 }
 
@@ -2848,7 +2974,15 @@ void vkal_cleanup(void) {
     vkDestroyRenderPass(vkal_info.device, vkal_info.render_to_image_render_pass, 0);
 
     vkDestroySwapchainKHR(vkal_info.device, vkal_info.swapchain, 0);
+
+#if defined (VKAL_GLFW)
     glfwDestroyWindow(vkal_info.window);
+#elif defined (VKAL_WIN32)
+	DestroyWindow(vkal_info.window);
+#elif defined (VKAL_SDL)
+
+#endif
+
     vkDestroySurfaceKHR(vkal_info.instance, vkal_info.surface, 0);
 	
     for (uint32_t i = 0; i < vkal_info.default_commandpool_count; ++i) {

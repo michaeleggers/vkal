@@ -29,9 +29,7 @@ target_link_libraries(libvkal PUBLIC
     Vulkan::Vulkan 
     glfw
 )
-
-
-add_compile_definitions(${WINDOWING})
+target_compile_definitions(libvkal PUBLIC ${WINDOWING})
 
 
 # Basic Texture Example
@@ -51,7 +49,21 @@ target_link_libraries(Texture
     PUBLIC libvkal
     PUBLIC glfw)
 	
-	
+# Basic Texture Example without GLFW
+add_executable(TexturePureWin32 WIN32
+    src/examples/texture_win32.c
+	src/examples/utils/tr_math.c
+	src/examples/utils/tr_math.h
+	src/platform.c
+	src/platform.h
+    src/examples/assets/shaders/texture.vert
+    src/examples/assets/shaders/texture.frag
+)
+target_include_directories(TexturePureWin32
+    PUBLIC external
+)
+target_link_libraries(TexturePureWin32
+    PUBLIC libvkal)
 	
 # Mesh Skinning
 add_executable(MeshSkinning
