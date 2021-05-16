@@ -74,21 +74,26 @@
 #endif 
 
 #if _DEBUG																	
-	#define VKAL_DBG_BUFFER_NAME(vkal_buffer, name) 																	\
+	#define VKAL_DBG_BUFFER_NAME(vkal_info_macro, vkal_buffer, name) 													\
+		{																												\
 		VkDebugUtilsObjectNameInfoEXT obj_info = { 0 };																	\
 		obj_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;											\
 		obj_info.objectType = VK_OBJECT_TYPE_BUFFER;																	\
 		obj_info.objectHandle = (uint64_t)vkal_buffer.buffer;															\
 		obj_info.pObjectName = name;																					\
-		VKAL_ASSERT(vkSetDebugUtilsObjectName(vkal_info.device, &obj_info),	"Failed to create debug name for Buffer");
+		VKAL_ASSERT(vkSetDebugUtilsObjectName(vkal_info_macro, &obj_info),	"Failed to create debug name for Buffer");	\
+		}
 
-	#define VKAL_DBG_IMAGE_NAME(image, name)																			\
+	#define VKAL_DBG_IMAGE_NAME(vkal_info_macro, vkal_dbg_image_macro, name)											\
+		{																												\
 		VkDebugUtilsObjectNameInfoEXT obj_info = { 0 };																	\
 		obj_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;											\
 		obj_info.objectType = VK_OBJECT_TYPE_IMAGE;																		\
-		obj_info.objectHandle = (uint64_t)image;																		\
+		obj_info.objectHandle = (uint64_t)vkal_dbg_image_macro;															\
 		obj_info.pObjectName = name;																					\
-		VKAL_ASSERT(vkSetDebugUtilsObjectName(vkal_info.device, &obj_info), "Failed to create debug name for Buffer");	
+		VKAL_ASSERT(vkSetDebugUtilsObjectName(vkal_info_macro, &obj_info), "Failed to create debug name for Buffer");	\
+		}
+
 #else
 	#define VKAL_DBG_BUFFER_NAME(buffer, name) ()
 	#define VKAL_DBG_IMAGE_NAME(image, name)   ()
@@ -137,11 +142,13 @@ typedef struct VkalImage
 
 typedef struct RenderImage
 {
-    uint32_t      image;
-    uint32_t      image_view;
-    VkSampler     sampler;
-    uint32_t	  device_memory;	
+    //uint32_t      image;
+    //uint32_t      image_view;
+    //VkSampler     sampler;
+    //uint32_t	  device_memory;	
     uint32_t      width, height;
+
+	VkalImage     color_image;
     VkalImage     depth_image;
     uint32_t      framebuffers[VKAL_MAX_SWAPCHAIN_IMAGES];
 } RenderImage; 
@@ -391,7 +398,7 @@ VkalImage create_vkal_image(
 	uint32_t width, uint32_t height, 
 	VkFormat format,
 	VkImageUsageFlagBits usage_flags, VkImageAspectFlags aspect_bits,
-	VkImageLayout layout, char const * name);
+	VkImageLayout layout);
 void create_default_command_buffers(void);
 VkCommandBuffer create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uint32_t begin);
 void create_default_render_pass(void);

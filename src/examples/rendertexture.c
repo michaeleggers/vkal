@@ -87,7 +87,7 @@ int main(int argc, char ** argv)
     instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);    
 #endif
    
-    vkal_create_instance(window,
+    vkal_create_instance_glfw(window,
 			 instance_extensions, instance_extension_count,
  			 instance_layers, instance_layer_count);
     
@@ -205,20 +205,20 @@ int main(int argc, char ** argv)
     
     /* Render Image (Should this be called render-texture?) */
     RenderImage render_image = create_render_image(1920, 1080);
-    vkal_dbg_image_name(get_image(render_image.image), "Render Image 1920x1080");
+    VKAL_DBG_IMAGE_NAME(vkal_info->device, get_image(render_image.color_image.image), "Render Image 1920x1080");
     VkSampler sampler = create_sampler(
 		VK_FILTER_NEAREST, VK_FILTER_NEAREST, 
 		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, 
 		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     vkal_update_descriptor_set_render_image(
 		descriptor_sets[2], 0,
-		get_image_view(render_image.image_view), sampler);
+		get_image_view(render_image.color_image.image_view), sampler);
     
     RenderImage render_image2 = create_render_image(2048, 2048);
-    vkal_dbg_image_name(get_image(render_image2.image), "Render Image 1920x1080");
+    VKAL_DBG_IMAGE_NAME(vkal_info->device, get_image(render_image2.color_image.image), "Render Image 1920x1080");
     vkal_update_descriptor_set_render_image(
 		descriptor_sets[2], 1,
-		get_image_view(render_image2.image_view), sampler);
+		get_image_view(render_image2.color_image.image_view), sampler);
     
     /* Model Data */
     float rectvertices[] = {

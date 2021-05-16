@@ -434,8 +434,10 @@ void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int fre
 /* Create image, imageview and bind to device memory. Also perform image barrier to switch switch to wanted layout. */
 VkalImage create_vkal_image(
     uint32_t width, uint32_t height,
-    VkFormat format, VkImageUsageFlagBits usage_flags, VkImageAspectFlags aspect_bits,
-    VkImageLayout layout, char const * name)
+    VkFormat format, 
+	VkImageUsageFlagBits usage_flags, 
+	VkImageAspectFlags aspect_bits,
+    VkImageLayout layout)
 {
     VkalImage vkal_image;
     // Image
@@ -446,8 +448,7 @@ VkalImage create_vkal_image(
 			0,  // flags
 			format,
 			usage_flags,
-			&vkal_image.image);	
-		VKAL_DBG_IMAGE_NAME(get_image(vkal_image.image), name); // TODO: Should actually be called by the user!
+			&vkal_image.image);			
 
 		// Back the image with actual memory:
 		VkMemoryRequirements image_memory_requirements = { 0 };
@@ -521,77 +522,17 @@ RenderImage create_render_image(uint32_t width, uint32_t height)
 {
     RenderImage render_image = {0};
     render_image.depth_image = create_vkal_image(
-	width, height,
-	VK_FORMAT_D32_SFLOAT,
-	VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
-	VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-	"render to image depth");
-    // Image
-    {
-		create_image(
-			width, height,
-			1, 1,
-			0,  // flags
-			vkal_info.swapchain_image_format,
-			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			&render_image.image);
-		VKAL_DBG_IMAGE_NAME(get_image(render_image.image), "Render Image"); // TODO: should be called by user.
+		width, height,
+		VK_FORMAT_D32_SFLOAT,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
+		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
-		// Back the image with actual memory:
-		VkMemoryRequirements image_memory_requirements = { 0 };
-		vkGetImageMemoryRequirements(
-			vkal_info.device,
-			get_image(render_image.image),
-			&image_memory_requirements);
-		uint32_t mem_type_bits = check_memory_type_index(
-			image_memory_requirements.memoryTypeBits,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		create_device_memory(image_memory_requirements.size, mem_type_bits, &render_image.device_memory);
-		VkResult result = vkBindImageMemory(
-			vkal_info.device, get_image(render_image.image),
-			get_device_memory(render_image.device_memory), 0);
-		VKAL_ASSERT(result, "failed to bind texture image memory!");
-    }
-
-    // Image View
-    {
-		create_image_view(
-			get_image(render_image.image),
-			VK_IMAGE_VIEW_TYPE_2D,
-			vkal_info.swapchain_image_format,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			0, 1,
-			0, 1,
-			&render_image.image_view);
-    }
-
-    // upload
-    {
-		VkCommandBuffer cmd_buf;
-		VkCommandBufferAllocateInfo allocate_info = { 0 };
-		allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		allocate_info.commandBufferCount = 1;
-		allocate_info.commandPool = vkal_info.default_command_pools[0]; // NOTE: What if present and graphics queue are not from the same family?
-		allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		vkAllocateCommandBuffers(vkal_info.device, &allocate_info, &cmd_buf);
-
-		// start recording
-		VkCommandBufferBeginInfo cmd_begin_info = { 0 };
-		cmd_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		VKAL_ASSERT(
-			vkBeginCommandBuffer(cmd_buf, &cmd_begin_info),
-			"failed to put command buffer into recording state");
-
-		set_image_layout(
-			cmd_buf,
-			get_image(render_image.image),
-			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			(VkImageSubresourceRange){ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
-			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
-		flush_command_buffer(cmd_buf, vkal_info.graphics_queue, 1);
-    }
+	render_image.color_image = create_vkal_image(
+		width, height,
+		vkal_info.swapchain_image_format,
+		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		VK_IMAGE_ASPECT_COLOR_BIT,
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
 		render_image.framebuffers[i] = create_render_image_framebuffer(render_image, width, height);
@@ -1118,7 +1059,7 @@ VkalTexture vkal_create_texture(
 void create_staging_buffer(uint32_t size) 
 {
     vkal_info.staging_buffer = create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-	VKAL_DBG_BUFFER_NAME(vkal_info.staging_buffer, "Default Staging Buffer");
+	VKAL_DBG_BUFFER_NAME(vkal_info.device, vkal_info.staging_buffer, "Default Staging Buffer");
     // Allocate staging buffer memory
     VkMemoryRequirements buffer_memory_requirements = { 0 };
     vkGetBufferMemoryRequirements(vkal_info.device, vkal_info.staging_buffer.buffer, &buffer_memory_requirements);
@@ -1784,7 +1725,7 @@ uint32_t create_render_image_framebuffer(RenderImage render_image, uint32_t widt
 {
     VkFramebuffer framebuffer;
     VkImageView attachments[2];
-    attachments[0] = get_image_view(render_image.image_view);
+    attachments[0] = get_image_view(render_image.color_image.image_view);
     attachments[1] = get_image_view(render_image.depth_image.image_view);
     VkFramebufferCreateInfo framebuffer_info = { 0 };
     framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -1834,15 +1775,15 @@ RenderImage recreate_render_image(RenderImage render_image, uint32_t width, uint
     vkDeviceWaitIdle(vkal_info.device);
 
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
-	destroy_framebuffer(render_image.framebuffers[i]);
+		destroy_framebuffer(render_image.framebuffers[i]);
     }
 
-    destroy_image(render_image.image);
+    destroy_image(render_image.color_image.image);
     destroy_image(render_image.depth_image.image);
 
-    destroy_image_view(render_image.image_view);
+    destroy_image_view(render_image.color_image.image_view);
     destroy_image_view(render_image.depth_image.image_view);
-    destroy_device_memory(render_image.device_memory);
+	destroy_device_memory(render_image.color_image.device_memory);
     destroy_device_memory(render_image.depth_image.device_memory);
 
     RenderImage new_render_image = create_render_image(width, height);
@@ -2653,7 +2594,7 @@ void allocate_default_device_memory_index(void)
 void create_default_uniform_buffer(uint32_t size)
 {
     vkal_info.default_uniform_buffer = create_buffer(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-	VKAL_DBG_BUFFER_NAME(vkal_info.default_uniform_buffer, "Default Uniform Buffer");
+	VKAL_DBG_BUFFER_NAME(vkal_info.device, vkal_info.default_uniform_buffer, "Default Uniform Buffer");
 }
 
 void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data)
@@ -2754,14 +2695,14 @@ void create_default_vertex_buffer(uint32_t size)
 {
     vkal_info.default_vertex_buffer = create_buffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     vkal_info.default_vertex_buffer_offset = 0;
-	VKAL_DBG_BUFFER_NAME(vkal_info.default_vertex_buffer, "Default Vertex Buffer");
+	VKAL_DBG_BUFFER_NAME(vkal_info.device, vkal_info.default_vertex_buffer, "Default Vertex Buffer");
 }
 
 void create_default_index_buffer(uint32_t size)
 {
     vkal_info.default_index_buffer = create_buffer(size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     vkal_info.default_index_buffer_offset = 0;
-	VKAL_DBG_BUFFER_NAME(vkal_info.default_index_buffer, "Default Index Buffer");
+	VKAL_DBG_BUFFER_NAME(vkal_info.device, vkal_info.default_index_buffer, "Default Index Buffer");
 }
 
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset)
