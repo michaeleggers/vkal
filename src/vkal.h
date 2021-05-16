@@ -142,12 +142,7 @@ typedef struct VkalImage
 
 typedef struct RenderImage
 {
-    //uint32_t      image;
-    //uint32_t      image_view;
-    //VkSampler     sampler;
-    //uint32_t	  device_memory;	
     uint32_t      width, height;
-
 	VkalImage     color_image;
     VkalImage     depth_image;
     uint32_t      framebuffers[VKAL_MAX_SWAPCHAIN_IMAGES];

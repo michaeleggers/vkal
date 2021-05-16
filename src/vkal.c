@@ -1244,25 +1244,26 @@ void create_default_depth_buffer(void)
     }
     
     {
-	// Check how much size is required for this image. Calculating by hand _might_ work, but who knows what
-	// the GPU is doing behind the scenes with an OPTIMAL TILING set! Alignment stuff might blow up the whole thing when done manually!
-	VkMemoryRequirements image_memory_requirements;
-	vkGetImageMemoryRequirements(vkal_info.device, get_image(vkal_info.depth_stencil_image), &image_memory_requirements);
+		// Check how much size is required for this image. Calculating by hand _might_ work, but who knows what
+		// the GPU is doing behind the scenes with an OPTIMAL TILING set! Alignment stuff might blow up the whole thing when done manually!
+		VkMemoryRequirements image_memory_requirements;
+		vkGetImageMemoryRequirements(vkal_info.device, get_image(vkal_info.depth_stencil_image), &image_memory_requirements);
         
-	// TODO: check if I am doing this property query correctly!!!!!!!
-	// Check what LunarG is doing in their samples!
-	uint32_t mem_type_index = check_memory_type_index(image_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	create_device_memory(image_memory_requirements.size, mem_type_index, &vkal_info.device_memory_depth_stencil);
-	vkBindImageMemory(vkal_info.device, get_image(vkal_info.depth_stencil_image), get_device_memory(vkal_info.device_memory_depth_stencil), 0);
+		// TODO: check if I am doing this property query correctly!!!!!!!
+		// Check what LunarG is doing in their samples!
+		uint32_t mem_type_index = check_memory_type_index(image_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		create_device_memory(image_memory_requirements.size, mem_type_index, &vkal_info.device_memory_depth_stencil);
+		vkBindImageMemory(vkal_info.device, get_image(vkal_info.depth_stencil_image), get_device_memory(vkal_info.device_memory_depth_stencil), 0);
     }
     
     {
-	// depth stencil image view
-	create_image_view(get_image(vkal_info.depth_stencil_image), 
-			  VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT,
-			  0, 1,
-			  0, 1,
-			  &vkal_info.depth_stencil_image_view);
+		// depth stencil image view
+		create_image_view(
+			get_image(vkal_info.depth_stencil_image), 
+			 VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT,
+			0, 1,
+			0, 1,
+			&vkal_info.depth_stencil_image_view);
     }
 }
 
