@@ -13,7 +13,7 @@
 #include <assert.h>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "../stb_image.h"
+#include "external/stb/stb_image.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -23,7 +23,7 @@
 #include <GLFW/glfw3.h>
 
 #include "../vkal.h"
-#include "../platform.h"
+#include "utils/platform.h"
 
 #define SCREEN_WIDTH  800
 #define SCREEN_HEIGHT 800
@@ -289,7 +289,7 @@ int main(int argc, char ** argv)
     instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);    
 #endif
    
-    vkal_create_instance(window,
+    vkal_create_instance_glfw(window,
 			 instance_extensions, instance_extension_count,
  			 instance_layers, instance_layer_count);
     
@@ -403,10 +403,10 @@ int main(int argc, char ** argv)
 
     /* Model Data */
     float rect_vertices[] = {
-	// Pos            // Normal       // Color       
-	-1.0,  1.0, 1.0,  0.0, 0.0, 1.0,  1.0, 0.0, 0.0,  
-	 1.0,  1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0, 0.0,  
-	-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 0.0, 1.0,  
+		// Pos            // Normal       // Color       
+		-1.0,  1.0, 1.0,  0.0, 0.0, 1.0,  1.0, 0.0, 0.0,  
+		 1.0,  1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0, 0.0,  
+		-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 0.0, 1.0,  
     	 1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  1.0, 1.0, 0.0, 
     };
     uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
@@ -485,7 +485,7 @@ int main(int argc, char ** argv)
     Buffer storage_buffer_bone_matrices = vkal_create_buffer(md_mesh.bone_count * sizeof(glm::mat4),
 					       &offset_matrices_mem,
 					       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    vkal_dbg_buffer_name(storage_buffer_bone_matrices, "Storage Buffer Offset Matrices");
+    VKAL_DBG_BUFFER_NAME(vkal_info->device, storage_buffer_bone_matrices, "Storage Buffer Offset Matrices");
     map_memory(&storage_buffer_bone_matrices, md_mesh.bone_count * sizeof(glm::mat4), 0);
     for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
 	printf("%s\n", md_mesh.bones[i].name);
@@ -499,10 +499,11 @@ int main(int argc, char ** argv)
 								    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 								    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 								    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    Buffer storage_buffer_skeleton_matrices = vkal_create_buffer(md_mesh.bone_count * sizeof(glm::mat4),
-								 &skeleton_matrices_mem,
-								 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    vkal_dbg_buffer_name(storage_buffer_skeleton_matrices, "Storage Buffer Skeleton Matrices");
+    Buffer storage_buffer_skeleton_matrices = vkal_create_buffer(
+		md_mesh.bone_count * sizeof(glm::mat4),
+		&skeleton_matrices_mem,
+		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+	VKAL_DBG_BUFFER_NAME(vkal_info->device, storage_buffer_skeleton_matrices, "Storage Buffer Skeleton Matrices");
     map_memory(&storage_buffer_skeleton_matrices, md_mesh.bone_count * sizeof(glm::mat4), 0);
     for (uint32_t i = 0; i < md_mesh.bone_count; ++i) {
 	memcpy( (void*)&((glm::mat4*)storage_buffer_skeleton_matrices.mapped)[i], (void*)&(md_mesh.animation_matrices[i]), sizeof(glm::mat4) );

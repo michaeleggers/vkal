@@ -8,7 +8,6 @@ project(VKAL VERSION 1.0)
 cmake_minimum_required(VERSION 3.12)
 find_package(Vulkan REQUIRED)
 
-
 if (${WINDOWING} STREQUAL "VKAL_GLFW")
 	# GLFW, https://www.glfw.org/docs/latest/build.html#build_link_cmake_source
 	set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -17,34 +16,15 @@ if (${WINDOWING} STREQUAL "VKAL_GLFW")
 	add_subdirectory(src/external/glfw332src)
 endif()
 
-# Vulkan Abstraction Layer Lib
-add_library(libvkal
-    src/vkal.c
-    src/vkal.h
-)
-target_include_directories(libvkal
-    PUBLIC Vulkan::Vulkan
-)
-target_link_libraries(libvkal PUBLIC
-    Vulkan::Vulkan 
-)
-if (${WINDOWING} STREQUAL "VKAL_GLFW")
-	target_link_libraries(libvkal PUBLIC
-		glfw
-	)
-endif()	
-target_compile_definitions(libvkal PUBLIC ${WINDOWING})
-
-
-
+add_subdirectory(src/vkal)
 
 # Basic Texture Example
 add_executable(GLFW_Texture
     src/examples/texture.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
-	src/platform.c
-	src/platform.h
+	src/examples/utils/platform.c
+	src/examples/utils/platform.h
     src/examples/assets/shaders/texture.vert
     src/examples/assets/shaders/texture.frag
 )
@@ -52,16 +32,15 @@ target_include_directories(GLFW_Texture
     PUBLIC external
 )
 target_link_libraries(GLFW_Texture
-	PUBLIC libvkal
-	PUBLIC glfw)
+	PUBLIC libvkal)
 	
 # Basic Texture Example without GLFW, just WinMain...
 add_executable(Win32_Texture WIN32
     src/examples/texture_win32.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
-	src/platform.c
-	src/platform.h
+	src/examples/utils/platform.c
+	src/examples/utils/platform.h
     src/examples/assets/shaders/texture.vert
     src/examples/assets/shaders/texture.frag
 )
@@ -78,8 +57,8 @@ add_executable(GLFW_MeshSkinning
 	src/examples/utils/tr_math.h
 	src/examples/utils/model.c
 	src/examples/utils/model.h
-	src/platform.c
-	src/platform.h
+	src/examples/utils/platform.c
+	src/examples/utils/platform.h
     src/examples/assets/shaders/texture.vert
     src/examples/assets/shaders/texture.frag
 )
@@ -97,8 +76,8 @@ add_executable(GLFW_ModelLoading
 	src/examples/utils/tr_math.h
 	src/examples/utils/model.c
 	src/examples/utils/model.h
-	src/platform.c
-	src/platform.h
+	src/examples/utils/platform.c
+	src/examples/utils/platform.h
     src/examples/assets/shaders/model_loading.vert
     src/examples/assets/shaders/model_loading.frag
 )
@@ -114,8 +93,8 @@ add_executable(GLFW_Primitives
     src/examples/primitives.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
-	src/platform.c
-	src/platform.h
+	src/examples/utils/platform.c
+	src/examples/utils/platform.h
     src/examples/assets/shaders/primitives.vert
     src/examples/assets/shaders/primitives.frag
 )
@@ -131,8 +110,8 @@ add_executable(GLFW_PrimitivesDynamic
     src/examples/primitives_dynamic.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
-	src/platform.c
-	src/platform.h
+	src/examples/utils/platform.c
+	src/examples/utils/platform.h
     src/examples/assets/shaders/primitives.vert
     src/examples/assets/shaders/primitives.frag
 )
@@ -148,8 +127,8 @@ add_executable(GLFW_RenderToTexture
     src/examples/rendertexture.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
-	src/platform.c
-	src/platform.h
+	src/examples/utils/platform.c
+	src/examples/utils/platform.h
     src/examples/assets/shaders/rendertexture.vert
     src/examples/assets/shaders/rendertexture.frag
 )
@@ -165,8 +144,8 @@ add_executable(GLFW_MultipleTextures
     src/examples/textures.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
-	src/platform.c
-	src/platform.h
+	src/examples/utils/platform.c
+	src/examples/utils/platform.h
     src/examples/assets/shaders/textures.vert
     src/examples/assets/shaders/textures.frag
 )
@@ -182,8 +161,8 @@ add_executable(GLFW_DescriptorArrayPushConstant
     src/examples/textures_descriptorarray_push_constant.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
-	src/platform.c
-	src/platform.h
+	src/examples/utils/platform.c
+	src/examples/utils/platform.h
     src/examples/assets/shaders/textures_descriptorarray_push_constant.vert
     src/examples/assets/shaders/textures_descriptorarray_push_constant.frag
 )
@@ -199,8 +178,8 @@ add_executable(GLFW_DynamicUniformBuffer
     src/examples/textures_dynamic_descriptor.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
-	src/platform.c
-	src/platform.h
+	src/examples/utils/platform.c
+	src/examples/utils/platform.h
     src/examples/assets/shaders/textures_dynamic_descriptor.vert
     src/examples/assets/shaders/textures_dynamic_descriptor.frag
 )
@@ -216,8 +195,8 @@ add_executable(GLFW_TTFDrawing
     src/examples/ttf_drawing.c
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
-	src/platform.c
-	src/platform.h
+	src/examples/utils/platform.c
+	src/examples/utils/platform.h
     src/examples/assets/shaders/ttf_drawing.vert
     src/examples/assets/shaders/ttf_drawing.frag
 )
@@ -233,8 +212,8 @@ add_executable(GLFW_MeshSkinningGLM
     src/examples/mesh_skinning_glm.cpp
 	src/examples/utils/tr_math.c
 	src/examples/utils/tr_math.h
-	src/platform.c
-	src/platform.h
+	src/examples/utils/platform.c
+	src/examples/utils/platform.h
     src/examples/assets/shaders/model_loading_md.vert
     src/examples/assets/shaders/model_loading_md.frag
 )

@@ -23,15 +23,25 @@ static VkalInfo vkal_info;
 VkalInfo * vkal_init(char ** extensions, uint32_t extension_count)
 {
 
-	#ifdef _DEBUG
-		#if defined (VKAL_GLFW)
+#ifdef _DEBUG
+
+	#ifdef __cplusplus
+		extern "C" {
+	#endif
+
+	#if defined (VKAL_GLFW)
 			vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)glfwGetInstanceProcAddress(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
-		#elif defined (VKAL_WIN32)
+	#elif defined (VKAL_WIN32)
 			vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
-		#elif defined (VKAL_SDL)
+	#elif defined (VKAL_SDL)
 			// TODO
-		#endif
-	#endif 
+	#endif
+
+	#ifdef __cplusplus
+		}
+	#endif
+
+#endif 
 
 //    pick_physical_device(extensions, extension_count);
     create_logical_device(extensions, extension_count);

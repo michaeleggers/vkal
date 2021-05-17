@@ -12,11 +12,11 @@
 #include <GLFW/glfw3.h>
 
 #include "../vkal.h"
-#include "../platform.h"
+#include "utils/platform.h"
 #include "utils/tr_math.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "../stb_image.h"
+#include "external/stb/stb_image.h"
 #define TRM_NDC_ZERO_TO_ONE
 #include "utils/tr_math.h"
 

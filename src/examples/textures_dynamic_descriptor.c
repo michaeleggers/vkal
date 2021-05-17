@@ -18,11 +18,11 @@
 #include <GLFW/glfw3.h>
 
 #include "../vkal.h"
-#include "../platform.h"
+#include "utils/platform.h"
 #include "utils/tr_math.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "../stb_image.h"
+#include "external/stb/stb_image.h"
 
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
@@ -119,7 +119,7 @@ int main(int argc, char ** argv)
     instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);    
 #endif
    
-    vkal_create_instance(window,
+    vkal_create_instance_glfw(window,
 			 instance_extensions, instance_extension_count,
  			 instance_layers, instance_layer_count);
     

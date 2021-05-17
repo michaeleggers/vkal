@@ -1,7 +1,7 @@
 #include <math.h>
     
 #include "model.h"
-#include "../../platform.h"
+#include "../utils/platform.h"
 
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
 #include "../external/tinyobj_loader_c.h"

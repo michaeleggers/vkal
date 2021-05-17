@@ -11,11 +11,11 @@
 #include <GLFW/glfw3.h>
 
 #include "../vkal.h"
-#include "../platform.h"
+#include "utils/platform.h"
 #include "utils/tr_math.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "../stb_image.h"
+#include "external/stb/stb_image.h"
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "external/stb/stb_truetype.h"
@@ -317,7 +317,7 @@ int main(int argc, char ** argv)
     instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);    
 #endif
    
-    vkal_create_instance(window,
+    vkal_create_instance_glfw(window,
 			 instance_extensions, instance_extension_count,
  			 instance_layers, instance_layer_count);
     
@@ -465,7 +465,7 @@ int main(int argc, char ** argv)
     Buffer index_buffer = vkal_create_buffer(PRIMITIVES_INDEX_BUFFER_SIZE,
 					     &index_memory,
 					     VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    vkal_dbg_buffer_name(index_buffer, "Index Buffer");
+    VKAL_DBG_BUFFER_NAME(vkal_info->device, index_buffer, "Index Buffer");
     map_memory(&index_buffer, PRIMITIVES_INDEX_BUFFER_SIZE, 0);
 
     DeviceMemory vertex_memory = vkal_allocate_devicememory(PRIMITIVES_VERTEX_BUFFER_SIZE,
@@ -477,7 +477,7 @@ int main(int argc, char ** argv)
     Buffer vertex_buffer = vkal_create_buffer(PRIMITIVES_VERTEX_BUFFER_SIZE,
 					     &vertex_memory,
 					     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    vkal_dbg_buffer_name(vertex_buffer, "Vertex Buffer");
+	VKAL_DBG_BUFFER_NAME(vkal_info->device, vertex_buffer, "Vertex Buffer");
     map_memory(&vertex_buffer, PRIMITIVES_VERTEX_BUFFER_SIZE, 0);
     
     Batch batch = { 0 };

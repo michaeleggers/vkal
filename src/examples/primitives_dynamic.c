@@ -16,11 +16,11 @@
 #include <GLFW/glfw3.h>
 
 #include "../vkal.h"
-#include "../platform.h"
+#include "utils/platform.h"
 #include "utils/tr_math.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "../stb_image.h"
+#include "external/stb/stb_image.h"
 #define TRM_NDC_ZERO_TO_ONE
 #include "utils/tr_math.h"
 
@@ -190,7 +190,7 @@ Image load_image_file(char const * file)
     return image;
 }
 
-void create_batch(Batch * batch)
+void create_batch(VkalInfo * vkal_info, Batch * batch)
 {
     batch->index_memory = vkal_allocate_devicememory(PRIMITIVES_INDEX_BUFFER_SIZE,
 						    VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
@@ -201,7 +201,7 @@ void create_batch(Batch * batch)
     batch->index_buffer = vkal_create_buffer(PRIMITIVES_INDEX_BUFFER_SIZE,
 					    &batch->index_memory,
 					    VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    vkal_dbg_buffer_name(batch->index_buffer, "Index Buffer");
+    VKAL_DBG_BUFFER_NAME(vkal_info->device, batch->index_buffer, "Index Buffer");
     map_memory(&batch->index_buffer, PRIMITIVES_INDEX_BUFFER_SIZE, 0);
 
     batch->vertex_memory = vkal_allocate_devicememory(PRIMITIVES_VERTEX_BUFFER_SIZE,
@@ -213,7 +213,7 @@ void create_batch(Batch * batch)
     batch->vertex_buffer = vkal_create_buffer(PRIMITIVES_VERTEX_BUFFER_SIZE,
 					     &batch->vertex_memory,
 					     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    vkal_dbg_buffer_name(batch->vertex_buffer, "Vertex Buffer");
+	VKAL_DBG_BUFFER_NAME(vkal_info->device, batch->vertex_buffer, "Vertex Buffer");
     map_memory(&batch->vertex_buffer, PRIMITIVES_VERTEX_BUFFER_SIZE, 0);
     
     batch->indices = (uint16_t*)malloc(PRIMITIVES_INDEX_BUFFER_SIZE);
@@ -650,7 +650,7 @@ int main(int argc, char ** argv)
     instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);    
 #endif
    
-    vkal_create_instance(window,
+    vkal_create_instance_glfw(window,
 			 instance_extensions, instance_extension_count,
  			 instance_layers, instance_layer_count);
     
@@ -787,8 +787,8 @@ int main(int argc, char ** argv)
     
     /* Create batches that hold Buffers for indices and vertices that can get updated every frame */
     /* Global Batch */
-    create_batch(&g_default_batch);
-    create_batch(&g_persistent_batch);
+    create_batch(vkal_info, &g_default_batch);
+    create_batch(vkal_info, &g_persistent_batch);
     
     /* Uniform Buffer for view projection matrices */
     Camera camera;
