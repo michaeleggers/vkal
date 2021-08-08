@@ -6,7 +6,11 @@
 	#define VK_USE_PLATFORM_WIN32_KHR
 #endif
 
-#include <vulkan/vulkan.h>
+#ifdef _WIN32
+    #include <vulkan/vulkan.h>
+#elif __APPLE__
+    #include "macOS/Debug/MoltenVK/include/vulkan/vulkan.h"
+#endif
 
 #if defined (VKAL_GLFW)
     #include <GLFW/glfw3.h>
@@ -1907,10 +1911,10 @@ void create_descriptor_set_layout(VkDescriptorSetLayoutBinding * layout, uint32_
     info.pBindings = layout;
     uint32_t free_index;
     for (free_index = 0; free_index < VKAL_MAX_VKDESCRIPTORSETLAYOUT; ++free_index) {
-	if (vkal_info.user_descriptor_set_layouts[free_index].used) {
+        if (vkal_info.user_descriptor_set_layouts[free_index].used) {
 
-	}
-	else break;
+        }
+        else break;
     }
     VkResult result = vkCreateDescriptorSetLayout(vkal_info.device, &info, 0, &vkal_info.user_descriptor_set_layouts[free_index].descriptor_set_layout);
     VKAL_ASSERT(result, "failed to create descriptor set layout(s)!");

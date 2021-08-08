@@ -11,7 +11,12 @@
 	#define VK_USE_PLATFORM_WIN32_KHR
 #endif
 
-#include <vulkan/vulkan.h>
+#ifdef _WIN32
+    #include <vulkan/vulkan.h>
+#elif __APPLE__
+    #include "macOS/Debug/MoltenVK/include/vulkan/vulkan.h"
+#endif
+
 
 #if defined (VKAL_GLFW)
     #include <GLFW/glfw3.h>
@@ -100,8 +105,8 @@ extern "C" {
 		VKAL_ASSERT(vkSetDebugUtilsObjectName(vkal_info_macro, &obj_info), "Failed to create debug name for Buffer");	\
 		}
 #else
-	#define VKAL_DBG_BUFFER_NAME(buffer, name) 
-	#define VKAL_DBG_IMAGE_NAME(image, name)   
+	#define VKAL_DBG_BUFFER_NAME(vkal_info_macro, vkal_buffer, macro_name)
+	#define VKAL_DBG_IMAGE_NAME(vkal_info_macro, vkal_dbg_image_macro, name)
 #endif																					
 
 #ifdef __cplusplus

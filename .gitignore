@@ -1,2 +1,5 @@
 build
 cmakebuild
+bin
+.DS_Store
+
