@@ -6,11 +6,7 @@
 	#define VK_USE_PLATFORM_WIN32_KHR
 #endif
 
-#ifdef _WIN32
-    #include <vulkan/vulkan.h>
-#elif __APPLE__
-    #include "macOS/Debug/MoltenVK/include/vulkan/vulkan.h"
-#endif
+#include <vulkan/vulkan.h>
 
 #if defined (VKAL_GLFW)
     #include <GLFW/glfw3.h>
@@ -21,6 +17,7 @@
 #endif
 
 #include "vkal.h"
+
 
 static VkalInfo vkal_info;
 
@@ -102,31 +99,31 @@ void vkal_create_instance_glfw(
     
     // If debug build check if validation layers defined in struct are available and load them
     {
-	vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count, 0);
-	VKAL_MAKE_ARRAY(vkal_info.available_instance_layers, VkLayerProperties, vkal_info.available_instance_layer_count);
-	vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count,
-					   vkal_info.available_instance_layers);
-#ifdef _DEBUG
-	vkal_info.enable_instance_layers = 1;
-#else
-	vkal_info.enable_instance_layers = 0;
-#endif
-	int layer_ok = 0;
-	if (vkal_info.enable_instance_layers) {
-	    for (uint32_t i = 0; i < instance_layer_count; ++i) {
-		layer_ok = check_instance_layer_support(instance_layers[i],
-							vkal_info.available_instance_layers,
-							vkal_info.available_instance_layer_count);
-			if (!layer_ok) {
-				printf("validation layer not available: %s\n", instance_layers[i]);
-				VKAL_ASSERT(VK_ERROR_LAYER_NOT_PRESENT, "requested isntance layer not present!");
-			}
-	    }
-	}
-	if (layer_ok) {
-	    create_info.enabledLayerCount = instance_layer_count;
-	    create_info.ppEnabledLayerNames = (const char * const *)instance_layers;
-	}
+        vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count, 0);
+        VKAL_MAKE_ARRAY(vkal_info.available_instance_layers, VkLayerProperties, vkal_info.available_instance_layer_count);
+        vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count,
+                           vkal_info.available_instance_layers);
+    #ifdef _DEBUG
+        vkal_info.enable_instance_layers = 1;
+    #else
+        vkal_info.enable_instance_layers = 0;
+    #endif
+        int layer_ok = 0;
+        if (vkal_info.enable_instance_layers) {
+            for (uint32_t i = 0; i < instance_layer_count; ++i) {
+            layer_ok = check_instance_layer_support(instance_layers[i],
+                                vkal_info.available_instance_layers,
+                                vkal_info.available_instance_layer_count);
+                if (!layer_ok) {
+                    printf("validation layer not available: %s\n", instance_layers[i]);
+                    VKAL_ASSERT(VK_ERROR_LAYER_NOT_PRESENT, "requested isntance layer not present!");
+                }
+            }
+        }
+        if (layer_ok) {
+            create_info.enabledLayerCount = instance_layer_count;
+            create_info.ppEnabledLayerNames = (const char * const *)instance_layers;
+        }
     }
 
     // Check if requested instance extensions are available and if so, load them.
@@ -574,7 +571,7 @@ void unmap_memory(Buffer * buffer)
 void create_glfw_surface(void)
 {
 	VkResult result = glfwCreateWindowSurface(vkal_info.instance, vkal_info.window, VKAL_NULL, &vkal_info.surface);
-    VKAL_ASSERT(result, "failed to create window surface");
+    VKAL_ASSERT(result, "failed to create window surface through GLFW.");
 }
 
 #elif defined (VKAL_WIN32)
@@ -656,10 +653,10 @@ VkPresentModeKHR choose_swapchain_present_mode(VkPresentModeKHR * available_pres
 #if !VKAL_VSYNC_ON
     VkPresentModeKHR * available_present_mode = available_present_modes;
     for (uint32_t i = 0; i < present_mode_count; ++i) {
-	if (*available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
-	    return *available_present_mode;
-	}
-	available_present_mode++;
+        if (*available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            return *available_present_mode;
+        }
+        available_present_mode++;
     }
 #endif
     return VK_PRESENT_MODE_FIFO_KHR; // only this mode is guaranteed to exist on _all_ Vk implementations.
@@ -668,35 +665,35 @@ VkPresentModeKHR choose_swapchain_present_mode(VkPresentModeKHR * available_pres
 VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR * capabilities)
 {
     if (capabilities->currentExtent.width != UINT32_MAX) {
-	return capabilities->currentExtent;
+        return capabilities->currentExtent;
     }
     else {
-	int width, height;
+        int width, height;
 
-#if defined (VKAL_GLFW)
-	glfwGetFramebufferSize(vkal_info.window, &width, &height);
-#elif defined (VKAL_WIN32)
-	RECT rect;
-	GetClientRect(vkal_info.window, &rect);
-	width  = rect.right;
-	height = rect.bottom;
-#elif defined (VKAL_SDL)
-	// TODO: Implement
-#endif
+    #if defined (VKAL_GLFW)
+        glfwGetFramebufferSize(vkal_info.window, &width, &height);
+    #elif defined (VKAL_WIN32)
+        RECT rect;
+        GetClientRect(vkal_info.window, &rect);
+        width  = rect.right;
+        height = rect.bottom;
+    #elif defined (VKAL_SDL)
+        // TODO: Implement
+    #endif
 
-	VkExtent2D actual_extent;
-	actual_extent.width  = width;
-	actual_extent.height = height;
-	//actual_extent.width  = max(capabilities->minImageExtent.width, VKAL_MIN(capabilities->maxImageExtent.width, actual_extent.width));
-	//actual_extent.height = max(capabilities->minImageExtent.height, VKAL_MIN(capabilities->maxImageExtent.height, actual_extent.height));
-	return actual_extent;
+        VkExtent2D actual_extent;
+        actual_extent.width  = width;
+        actual_extent.height = height;
+        //actual_extent.width  = max(capabilities->minImageExtent.width, VKAL_MIN(capabilities->maxImageExtent.width, actual_extent.width));
+        //actual_extent.height = max(capabilities->minImageExtent.height, VKAL_MIN(capabilities->maxImageExtent.height, actual_extent.height));
+        return actual_extent;
     }
 }
 
 void cleanup_swapchain(void)
 {
     for (uint32_t i = 0; i < vkal_info.framebuffer_count; ++i) {
-	vkDestroyFramebuffer(vkal_info.device, vkal_info.framebuffers[i], 0);
+        vkDestroyFramebuffer(vkal_info.device, vkal_info.framebuffers[i], 0);
     }
     VKAL_KILL_ARRAY(vkal_info.framebuffers);
     
@@ -704,7 +701,7 @@ void cleanup_swapchain(void)
     VKAL_KILL_ARRAY(vkal_info.default_command_buffers);
     
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
-	vkDestroyImageView(vkal_info.device, vkal_info.swapchain_image_views[i], 0);
+        vkDestroyImageView(vkal_info.device, vkal_info.swapchain_image_views[i], 0);
     }
     //VKAL_KILL_ARRAY(vkal_info.swapchain_image_views);
     

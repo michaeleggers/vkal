@@ -2,6 +2,7 @@
 #define MODEL_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 typedef struct Model
 {

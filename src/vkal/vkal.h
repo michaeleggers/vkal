@@ -11,12 +11,9 @@
 	#define VK_USE_PLATFORM_WIN32_KHR
 #endif
 
-#ifdef _WIN32
-    #include <vulkan/vulkan.h>
-#elif __APPLE__
-    #include "macOS/Debug/MoltenVK/include/vulkan/vulkan.h"
-#endif
 
+
+#include <vulkan/vulkan.h>
 
 #if defined (VKAL_GLFW)
     #include <GLFW/glfw3.h>

@@ -14,14 +14,6 @@
 
 void win32_read_file(char const * filename, uint8_t ** out_buffer, int * out_size)
 {
-	//FILE * file = 0;
-	//fopen_s(&file, filename, "rb");
-	//fseek(file, 0L, SEEK_END);
-	//*out_size = ftell(file);
-	//fseek(file, 0L, SEEK_SET);
-	//*out_buffer = (char*)malloc(*out_size);
-	//fread(*out_buffer, sizeof(char), *out_size, file);
-	//fclose(file);
 	HANDLE fileHandle;
 	fileHandle = CreateFile(filename,
 		GENERIC_READ,
@@ -110,9 +102,23 @@ void * win32_initialize_memory(uint32_t size)
 
 #elif __APPLE__
 
-void mac_read_file_binary(char const * filename, char ** out_buffer, int * out_size)
+void mac_read_file(char const * filename, uint8_t ** out_buffer, int * out_size)
 {
+    FILE * file = fopen(filename, "rb");
+    fseek(file, 0L, SEEK_END);
+    *out_size = ftell(file);
+    fseek(file, 0L, SEEK_SET);
+    *out_buffer = (uint8_t*)malloc(*out_size);
+    fread(*out_buffer, sizeof(char), *out_size, file);
+    fclose(file);
+}
 
+void mac_get_exe_path(char * out_buffer, int buffer_size)
+{
+    int error = _NSGetExecutablePath(out_buffer, &buffer_size);
+    if (error) {
+        
+    }
 }
 
 #elif __linux__

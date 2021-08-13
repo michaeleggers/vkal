@@ -7,13 +7,9 @@ cmake_minimum_required(VERSION 3.10)
 project(VKAL VERSION 1.0)
 cmake_minimum_required(VERSION 3.12)
 
-if (WIN32)
-    message ("Configuring for WINDOWS platform: Checking if VULKAN is installed...")
-    find_package(Vulkan REQUIRED)
-endif (WIN32)
-
 if (APPLE)
-    message ("Configuring for APPLE platform...")
+	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -D_DEBUG")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 endif (APPLE)
 
 if (${WINDOWING} STREQUAL "VKAL_GLFW")
@@ -29,4 +25,15 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 add_subdirectory(src/vkal)
+
+# Examples
+add_subdirectory(src/examples)
+
+add_dependencies(GLFW_Texture      vkal)
+add_dependencies(GLFW_ModelLoading vkal)
+
+
+
+
+
 
