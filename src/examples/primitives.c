@@ -1,7 +1,6 @@
 /* Michael Eggers, 10/22/2020
    
-   Simple example showing how to draw a rect (two triangles) and mapping
-   a texture on it.
+   Draw some simple shapes.
 */
 
 
@@ -11,7 +10,7 @@
 
 #include <GLFW/glfw3.h>
 
-#include "../vkal.h"
+#include "../vkal/vkal.h"
 
 #include "utils/platform.h"
 #include "utils/tr_math.h"
@@ -191,7 +190,7 @@ int main(int argc, char ** argv)
 
     char * instance_layers[] = {
 	"VK_LAYER_KHRONOS_validation",
-	"VK_LAYER_LUNARG_monitor"
+	//"VK_LAYER_LUNARG_monitor"
     };
     uint32_t instance_layer_count = 0;
 #ifdef _DEBUG
@@ -217,10 +216,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.read_file("../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
+    p.read_file("../../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.read_file("../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
+    p.read_file("../../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);

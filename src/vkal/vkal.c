@@ -2486,12 +2486,12 @@ uint32_t vkal_get_image(void)
 					    VK_NULL_HANDLE, &image_index);
     
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-	vkal_info.should_recreate_swapchain = 0;
-	recreate_swapchain();
-	return 666; // TODO: return -1 here. This image is useless when too old. User has to check for this!
+        vkal_info.should_recreate_swapchain = 0;
+        recreate_swapchain();
+        return 666; // TODO: return -1 here. This image is useless when too old. User has to check for this!
     }
     else {
-	// TODO
+        // TODO
     }
     
     return image_index;

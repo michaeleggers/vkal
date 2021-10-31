@@ -63,9 +63,23 @@ Platform p;
 static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-	printf("escape key pressed\n");
-	glfwSetWindowShouldClose(window, GLFW_TRUE);
+        printf("escape key pressed\n");
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
+}
+
+static void glfw_window_refresh_callback(GLFWwindow * window)
+{
+    glfwSwapBuffers(window);
+}
+
+void glfw_window_size_callback(GLFWwindow * window, int width, int height)
+{
+    printf("Window Size CB called!\n");
+}
+
+void glfw_window_pos_callback(GLFWwindow* window, int xpos, int ypos)
+{
 }
 
 void init_window()
@@ -75,6 +89,9 @@ void init_window()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Vulkan", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
+    glfwSetWindowRefreshCallback(window, glfw_window_refresh_callback);
+    glfwSetWindowSizeCallback(window, glfw_window_size_callback);
+    glfwSetWindowPosCallback(window, glfw_window_pos_callback);
     //glfwSetMouseButtonCallback(window, glfw_mouse_button_callback);
     //glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
 }
@@ -118,7 +135,7 @@ int main(int argc, char ** argv)
 
     char * instance_layers[] = {
         "VK_LAYER_KHRONOS_validation", //"VK_LAYER_LUNARG_standard_validation", <- deprecated!
-        "VK_LAYER_LUNARG_monitor"
+        //"VK_LAYER_LUNARG_monitor"
     };
     uint32_t instance_layer_count = 0;
 #ifdef _DEBUG
@@ -248,32 +265,32 @@ int main(int argc, char ** argv)
     model.vertex_buffer_offset = vkal_vertex_buffer_add(model.vertices, 9*sizeof(float), model.vertex_count);
     clear_model(&model);
 
-#define NUM_ENTITIES 300
+#define NUM_ENTITIES 1000
     /* Entities */
     Entity entities[NUM_ENTITIES];
     for (int i = 0; i < NUM_ENTITIES; ++i) {
     	vec3 pos   = { 0 };
-	pos.x = rand_between(-25.f, 25.f);
-	pos.y = rand_between(-15.f, 15.f);
-	pos.z = rand_between(-15.f, 15.f);
-	vec3 rot   = { 0 };
-	rot.x = rand_between(-15.f, 15.f); rot.y = rand_between(-15.f, 15.f); rot.z = rand_between(-15.f, 15.f);
-	float scale_xyz = rand_between(.01f, 3.f);
-	vec3 scale = { 0 };
-	scale.x = scale_xyz; scale.y = scale_xyz; scale.z = scale_xyz;
-	uint8_t model_type = (uint8_t)rand_between(0.0f, 1.99f);
-	if (model_type == 0) {
-	    entities[i].model       = rect_model;
-	    entities[i].position    = pos;
-	    entities[i].orientation = rot;
-	    entities[i].scale       = scale;
-	}
-	else {
-	    entities[i].model       = model;
-	    entities[i].position    = pos;
-	    entities[i].orientation = rot;
-	    entities[i].scale       = scale;
-	}
+        pos.x = rand_between(-25.f, 25.f);
+        pos.y = rand_between(-15.f, 15.f);
+        pos.z = rand_between(-15.f, 15.f);
+        vec3 rot   = { 0 };
+        rot.x = rand_between(-15.f, 15.f); rot.y = rand_between(-15.f, 15.f); rot.z = rand_between(-15.f, 15.f);
+        float scale_xyz = rand_between(.01f, 3.f);
+        vec3 scale = { 1, 1, 1 };
+        //scale.x = scale_xyz; scale.y = scale_xyz; scale.z = scale_xyz;
+        uint8_t model_type = (uint8_t)rand_between(0.0f, 1.99f);
+        if (model_type == 0) {
+            entities[i].model       = rect_model;
+            entities[i].position    = pos;
+            entities[i].orientation = rot;
+            entities[i].scale       = scale;
+        }
+        else {
+            entities[i].model       = model;
+            entities[i].position    = pos;
+            entities[i].orientation = rot;
+            entities[i].scale       = scale;
+        }
     }
     
     /* View Projection */
@@ -312,7 +329,10 @@ int main(int argc, char ** argv)
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
-        glfwPollEvents();
+        // HACK on MacOS: Prevents laggy window move/resize.
+        // see: https://stackoverflow.com/questions/19102189/noticable-lag-in-a-simple-opengl-program-with-mouse-input-through-glfw
+        //glfwWaitEventsTimeout(0.0167);
+        glfwPollEvents(); // OK on Windows
 		
         /* Update View Projection Matrices */
         int width, height;
@@ -344,47 +364,47 @@ int main(int argc, char ** argv)
             model_mat = mat4_x_mat4(model_mat, rot_y);
             model_mat = mat4_x_mat4(model_mat, rot_z);
             ((ModelData*)((uint8_t*)model_data + i*model_ubo.alignment))->model_mat = model_mat;
-	}
-	vkal_update_uniform(&model_ubo, model_data);	
-	
-	{
-	    uint32_t image_id = vkal_get_image();
+        }
+        vkal_update_uniform(&model_ubo, model_data);
+        
+        {
+            uint32_t image_id = vkal_get_image();
 
-	    vkal_begin_command_buffer(image_id);
+            vkal_begin_command_buffer(image_id);
 
-	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->default_command_buffers[image_id],
-			  0, 0,
-			  (float)width, (float)height);
-	    vkal_scissor(vkal_info->default_command_buffers[image_id],
-			 0, 0,
-			 (float)width, (float)height);
-	    for (int i = 0; i < NUM_ENTITIES; ++i) {
-            uint32_t dynamic_offset = (uint32_t)(i*model_ubo.alignment);
-            vkal_bind_descriptor_sets(image_id, descriptor_sets, descriptor_set_layout_count,
-                          &dynamic_offset, 1,
-                          pipeline_layout);
-            Model model_to_draw = entities[i].model;
-            if (model_to_draw.is_indexed) {
-                vkal_draw_indexed(image_id, graphics_pipeline,
-                          model_to_draw.index_buffer_offset, model_to_draw.index_count,
-                          model_to_draw.vertex_buffer_offset);
+            vkal_begin_render_pass(image_id, vkal_info->render_pass);
+            vkal_viewport(vkal_info->default_command_buffers[image_id],
+                  0, 0,
+                  (float)width, (float)height);
+            vkal_scissor(vkal_info->default_command_buffers[image_id],
+                 0, 0,
+                 (float)width, (float)height);
+            for (int i = 0; i < NUM_ENTITIES; ++i) {
+                uint32_t dynamic_offset = (uint32_t)(i*model_ubo.alignment);
+                vkal_bind_descriptor_sets(image_id, descriptor_sets, descriptor_set_layout_count,
+                              &dynamic_offset, 1,
+                              pipeline_layout);
+                Model model_to_draw = entities[i].model;
+                if (model_to_draw.is_indexed) {
+                    vkal_draw_indexed(image_id, graphics_pipeline,
+                              model_to_draw.index_buffer_offset, model_to_draw.index_count,
+                              model_to_draw.vertex_buffer_offset);
+                }
+                else {
+                    vkal_draw(image_id, graphics_pipeline,
+                          model_to_draw.vertex_buffer_offset, model_to_draw.vertex_count);
+                }
             }
-            else {
-                vkal_draw(image_id, graphics_pipeline,
-                      model_to_draw.vertex_buffer_offset, model_to_draw.vertex_count);
-            }
-	    }
 
-	    vkal_end_renderpass(image_id);
+            vkal_end_renderpass(image_id);
 
-	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers[1];
-	    command_buffers[0] = vkal_info->default_command_buffers[image_id];
-	    vkal_queue_submit(command_buffers, 1);
+            vkal_end_command_buffer(image_id);
+            VkCommandBuffer command_buffers[1];
+            command_buffers[0] = vkal_info->default_command_buffers[image_id];
+            vkal_queue_submit(command_buffers, 1);
 
-	    vkal_present(image_id);
-	}
+            vkal_present(image_id);
+        }
     }
     
     vkal_cleanup();

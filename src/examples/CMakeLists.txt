@@ -35,3 +35,20 @@ target_include_directories(GLFW_ModelLoading
 target_link_libraries(GLFW_ModelLoading
     PUBLIC vkal
     PUBLIC glfw)
+
+# Primitives
+add_executable(GLFW_Primitives
+	primitives.c
+	utils/tr_math.c
+	utils/tr_math.h
+	utils/platform.c
+	utils/platform.h
+	assets/shaders/primitives.vert
+	assets/shaders/primitives.frag
+)
+target_include_directories(GLFW_Primitives
+	PUBLIC external
+)
+target_link_libraries(GLFW_Primitives
+	PUBLIC vkal
+	PUBLIC glfw)
