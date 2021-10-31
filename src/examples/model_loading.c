@@ -161,10 +161,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.read_file("../../src/examples/assets/shaders/model_loading_vert.spv", &vertex_byte_code, &vertex_code_size);
+    p.read_file("../src/examples/assets/shaders/model_loading_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.read_file("../../src/examples/assets/shaders/model_loading_frag.spv", &fragment_byte_code, &fragment_code_size);
+    p.read_file("../src/examples/assets/shaders/model_loading_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -261,7 +261,7 @@ int main(int argc, char ** argv)
     Model model = {0};
     model.is_indexed = 0;
     float bmin[3], bmax[3];
-    load_obj(bmin, bmax, "../../src/examples/assets/models/lego.obj", &model);
+    load_obj(bmin, bmax, "../src/examples/assets/models/lego.obj", &model);
     model.vertex_buffer_offset = vkal_vertex_buffer_add(model.vertices, 9*sizeof(float), model.vertex_count);
     clear_model(&model);
 

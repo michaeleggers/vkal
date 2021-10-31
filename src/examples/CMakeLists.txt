@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(GLFW_Texture VERSION 1.0)
 
+
 # Basic Texture Example
 add_executable(GLFW_Texture
     texture.c
@@ -52,3 +53,9 @@ target_include_directories(GLFW_Primitives
 target_link_libraries(GLFW_Primitives
 	PUBLIC vkal
 	PUBLIC glfw)
+	
+set_property(TARGET GLFW_Texture      PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set_property(TARGET GLFW_ModelLoading PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set_property(TARGET GLFW_Primitives   PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+
+	

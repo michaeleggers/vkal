@@ -127,10 +127,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.read_file("../../src/examples/assets/shaders/texture_vert.spv", &vertex_byte_code, &vertex_code_size);
+    p.read_file("../src/examples/assets/shaders/texture_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.read_file("../../src/examples/assets/shaders/texture_frag.spv", &fragment_byte_code, &fragment_code_size);
+    p.read_file("../src/examples/assets/shaders/texture_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -219,7 +219,7 @@ int main(int argc, char ** argv)
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);
     
     /* Texture Data */
-    Image image = load_image_file("../../src/examples/assets/textures/vklogo.jpg");
+    Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
     VkalTexture texture = vkal_create_texture(
 		1, image.data, image.width, image.height, 4, 0,
 		VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,

@@ -173,6 +173,10 @@ int main(int argc, char ** argv)
 {
     init_window();
     init_platform(&p);
+
+	uint8_t exe_path_buffer[256] = { 0 };
+	p.get_exe_path(exe_path_buffer, 256);
+	printf("%s\n\n", exe_path_buffer);
     
     char * device_extensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -216,10 +220,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.read_file("../../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
+    p.read_file("../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.read_file("../../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
+    p.read_file("../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
