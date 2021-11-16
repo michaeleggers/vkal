@@ -1,6 +1,7 @@
 
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
@@ -102,9 +103,14 @@ void * win32_initialize_memory(uint32_t size)
 
 #elif __APPLE__
 
-void mac_read_file(char const * filename, uint8_t ** out_buffer, int * out_size)
+void read_file(char const * filename, uint8_t ** out_buffer, int * out_size)
 {
-    FILE * file = fopen(filename, "rb");
+    char exe_path[256];
+    get_exe_path(exe_path, 256*sizeof(char));
+    char abs_path[256];
+    memcpy(abs_path, exe_path, 256);
+    strcat(abs_path, filename);
+    FILE * file = fopen(abs_path, "rb");
     fseek(file, 0L, SEEK_END);
     *out_size = ftell(file);
     fseek(file, 0L, SEEK_SET);
@@ -113,35 +119,24 @@ void mac_read_file(char const * filename, uint8_t ** out_buffer, int * out_size)
     fclose(file);
 }
 
-void mac_get_exe_path(char * out_buffer, int buffer_size)
+void get_exe_path(char * out_buffer, int buffer_size)
 {
     int error = _NSGetExecutablePath(out_buffer, &buffer_size);
     if (error) {
-        
+        // TOOO: handle error
     }
+    int len = strlen(out_buffer);
+    char * slash = out_buffer + len + 1;
+    while (len >= 0 && *slash != '/') { slash--; len--; }
+    out_buffer[len + 1] = '\0';
 }
 
 #elif __linux__
 
 #endif 
 
-void init_platform(Platform * p)
-{
-	/* Platform specific */
-#ifdef _WIN32
-	p->read_file = win32_read_file;
-	p->get_exe_path = win32_get_exe_path;
-	p->initialize_memory = win32_initialize_memory;	
 
-#elif __APPLE__
-	p->read_file    = mac_read_file;
-	p->get_exe_path = mac_get_exe_path;
-
-#elif __linux__
-
-
-#endif
 
 	/* Platform independent*/
 
-}
+
