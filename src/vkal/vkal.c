@@ -1438,7 +1438,7 @@ void vkal_select_physical_device(VkalPhysicalDevice * physical_device)
 {
     vkal_info.physical_device = physical_device->device;
     vkal_info.physical_device_properties = physical_device->property;
-    printf("%d\n", vkal_info.physical_device_properties.limits.nonCoherentAtomSize);
+    printf("%llu\n", vkal_info.physical_device_properties.limits.nonCoherentAtomSize);
 }
 
 void create_logical_device(char ** extensions, uint32_t extension_count)

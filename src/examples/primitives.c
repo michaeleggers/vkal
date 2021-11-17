@@ -24,7 +24,6 @@
 #define SCREEN_HEIGHT 768
 
 static GLFWwindow * window;
-static Platform p;
 static int width, height; /* current framebuffer width/height */
 
 typedef struct ViewProjection
@@ -172,10 +171,9 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
 int main(int argc, char ** argv)
 {
     init_window();
-    init_platform(&p);
 
 	char exe_path_buffer[256] = { 0 };
-	p.get_exe_path(exe_path_buffer, 256);
+	get_exe_path(exe_path_buffer, 256);
 	printf("%s\n\n", exe_path_buffer);
     
     char * device_extensions[] = {
@@ -220,10 +218,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.read_file("../../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("../../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.read_file("../../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("../../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -336,8 +334,6 @@ int main(int argc, char ** argv)
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
     view_proj_data.proj = ortho(0.f, (float)SCREEN_WIDTH, (float)SCREEN_HEIGHT, 0.f, -1.f, 2.f);
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);
-    Buffer dummyBuffer = { 0 };
-    VKAL_DBG_BUFFER_NAME(vkal_info->device, dummyBuffer, "Dummy Buffer");
     vkal_update_descriptor_set_uniform(descriptor_set[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);    
     
