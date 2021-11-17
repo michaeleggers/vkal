@@ -1,6 +1,20 @@
 cmake_minimum_required(VERSION 3.10)
 project(GLFW_Texture VERSION 1.0)
 
+# Hello Triangle Example
+add_executable(GLFW_HelloTriangle
+	hello_triangle.cpp
+	utils/platform.c
+	utils/platform.h
+    assets/shaders/primitives.vert
+    assets/shaders/primitives.frag
+)
+target_include_directories(GLFW_HelloTriangle
+    PUBLIC external
+)
+target_link_libraries(GLFW_HelloTriangle
+	PUBLIC vkal glm_static)
+
 
 # Basic Texture Example
 add_executable(GLFW_Texture
@@ -57,5 +71,6 @@ target_link_libraries(GLFW_Primitives
 set_property(TARGET GLFW_Texture      PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set_property(TARGET GLFW_ModelLoading PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set_property(TARGET GLFW_Primitives   PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+
 set_property(TARGET GLFW_Primitives   PROPERTY CMAKE_XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 	
