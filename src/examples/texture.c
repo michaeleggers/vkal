@@ -98,8 +98,8 @@ int main(int argc, char ** argv)
     uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
 
     char * instance_layers[] = {
-	"VK_LAYER_KHRONOS_validation",
-	"VK_LAYER_LUNARG_monitor"
+	"VK_LAYER_KHRONOS_validation"
+	//"VK_LAYER_LUNARG_monitor" // TODO: Not available on MacOS ?
     };
     uint32_t instance_layer_count = 0;
 #ifdef _DEBUG
@@ -125,10 +125,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    read_file("../../src/examples/assets/shaders/texture_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("/../../src/examples/assets/shaders/texture_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    read_file("../../src/examples/assets/shaders/texture_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("/../../src/examples/assets/shaders/texture_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
