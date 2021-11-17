@@ -13,10 +13,16 @@
 
 #include <Windows.h>
 
-void win32_read_file(char const * filename, uint8_t ** out_buffer, int * out_size)
+void read_file(char const * filename, uint8_t ** out_buffer, int * out_size)
 {
+	char exe_path[256];
+	get_exe_path(exe_path, 256 * sizeof(char));
+	char abs_path[256];
+	memcpy(abs_path, exe_path, 256);
+	strcat(abs_path, filename);
+
 	HANDLE fileHandle;
-	fileHandle = CreateFile(filename,
+	fileHandle = CreateFile(abs_path,
 		GENERIC_READ,
 		FILE_SHARE_READ,
 		NULL,
@@ -25,7 +31,7 @@ void win32_read_file(char const * filename, uint8_t ** out_buffer, int * out_siz
 		NULL
 	);
 	if (fileHandle == INVALID_HANDLE_VALUE)
-		printf("unable to open file: %s\n", filename);
+		printf("unable to open file: %s\n", abs_path);
 
 	DWORD filesize = GetFileSize(fileHandle, NULL);
 
@@ -59,7 +65,7 @@ void win32_read_file(char const * filename, uint8_t ** out_buffer, int * out_siz
 	CloseHandle(fileHandle);
 }
 
-void win32_get_exe_path(char * out_buffer, int buffer_size)
+void get_exe_path(char * out_buffer, int buffer_size)
 {
 	DWORD len = GetModuleFileNameA(NULL, out_buffer, buffer_size);
 	if ( !len ) {
@@ -93,7 +99,7 @@ void win32_get_exe_path(char * out_buffer, int buffer_size)
 	//}
 }
 
-void * win32_initialize_memory(uint32_t size)
+void * initialize_memory(uint32_t size)
 {
 	void * result = malloc(size);
 	assert( (result != NULL) && "Failed to initialize memory" );

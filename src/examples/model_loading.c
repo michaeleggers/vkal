@@ -247,7 +247,7 @@ int main(int argc, char ** argv)
     };
     uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
   
-    uint64_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
+    uint64_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 3*sizeof(vec3), 4);
     uint64_t offset_indices  = vkal_index_buffer_add(rect_indices, index_count);
     Model rect_model = { 0 };
     rect_model.is_indexed = 1;

@@ -134,8 +134,7 @@ void vkal_create_instance_glfw(
 		required_extensions = glfwGetRequiredInstanceExtensions(&required_extension_count);
     
 		uint32_t total_instance_ext_count = required_extension_count + instance_extension_count;
-		char ** all_instance_extensions;
-		all_instance_extensions = (char**)malloc(total_instance_ext_count * sizeof(char*));
+		char ** all_instance_extensions = (char**)malloc(total_instance_ext_count * sizeof(char*));
 		for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
 			all_instance_extensions[i] = (char*)malloc(256 * sizeof(char));
 		}
@@ -861,7 +860,6 @@ static void create_image_view(VkImage image,
 			      uint32_t base_array_layer, uint32_t array_layer_count,
 			      uint32_t * out_image_view)
 {
-    VkImageView image_view;
     VkImageViewCreateInfo view_info = { 0 };
     view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     view_info.image = image;
@@ -912,7 +910,6 @@ VkImageView get_image_view(uint32_t id)
 VkSampler create_sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode u,
 			 VkSamplerAddressMode v, VkSamplerAddressMode w)
 {
-    VkSampler sampler;
     VkSamplerCreateInfo sampler_info = { 0 };
     sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     /* TODO: make address mode parameterized as we need repeat for raytracing bluenoise and calmp to border for shadow maps! */
@@ -1441,6 +1438,7 @@ void vkal_select_physical_device(VkalPhysicalDevice * physical_device)
 {
     vkal_info.physical_device = physical_device->device;
     vkal_info.physical_device_properties = physical_device->property;
+    printf("%d\n", vkal_info.physical_device_properties.limits.nonCoherentAtomSize);
 }
 
 void create_logical_device(char ** extensions, uint32_t extension_count)
@@ -1735,7 +1733,6 @@ void create_default_framebuffers(void)
 
 uint32_t create_render_image_framebuffer(RenderImage render_image, uint32_t width, uint32_t height)
 {
-    VkFramebuffer framebuffer;
     VkImageView attachments[2];
     attachments[0] = get_image_view(render_image.color_image.image_view);
     attachments[1] = get_image_view(render_image.depth_image.image_view);
@@ -2782,14 +2779,15 @@ UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint3
 
 uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count)
 {
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
     uint32_t vertices_in_bytes = vertex_count * vertex_size;
+    uint64_t size = (vertices_in_bytes + alignment - 1) & ~(alignment - 1);
     
     // map staging memory and upload vertex data
     void * staging_memory;
-    VkResult result = vkMapMemory(vkal_info.device,
-				  vkal_info.device_memory_staging, 0, vertices_in_bytes, 0, &staging_memory);
+    VkResult result = vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, size, 0, &staging_memory);
     VKAL_ASSERT(result, "failed to map device staging memory!");
-    flush_to_memory(vkal_info.device_memory_staging, staging_memory, vertices, vertices_in_bytes, 0);
+    flush_to_memory(vkal_info.device_memory_staging, staging_memory, vertices, size, 0);
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
     
     // copy vertex buffer data from staging memory (host visible) to device local memory for every command buffer
@@ -2797,14 +2795,14 @@ uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     VkCommandBufferBeginInfo begin_info = { 0 };
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     for (int i = 0; i < 1; ++i) {
-	vkBeginCommandBuffer(vkal_info.default_command_buffers[i], &begin_info);
-	VkBufferCopy buffer_copy = { 0 };
-	buffer_copy.dstOffset = offset;
-	buffer_copy.srcOffset = 0;
-	buffer_copy.size = vertices_in_bytes;
-	vkCmdCopyBuffer(vkal_info.default_command_buffers[i],
-			vkal_info.staging_buffer.buffer, vkal_info.default_vertex_buffer.buffer, 1, &buffer_copy);
-	vkEndCommandBuffer(vkal_info.default_command_buffers[i]);
+	    vkBeginCommandBuffer(vkal_info.default_command_buffers[i], &begin_info);
+	    VkBufferCopy buffer_copy = { 0 };
+	    buffer_copy.dstOffset = offset;
+	    buffer_copy.srcOffset = 0;
+	    buffer_copy.size = vertices_in_bytes;
+	    vkCmdCopyBuffer(vkal_info.default_command_buffers[i],
+			    vkal_info.staging_buffer.buffer, vkal_info.default_vertex_buffer.buffer, 1, &buffer_copy);
+	    vkEndCommandBuffer(vkal_info.default_command_buffers[i]);
     }
     
     VkSubmitInfo submit_info = { 0 };
@@ -2817,22 +2815,22 @@ uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     // When mapping memory later again to copy into it (see:fluch_to_memory) we must respect
     // the devices alignment.
     // See: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkMappedMemoryRange.html
-    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
-    uint64_t next_offset = (vertices_in_bytes + alignment - 1) & ~(alignment - 1);
-    vkal_info.default_vertex_buffer_offset += next_offset;
+    vkal_info.default_vertex_buffer_offset += size;
     
     return offset;
 }
 
 uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
 {
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
     uint32_t indices_in_bytes = index_count * sizeof(uint16_t);
+    uint64_t size = (indices_in_bytes + alignment - 1) & ~(alignment - 1);
     
     // map staging memory and upload index data
     void * staging_memory;
-    VkResult result = vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, indices_in_bytes, 0, &staging_memory);
+    VkResult result = vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, size, 0, &staging_memory);
     VKAL_ASSERT(result, "failed to map device staging memory!");
-    flush_to_memory(vkal_info.device_memory_staging, staging_memory, indices, indices_in_bytes, 0);
+    flush_to_memory(vkal_info.device_memory_staging, staging_memory, indices, size, 0);
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
     
     // copy vertex index data from staging memory (host visible) to device local memory for every command buffer
@@ -2859,9 +2857,7 @@ uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
     // When mapping memory later again to copy into it (see:fluch_to_memory) we must respect
     // the devices alignment.
     // See: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkMappedMemoryRange.html
-    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
-    uint64_t next_offset = (indices_in_bytes + alignment - 1) & ~(alignment - 1);
-    vkal_info.default_index_buffer_offset += next_offset;
+    vkal_info.default_index_buffer_offset += size;
     
     return offset;
 }
