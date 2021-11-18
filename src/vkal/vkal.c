@@ -2606,15 +2606,15 @@ void create_default_uniform_buffer(uint32_t size)
 	VKAL_DBG_BUFFER_NAME(vkal_info.device, vkal_info.default_uniform_buffer, "Default Uniform Buffer");
 }
 
-void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data)
+void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data) // TODO: Does uniform_buffer really have to be a pointer?
 {
     void * mapped_uniform_memory = 0;
     VkResult result = vkMapMemory(
-	vkal_info.device, 
-	vkal_info.default_device_memory_uniform, 
-	uniform_buffer->offset, uniform_buffer->size, 
-	0, 
-	&mapped_uniform_memory);
+		vkal_info.device, 
+		vkal_info.default_device_memory_uniform, 
+		uniform_buffer->offset, uniform_buffer->size, 
+		0, 
+		&mapped_uniform_memory);
     VKAL_ASSERT(result, "failed to map device memory");
 	
     //memset(mapped_device_memory, 0, size);

@@ -10,19 +10,28 @@
 
 #include <GLFW/glfw3.h>
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
-#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext.hpp>
 
 #include "../vkal/vkal.h"
 
 #include "utils/platform.h"
-#include "utils/tr_math.h"
 
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
 
 static GLFWwindow* window;
 static int width, height; /* current framebuffer width/height */
+
+typedef struct Camera
+{
+	glm::vec3 pos;
+	glm::vec3 center;
+	glm::vec3 up;
+	glm::vec3 right;
+} Camera;
 
 typedef struct ViewProjection
 {
@@ -44,7 +53,7 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: primitives.c", 0, 0);
+    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: hello_triangle.cpp", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
     width = SCREEN_WIDTH;
     height = SCREEN_HEIGHT;
@@ -94,23 +103,23 @@ int main(int argc, char** argv)
     /* Shader Setup */
     uint8_t* vertex_byte_code = 0;
     int vertex_code_size;
-    read_file("/../../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("/../../src/examples/assets/shaders/hello_triangle_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t* fragment_byte_code = 0;
     int fragment_code_size;
-    read_file("/../../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("/../../src/examples/assets/shaders/hello_triangle_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(vertex_byte_code, vertex_code_size, fragment_byte_code, fragment_code_size);
 
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
     {
-        { 0, 2 * sizeof(vec3) + sizeof(vec2), VK_VERTEX_INPUT_RATE_VERTEX }
+        { 0, 2 * sizeof(glm::vec3) + sizeof(glm::vec2), VK_VERTEX_INPUT_RATE_VERTEX }
     };
 
     VkVertexInputAttributeDescription vertex_attributes[] =
     {
         { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },                 // pos
-        { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(vec3) },      // color
-        { 2, 0, VK_FORMAT_R32G32_SFLOAT,    2 * sizeof(vec3) },  // UV 
+        { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(glm::vec3) },      // color
+        { 2, 0, VK_FORMAT_R32G32_SFLOAT,    2 * sizeof(glm::vec3) },  // UV 
     };
     uint32_t vertex_attribute_count = sizeof(vertex_attributes) / sizeof(*vertex_attributes);
 
@@ -139,26 +148,24 @@ int main(int argc, char** argv)
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
         vertex_input_bindings, 1,
         vertex_attributes, vertex_attribute_count,
-        shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_NONE, VK_POLYGON_MODE_FILL,
+        shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL,
         VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-        VK_FRONT_FACE_CLOCKWISE,
+        VK_FRONT_FACE_COUNTER_CLOCKWISE,
         vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
     float rect_vertices[] = 
     {
         // Pos                              // Color        // UV
-        100,  100.f, -1.0,                  1.0, 0.0, 0.0,  0.0, 0.0,
-        100,  SCREEN_HEIGHT, -1.0,          0.0, 1.0, 0.0,  1.0, 0.0,
-        SCREEN_WIDTH, 100.f, -1.0,          0.0, 0.0, 1.0,  0.0, 1.0,
-        SCREEN_WIDTH, SCREEN_HEIGHT, -1.0,  1.0, 1.0, 0.0,  1.0, 1.0
+        -1, -1, 0,                  1.0, 0.0, 0.0,  0.0, 0.0,
+        0,  1, 0,          0.0, 1.0, 0.0,  1.0, 0.0,
+        1, -1, 0,          0.0, 0.0, 1.0,  0.0, 1.0
     };
     uint32_t vertex_count = sizeof(rect_vertices) / sizeof(*rect_vertices);
 
     uint16_t rect_indices[] = 
     {
-        0, 2, 1,
-        1, 2, 3
+        0, 1, 2,
     };
     uint32_t index_count = sizeof(rect_indices) / sizeof(*rect_indices);
 
@@ -166,21 +173,28 @@ int main(int argc, char** argv)
     uint32_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 3 * sizeof(glm::vec3), vertex_count);
     uint32_t offset_indices = vkal_index_buffer_add(rect_indices, index_count);
 
+	// Setup the camera and setup storage for Uniform Buffer
+	Camera camera;
+	camera.pos = glm::vec3(0.0f, 0.0f, -5.0f);
+	camera.center = glm::vec3(0.0f);
+	camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
+	ViewProjection view_proj_data;
+	view_proj_data.view = glm::lookAt(camera.pos, camera.center, camera.up);
+
     // Uniform Buffer for View-Projection Matrix
-    ViewProjection view_proj_data = {
-        
-    };
-    UniformBuffer view_proj_ub = vkal_create_uniform_buffer(sizeof(ViewProjection), 2, 0);
-    
+    UniformBuffer view_proj_ub = vkal_create_uniform_buffer(sizeof(ViewProjection), 1, 0);
+	vkal_update_descriptor_set_uniform(descriptor_set[0], view_proj_ub, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	vkal_update_uniform(&view_proj_ub, &view_proj_data);
 
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
 
+		int width, height;
         glfwGetFramebufferSize(window, &width, &height);
-        view_proj_data.proj = ortho(0, width, height, 0, 0.1f, 2.f);
-        vkal_update_uniform(&view_proj_ubo, &view_proj_data);
+		view_proj_data.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+		vkal_update_uniform(&view_proj_ub, &view_proj_data);
 
         {
             uint32_t image_id = vkal_get_image();

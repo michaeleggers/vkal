@@ -1,5 +1,8 @@
 @echo off
 
+%VULKAN_SDK%/bin/glslc hello_triangle.vert -o hello_triangle_vert.spv
+%VULKAN_SDK%/bin/glslc hello_triangle.frag -o hello_triangle_frag.spv
+
 %VULKAN_SDK%/bin/glslc texture.vert -o texture_vert.spv
 %VULKAN_SDK%/bin/glslc texture.frag -o texture_frag.spv
 

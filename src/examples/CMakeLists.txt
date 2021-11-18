@@ -6,14 +6,14 @@ add_executable(GLFW_HelloTriangle
 	hello_triangle.cpp
 	utils/platform.c
 	utils/platform.h
-    assets/shaders/primitives.vert
-    assets/shaders/primitives.frag
+    assets/shaders/hello_triangle.vert
+    assets/shaders/hello_triangle.frag
 )
 target_include_directories(GLFW_HelloTriangle
     PUBLIC external
 )
 target_link_libraries(GLFW_HelloTriangle
-	PUBLIC vkal glm_static)
+	PUBLIC vkal)
 
 
 # Basic Texture Example
