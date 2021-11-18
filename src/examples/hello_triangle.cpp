@@ -86,8 +86,7 @@ int main(int argc, char** argv)
     instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);
 #endif
 
-    vkal_create_instance_glfw(window, instance_extensions, instance_extension_count,
-        instance_layers, instance_layer_count);
+    vkal_create_instance_glfw(window, instance_extensions, instance_extension_count, instance_layers, instance_layer_count);
 
     VkalPhysicalDevice* devices = 0;
     uint32_t device_count;
@@ -150,16 +149,16 @@ int main(int argc, char** argv)
         vertex_attributes, vertex_attribute_count,
         shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL,
         VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-        VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        VK_FRONT_FACE_CLOCKWISE,
         vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
     float rect_vertices[] = 
     {
-        // Pos                              // Color        // UV
-        -1, -1, 0,                  1.0, 0.0, 0.0,  0.0, 0.0,
-        0,  1, 0,          0.0, 1.0, 0.0,  1.0, 0.0,
-        1, -1, 0,          0.0, 0.0, 1.0,  0.0, 1.0
+        // Pos      // Color        // UV
+        -1, -1, 0,  1.0, 0.0, 0.0,  0.0, 0.0,
+         0,  1, 0,  0.0, 1.0, 0.0,  1.0, 0.0,
+         1, -1, 0,  0.0, 0.0, 1.0,  0.0, 1.0
     };
     uint32_t vertex_count = sizeof(rect_vertices) / sizeof(*rect_vertices);
 
@@ -170,12 +169,12 @@ int main(int argc, char** argv)
     uint32_t index_count = sizeof(rect_indices) / sizeof(*rect_indices);
 
     // Upload Model Data to GPU
-    uint32_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 3 * sizeof(glm::vec3), vertex_count);
-    uint32_t offset_indices = vkal_index_buffer_add(rect_indices, index_count);
+    uint64_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 3 * sizeof(glm::vec3), vertex_count);
+	uint64_t offset_indices = vkal_index_buffer_add(rect_indices, index_count);
 
 	// Setup the camera and setup storage for Uniform Buffer
 	Camera camera;
-	camera.pos = glm::vec3(0.0f, 0.0f, -5.0f);
+	camera.pos = glm::vec3(0.0f, 0.0f, 5.0f);
 	camera.center = glm::vec3(0.0f);
 	camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
 	ViewProjection view_proj_data;
@@ -203,10 +202,10 @@ int main(int argc, char** argv)
             vkal_begin_render_pass(image_id, vkal_info->render_pass);
             vkal_viewport(vkal_info->default_command_buffers[image_id],
                 0, 0,
-                width, height);
+                (float)width, (float)height);
             vkal_scissor(vkal_info->default_command_buffers[image_id],
                 0, 0,
-                width, height);
+                (float)width, (float)height);
             vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
             vkal_draw_indexed(image_id, graphics_pipeline,
                 offset_indices, index_count,
