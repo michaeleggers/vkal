@@ -1,7 +1,7 @@
 # VKAL
 
 The Vulkan Abstraction Layer (short: VKAL) is being created in order to help setting up a Vulkan based
-renderer. VKAL is still in development and the API is not final. It is written in C99 and compiles with
+renderer. VKAL is still in development and the API is not final. It is written in C and compiles with
 MSVC, CLANG and GCC.
 
 ## The reason for VKAL
