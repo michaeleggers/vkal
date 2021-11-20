@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <assert.h>
 
+#include <vector>
+
 #include <GLFW/glfw3.h>
 
 #define GLM_FORCE_RADIANS
@@ -107,8 +109,6 @@ int main(int argc, char** argv)
     int fragment_code_size;
     read_file("/../../src/examples/assets/shaders/hello_triangle_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(vertex_byte_code, vertex_code_size, fragment_byte_code, fragment_code_size);
-    free(vertex_byte_code);
-    free(fragment_byte_code);
     
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
@@ -118,7 +118,7 @@ int main(int argc, char** argv)
 
     VkVertexInputAttributeDescription vertex_attributes[] =
     {
-        { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },                 // pos
+        { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },					  // pos
         { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(glm::vec3) },      // color
         { 2, 0, VK_FORMAT_R32G32_SFLOAT,    2 * sizeof(glm::vec3) },  // UV 
     };
@@ -141,8 +141,8 @@ int main(int argc, char** argv)
         descriptor_set_layout
     };
     uint32_t descriptor_set_layout_count = sizeof(layouts) / sizeof(*layouts);
-    VkDescriptorSet* descriptor_set = (VkDescriptorSet*)malloc(descriptor_set_layout_count * sizeof(VkDescriptorSet));
-    vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_set);
+    VkDescriptorSet* descriptor_sets = (VkDescriptorSet*)malloc(descriptor_set_layout_count * sizeof(VkDescriptorSet));
+    vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, descriptor_set_layout_count, &descriptor_sets);
 
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(layouts, descriptor_set_layout_count, NULL, 0);
@@ -184,7 +184,7 @@ int main(int argc, char** argv)
 
     // Uniform Buffer for View-Projection Matrix
     UniformBuffer view_proj_ub = vkal_create_uniform_buffer(sizeof(ViewProjection), 1, 0);
-	vkal_update_descriptor_set_uniform(descriptor_set[0], view_proj_ub, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	vkal_update_descriptor_set_uniform(descriptor_sets[0], view_proj_ub, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	vkal_update_uniform(&view_proj_ub, &view_proj_data);
 
     // Main Loop
@@ -208,7 +208,7 @@ int main(int argc, char** argv)
             vkal_scissor(vkal_info->default_command_buffers[image_id],
                 0, 0,
                 (float)width, (float)height);
-            vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
+            vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
             vkal_draw_indexed(image_id, graphics_pipeline,
                 offset_indices, index_count,
                 offset_vertices);
@@ -220,6 +220,8 @@ int main(int argc, char** argv)
             vkal_present(image_id);
         }
     }
+
+	free(descriptor_sets);
 
     vkal_cleanup();
 
