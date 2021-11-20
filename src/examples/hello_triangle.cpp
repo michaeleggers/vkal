@@ -107,7 +107,9 @@ int main(int argc, char** argv)
     int fragment_code_size;
     read_file("/../../src/examples/assets/shaders/hello_triangle_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(vertex_byte_code, vertex_code_size, fragment_byte_code, fragment_code_size);
-
+    free(vertex_byte_code);
+    free(fragment_byte_code);
+    
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
     {
@@ -174,7 +176,7 @@ int main(int argc, char** argv)
 
 	// Setup the camera and setup storage for Uniform Buffer
 	Camera camera;
-	camera.pos = glm::vec3(0.0f, 0.0f, 5.0f);
+	camera.pos = glm::vec3(0.0f, 0.0f, 3.f);
 	camera.center = glm::vec3(0.0f);
 	camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
 	ViewProjection view_proj_data;
