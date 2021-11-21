@@ -11,6 +11,8 @@
 	#define VK_USE_PLATFORM_WIN32_KHR
 #endif
 
+
+
 #include <vulkan/vulkan.h>
 
 #if defined (VKAL_GLFW)
@@ -100,8 +102,8 @@ extern "C" {
 		VKAL_ASSERT(vkSetDebugUtilsObjectName(vkal_info_macro, &obj_info), "Failed to create debug name for Buffer");	\
 		}
 #else
-	#define VKAL_DBG_BUFFER_NAME(buffer, name) 
-	#define VKAL_DBG_IMAGE_NAME(image, name)   
+	#define VKAL_DBG_BUFFER_NAME(vkal_info_macro, vkal_buffer, macro_name)
+	#define VKAL_DBG_IMAGE_NAME(vkal_info_macro, vkal_dbg_image_macro, name)
 #endif																					
 
 #ifdef __cplusplus

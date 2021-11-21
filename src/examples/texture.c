@@ -11,7 +11,9 @@
 
 #include <GLFW/glfw3.h>
 
-#include "../vkal.h"
+//#include "../vkal.h"
+#include "../vkal/vkal.h"
+
 #include "utils/platform.h"
 #include "utils/tr_math.h"
 
@@ -24,7 +26,6 @@
 #define SCREEN_HEIGHT 768
 
 static GLFWwindow * window;
-static Platform p;
 
 typedef struct Image
 {
@@ -81,7 +82,6 @@ Image load_image_file(char const * file)
 int main(int argc, char ** argv)
 {
     init_window();
-    init_platform(&p);
     
     char * device_extensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -98,8 +98,8 @@ int main(int argc, char ** argv)
     uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
 
     char * instance_layers[] = {
-	"VK_LAYER_KHRONOS_validation",
-	"VK_LAYER_LUNARG_monitor"
+	"VK_LAYER_KHRONOS_validation"
+	//"VK_LAYER_LUNARG_monitor" // TODO: Not available on MacOS ?
     };
     uint32_t instance_layer_count = 0;
 #ifdef _DEBUG
@@ -125,10 +125,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.read_file("../src/examples/assets/shaders/texture_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("/../../src/examples/assets/shaders/texture_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.read_file("../src/examples/assets/shaders/texture_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("/../../src/examples/assets/shaders/texture_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -229,7 +229,14 @@ int main(int argc, char ** argv)
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
-	glfwPollEvents();
+        
+        // NOTE: glfwPollEvents causes substantial overhead on MacOS (and probably all UNIX based
+        //       machines). In this example. WaitEvents is more reasonable for MacOS, in this case.
+#ifdef _WIN32
+        glfwPollEvents();
+#elif __APPLE__
+        glfwWaitEvents();
+#endif
 
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
