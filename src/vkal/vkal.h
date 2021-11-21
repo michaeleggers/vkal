@@ -407,7 +407,7 @@ VkalImage create_vkal_image(
 	VkImageUsageFlagBits usage_flags, VkImageAspectFlags aspect_bits,
 	VkImageLayout layout);
 void create_default_command_buffers(void);
-VkCommandBuffer create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uint32_t begin);
+VkCommandBuffer vkal_create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uint32_t begin);
 void create_default_render_pass(void);
 void create_render_to_image_render_pass(void);
 

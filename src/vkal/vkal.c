@@ -2188,7 +2188,7 @@ void create_default_command_pool(void)
 	}
 }
 
-VkCommandBuffer create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uint32_t begin)
+VkCommandBuffer vkal_create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uint32_t begin)
 {
     VkCommandBufferAllocateInfo alloc_info = { 0 };
     alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -2792,23 +2792,20 @@ uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     
     // copy vertex buffer data from staging memory (host visible) to device local memory for every command buffer
     uint64_t offset = vkal_info.default_vertex_buffer_offset;
-    VkCommandBufferBeginInfo begin_info = { 0 };
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    for (int i = 0; i < 1; ++i) {
-	    vkBeginCommandBuffer(vkal_info.default_command_buffers[i], &begin_info);
-	    VkBufferCopy buffer_copy = { 0 };
-	    buffer_copy.dstOffset = offset;
-	    buffer_copy.srcOffset = 0;
-	    buffer_copy.size = vertices_in_bytes;
-	    vkCmdCopyBuffer(vkal_info.default_command_buffers[i],
-			    vkal_info.staging_buffer.buffer, vkal_info.default_vertex_buffer.buffer, 1, &buffer_copy);
-	    vkEndCommandBuffer(vkal_info.default_command_buffers[i]);
-    }
+
+	VkCommandBuffer cmd_buffer = vkal_create_command_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+	VkBufferCopy buffer_copy = { 0 };
+	buffer_copy.dstOffset = offset;
+	buffer_copy.srcOffset = 0;
+	buffer_copy.size = vertices_in_bytes;
+	vkCmdCopyBuffer(cmd_buffer,
+			vkal_info.staging_buffer.buffer, vkal_info.default_vertex_buffer.buffer, 1, &buffer_copy);
+	vkEndCommandBuffer(cmd_buffer);
     
     VkSubmitInfo submit_info = { 0 };
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = 1;// vkal_info.command_buffer_count;
-    submit_info.pCommandBuffers = &vkal_info.default_command_buffers[0];
+	submit_info.pCommandBuffers = &cmd_buffer;
     vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
     vkDeviceWaitIdle(vkal_info.device);
     
@@ -2833,24 +2830,20 @@ uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
     flush_to_memory(vkal_info.device_memory_staging, staging_memory, indices, size, 0);
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
     
-    // copy vertex index data from staging memory (host visible) to device local memory for every command buffer
+    // copy vertex index data from staging memory (host visible) to device local memory through a command buffer
     uint64_t offset = vkal_info.default_index_buffer_offset;
-    VkCommandBufferBeginInfo begin_info = { 0 };
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    for (uint32_t i = 0; i < vkal_info.default_command_buffer_count; ++i) {
-	vkBeginCommandBuffer(vkal_info.default_command_buffers[i], &begin_info);
+	VkCommandBuffer cmd_buffer = vkal_create_command_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
 	VkBufferCopy buffer_copy = { 0 };
 	buffer_copy.dstOffset = offset;
 	buffer_copy.srcOffset = 0;
 	buffer_copy.size = indices_in_bytes;
-	vkCmdCopyBuffer(vkal_info.default_command_buffers[i], vkal_info.staging_buffer.buffer, vkal_info.default_index_buffer.buffer, 1, &buffer_copy);
-	vkEndCommandBuffer(vkal_info.default_command_buffers[i]);
-    }
+	vkCmdCopyBuffer(cmd_buffer, vkal_info.staging_buffer.buffer, vkal_info.default_index_buffer.buffer, 1, &buffer_copy);
+	vkEndCommandBuffer(cmd_buffer);
     
     VkSubmitInfo submit_info = { 0 };
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = vkal_info.default_command_buffer_count;
-    submit_info.pCommandBuffers = vkal_info.default_command_buffers;
+	submit_info.commandBufferCount = 1; // vkal_info.default_command_buffer_count;
+	submit_info.pCommandBuffers = &cmd_buffer;  //vkal_info.default_command_buffers;
     vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
     vkDeviceWaitIdle(vkal_info.device);
     
