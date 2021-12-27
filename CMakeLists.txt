@@ -7,6 +7,10 @@ cmake_minimum_required(VERSION 3.10)
 project(VKAL VERSION 1.0)
 cmake_minimum_required(VERSION 3.12)
 
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+
 if (APPLE)
 	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -D_DEBUG")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
@@ -19,11 +23,12 @@ if (${WINDOWING} STREQUAL "VKAL_GLFW")
 	set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 	set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 	add_subdirectory(src/external/glfw332src)
+elseif(${WINDOWING} STREQUAL "VKAL_SDL")
+	message("Using SDL2...")
+	add_subdirectory(src/external/SDL)
+	# include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/external/SDL)
 endif()
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 add_subdirectory(src/vkal)
 
@@ -32,6 +37,8 @@ add_subdirectory(src/examples)
 
 add_dependencies(GLFW_Texture      vkal)
 add_dependencies(GLFW_ModelLoading vkal)
+add_dependencies(SDL_HelloTriangle vkal)
+
 
 
 

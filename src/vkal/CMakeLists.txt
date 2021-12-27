@@ -21,9 +21,12 @@ add_library(vkal STATIC
 if (WIN32)
     target_include_directories(vkal
         PUBLIC Vulkan::Vulkan
+        # if (${WINDOWING} STREQUAL "VKAL_SDL")
+	    #     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../external/SDL/include
+        # endif()
     )
     target_link_libraries(vkal PUBLIC
-        Vulkan::Vulkan 
+        Vulkan::Vulkan
     )
 endif (WIN32)
 
@@ -43,5 +46,11 @@ if (${WINDOWING} STREQUAL "VKAL_GLFW")
 	target_link_libraries(vkal PUBLIC
 		glfw
 	)
+elseif (${WINDOWING} STREQUAL "VKAL_SDL")
+    target_link_libraries(vkal PUBLIC
+        PUBLIC SDL2
+        PUBLIC SDL2main
+    )
 endif()	
+
 target_compile_definitions(vkal PUBLIC ${WINDOWING})
