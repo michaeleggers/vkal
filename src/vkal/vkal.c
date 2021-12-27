@@ -13,7 +13,8 @@
 #elif defined (VKAL_WIN32)
 	#include <Windows.h>
 #elif defined (VKAL_SDL)
-//TODO: implement
+    #include <SDL.h>
+    #include <SDL_vulkan.h>
 #endif
 
 #include "vkal.h"
@@ -270,7 +271,106 @@ void vkal_create_instance_win32(
 	create_win32_surface(hInstance);
 }
 #elif defined (VKAL_SDL)
-// TODO: Implement
+void vkal_create_instance_sdl(
+    SDL_Window* window,
+    char** instance_extensions, uint32_t instance_extension_count,
+    char** instance_layers, uint32_t instance_layer_count)
+{
+    vkal_info.window = window;
+    VkApplicationInfo app_info = { 0 };
+    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    app_info.pApplicationName = "VKAL Application";
+    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.pEngineName = "VKAL Engine";
+    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    app_info.apiVersion = VK_API_VERSION_1_2;
+
+    VkInstanceCreateInfo create_info = { 0 };
+    create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    create_info.pApplicationInfo = &app_info;
+
+    // Query available extensions.
+    {
+        vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count, 0);
+        VKAL_MAKE_ARRAY(vkal_info.available_instance_extensions, VkExtensionProperties,
+            vkal_info.available_instance_extension_count);
+        vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count,
+            vkal_info.available_instance_extensions);
+    }
+
+    // If debug build check if validation layers defined in struct are available and load them
+    {
+        vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count, 0);
+        VKAL_MAKE_ARRAY(vkal_info.available_instance_layers, VkLayerProperties, vkal_info.available_instance_layer_count);
+        vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count,
+            vkal_info.available_instance_layers);
+#ifdef _DEBUG
+        vkal_info.enable_instance_layers = 1;
+#else
+        vkal_info.enable_instance_layers = 0;
+#endif
+        int layer_ok = 0;
+        if (vkal_info.enable_instance_layers) {
+            for (uint32_t i = 0; i < instance_layer_count; ++i) {
+                layer_ok = check_instance_layer_support(instance_layers[i],
+                    vkal_info.available_instance_layers,
+                    vkal_info.available_instance_layer_count);
+                if (!layer_ok) {
+                    printf("validation layer not available: %s\n", instance_layers[i]);
+                    VKAL_ASSERT(VK_ERROR_LAYER_NOT_PRESENT, "requested isntance layer not present!");
+                }
+            }
+        }
+        if (layer_ok) {
+            create_info.enabledLayerCount = instance_layer_count;
+            create_info.ppEnabledLayerNames = (const char* const*)instance_layers;
+        }
+    }
+
+    // Check if requested instance extensions are available and if so, load them.
+    {
+        uint32_t required_extension_count = 0;
+        char const** required_extensions;
+
+        SDL_Vulkan_GetInstanceExtensions(window, &required_extension_count, NULL);
+
+        uint32_t total_instance_ext_count = required_extension_count + instance_extension_count;
+        char** all_instance_extensions = (char**)malloc(total_instance_ext_count * sizeof(char*));
+        for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
+            all_instance_extensions[i] = (char*)malloc(256 * sizeof(char));
+        }
+
+        SDL_Vulkan_GetInstanceExtensions(window, &required_extension_count, required_extensions);
+
+        uint32_t i = 0;
+        for (; i < required_extension_count; ++i) {
+            strcpy(all_instance_extensions[i], required_extensions[i]);
+        }
+        for (uint32_t j = 0; i < total_instance_ext_count; ++i) {
+            strcpy(all_instance_extensions[i], instance_extensions[j++]);
+        }
+        int extension_ok = 0;
+        for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
+            extension_ok = check_instance_extension_support(all_instance_extensions[i],
+                vkal_info.available_instance_extensions,
+                vkal_info.available_instance_extension_count);
+            if (!extension_ok) {
+                printf("instance extension not available: %s\n", all_instance_extensions[i]);
+                VKAL_ASSERT(VK_ERROR_EXTENSION_NOT_PRESENT, "requested instance extension not present!");
+            }
+        }
+        create_info.enabledExtensionCount = total_instance_ext_count;
+        create_info.ppEnabledExtensionNames = (const char* const*)all_instance_extensions;
+
+        VKAL_ASSERT(vkCreateInstance(&create_info, 0, &vkal_info.instance), "failed to create VkInstance");
+
+        for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
+            free(all_instance_extensions[i]);
+        }
+    }
+
+    create_sdl_surface();
+}
 #endif
 
 
@@ -586,7 +686,10 @@ void create_win32_surface(HINSTANCE hInstance)
 }
 
 #elif defined (VKAL_SDL)
-    // TODO: Implement
+void create_sdl_surface(void)
+{
+    SDL_Vulkan_CreateSurface(vkal_info.window, vkal_info.instance, &vkal_info.surface); // TODO: Check for success.
+}
 #endif    
 
 
@@ -677,7 +780,7 @@ VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR * capabilities)
         width  = rect.right;
         height = rect.bottom;
     #elif defined (VKAL_SDL)
-        // TODO: Implement
+        SDL_Vulkan_GetDrawableSize(vkal_info.window, &width, &height);
     #endif
 
         VkExtent2D actual_extent;

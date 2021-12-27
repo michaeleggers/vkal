@@ -20,7 +20,7 @@
 #elif defined (VKAL_WIN32)
 	#include <Windows.h>
 #elif defined (VKAL_SDL)
-//TODO: implement
+    #include <SDL.h>
 #endif
 
 #define VKAL_NULL                       0
@@ -248,7 +248,7 @@ typedef struct VkalInfo
 #elif defined (VKAL_WIN32)
 	HWND window;
 #elif defined (VKAL_SDL)
-    // TODO: Implement
+    SDL_Window* window;
 #endif
 
     VkInstance instance;
@@ -377,7 +377,10 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count);
 		char ** instance_extensions, uint32_t instance_extension_count,
 		char ** instance_layers, uint32_t instance_layer_count);
 #elif defined (VKAL_SDL)
-	// TODO
+void vkal_create_instance_sdl(
+    SDL_Window * window,
+    char** instance_extensions, uint32_t instance_extension_count,
+    char** instance_layers, uint32_t instance_layer_count);
 #endif
 
 void vkal_find_suitable_devices(
@@ -448,7 +451,7 @@ uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count);
 #elif defined (VKAL_WIN32)
 	void create_win32_surface(HINSTANCE hInstance);
 #elif defined (VKAL_SDL)
-	// TODO: Implement
+    void create_sdl_surface(void);
 #endif
 
 UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint32_t binding);
