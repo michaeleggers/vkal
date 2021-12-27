@@ -16,7 +16,7 @@ target_link_libraries(GLFW_HelloTriangle
 	PUBLIC vkal)
 
 # Hello Triangle Example using SDL2
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../external/SDL)
+# include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../external/SDL)
 add_executable(SDL_HelloTriangle
 	hello_triangle_sdl.cpp
 	utils/platform.c
