@@ -309,6 +309,7 @@ typedef struct VkalInfo
     uint32_t			framebuffer_count;
     VkPipelineLayout	pipeline_layout;
     VkPipeline			graphics_pipeline;
+    VkClearColorValue   clear_color_value;
 
     VkCommandPool		default_command_pools[VKAL_MAX_COMMAND_POOLS];
     uint32_t			default_commandpool_count;
@@ -595,6 +596,7 @@ VkDescriptorSetLayout get_descriptor_set_layout(uint32_t id);
 void destroy_descriptor_set_layout(uint32_t id);
 QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
 void vkal_destroy_graphics_pipeline(VkPipeline pipeline);
+void vkal_set_clear_color(VkClearColorValue value);
 
 void set_image_layout(
     VkCommandBuffer         command_buffer,

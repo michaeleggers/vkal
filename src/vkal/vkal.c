@@ -2029,6 +2029,11 @@ void vkal_destroy_graphics_pipeline(VkPipeline pipeline)
     vkDestroyPipeline(vkal_info.device, pipeline, 0);
 }
 
+void vkal_set_clear_color(VkClearColorValue value)
+{
+    vkal_info.clear_color_value = value;
+}
+
 VkPipeline vkal_create_graphics_pipeline(
 	VkVertexInputBindingDescription * vertex_input_bindings, 
 	uint32_t vertex_input_binding_count,
@@ -2326,7 +2331,7 @@ void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass 
     pass_begin_info.renderArea.offset = (VkOffset2D){ 0, 0 };
     pass_begin_info.renderArea.extent = vkal_info.swapchain_extent;
     VkClearValue clear_values[2];
-    clear_values[0].color = (VkClearColorValue){ {1.f, 1.f, 1.f, 1.f} };
+    clear_values[0].color = vkal_info.clear_color_value;
     clear_values[1].depthStencil  = (VkClearDepthStencilValue){ 1.0f, 0 };
 
     pass_begin_info.clearValueCount = 2;
@@ -2343,7 +2348,7 @@ void vkal_begin_render_pass(uint32_t image_id, VkRenderPass render_pass)
     pass_begin_info.renderArea.offset = (VkOffset2D){ 0, 0 };
     pass_begin_info.renderArea.extent = vkal_info.swapchain_extent;
     VkClearValue clear_values[2];
-    clear_values[0].color = (VkClearColorValue){ {1.f, 1.f, 1.f, 1.f} };
+    clear_values[0].color = vkal_info.clear_color_value;
     clear_values[1].depthStencil  = (VkClearDepthStencilValue){ 1.0f, 0 };
 
     pass_begin_info.clearValueCount = 2;
@@ -2376,7 +2381,7 @@ void vkal_begin_render_to_image_render_pass(
     
     pass_begin_info.renderArea.extent = extent;
     VkClearValue clear_values[2];
-    clear_values[0].color = (VkClearColorValue){ {1.f, 1.f, 1.f, 1.f} };
+    clear_values[0].color = vkal_info.clear_color_value;
     clear_values[1].depthStencil  = (VkClearDepthStencilValue){ 1.0f, 0 };
 
     pass_begin_info.clearValueCount = 2;

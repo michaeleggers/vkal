@@ -103,6 +103,7 @@ int main(int argc, char** argv)
     uint8_t* vertex_byte_code = 0;
     int vertex_code_size;
     read_file("/../../src/examples/assets/shaders/hello_triangle_vert.spv", &vertex_byte_code, &vertex_code_size);
+
     uint8_t* fragment_byte_code = 0;
     int fragment_code_size;
     read_file("/../../src/examples/assets/shaders/hello_triangle_frag.spv", &fragment_byte_code, &fragment_code_size);
@@ -218,6 +219,8 @@ int main(int argc, char** argv)
 
         {
             uint32_t image_id = vkal_get_image();
+            
+            vkal_set_clear_color({0.2f, 0.2f, 0.2f, 1.0f});
 
             vkal_begin_command_buffer(image_id);
             vkal_begin_render_pass(image_id, vkal_info->render_pass);
