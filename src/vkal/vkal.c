@@ -36,7 +36,7 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count)
 	#elif defined (VKAL_WIN32)
 			vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
 	#elif defined (VKAL_SDL)
-			// TODO
+			vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
 	#endif
 
 	#ifdef __cplusplus
@@ -336,17 +336,15 @@ void vkal_create_instance_sdl(
 
         uint32_t total_instance_ext_count = required_extension_count + instance_extension_count;
         char** all_instance_extensions = (char**)malloc(total_instance_ext_count * sizeof(char*));
+
         for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
             all_instance_extensions[i] = (char*)malloc(256 * sizeof(char));
         }
 
-        SDL_Vulkan_GetInstanceExtensions(window, &required_extension_count, required_extensions);
-
-        uint32_t i = 0;
-        for (; i < required_extension_count; ++i) {
-            strcpy(all_instance_extensions[i], required_extensions[i]);
-        }
-        for (uint32_t j = 0; i < total_instance_ext_count; ++i) {
+        SDL_Vulkan_GetInstanceExtensions(window, &required_extension_count, all_instance_extensions);
+ 
+        uint32_t j = 0;
+        for (uint32_t i = required_extension_count; i < total_instance_ext_count; ++i) {
             strcpy(all_instance_extensions[i], instance_extensions[j++]);
         }
         int extension_ok = 0;
@@ -364,9 +362,11 @@ void vkal_create_instance_sdl(
 
         VKAL_ASSERT(vkCreateInstance(&create_info, 0, &vkal_info.instance), "failed to create VkInstance");
 
-        for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
-            free(all_instance_extensions[i]);
-        }
+        free(all_instance_extensions);
+
+        /*for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
+            free(&all_instance_extensions[i]);
+        }*/
     }
 
     create_sdl_surface();

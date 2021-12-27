@@ -1,6 +1,6 @@
-/* Michael Eggers, 10/22/2020
+/* Michael Eggers, 27/12/2021
 
-   Draw some simple shapes.
+   The Hello World of computer graphics
 */
 
 
@@ -186,8 +186,30 @@ int main(int argc, char** argv)
 	vkal_update_uniform(&view_proj_ub, &view_proj_data);
 
     // Main Loop
-    while (true)
+    bool running = true;
+    while (running)
     {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            switch (event.type) {
+            case SDL_QUIT: running = false; break;
+            case SDL_KEYDOWN:
+            {
+                printf("Keydown event.");
+                switch (event.key.keysym.sym)
+                {
+                case SDLK_ESCAPE:
+                {
+                    printf("escape pressed");
+                    running = false;
+                }
+                break;
+                }
+            }
+            break;
+            }
+        }
+
 		int width, height;
         SDL_Vulkan_GetDrawableSize(window, &width, &height);
 

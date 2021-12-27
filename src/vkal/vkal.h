@@ -21,6 +21,7 @@
 	#include <Windows.h>
 #elif defined (VKAL_SDL)
     #include <SDL.h>
+    #include <SDL_vulkan.h>
 #endif
 
 #define VKAL_NULL                       0
