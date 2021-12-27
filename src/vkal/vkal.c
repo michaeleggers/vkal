@@ -2715,10 +2715,7 @@ void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data) // TODO: D
 		&mapped_uniform_memory);
     VKAL_ASSERT(result, "failed to map device memory");
 	
-    //memset(mapped_device_memory, 0, size);
     memcpy(mapped_uniform_memory, data, uniform_buffer->size);
-//    memcpy(mapped_uniform_memory, data, 64);
-//    memcpy((uint8_t*)mapped_uniform_memory+64, (uint8_t*)data+64, 64);
     VkMappedMemoryRange flush_range;
     flush_range.sType  = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     flush_range.pNext  = 0;
@@ -2885,7 +2882,7 @@ uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     void * staging_memory;
     VkResult result = vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, size, 0, &staging_memory);
     VKAL_ASSERT(result, "failed to map device staging memory!");
-    flush_to_memory(vkal_info.device_memory_staging, staging_memory, vertices, size, 0);
+    flush_to_memory(vkal_info.device_memory_staging, staging_memory, vertices, vertices_in_bytes, 0);
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
     
     // copy vertex buffer data from staging memory (host visible) to device local memory for every command buffer
@@ -2925,7 +2922,7 @@ uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
     void * staging_memory;
     VkResult result = vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, size, 0, &staging_memory);
     VKAL_ASSERT(result, "failed to map device staging memory!");
-    flush_to_memory(vkal_info.device_memory_staging, staging_memory, indices, size, 0);
+    flush_to_memory(vkal_info.device_memory_staging, staging_memory, indices, indices_in_bytes, 0);
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
     
     // copy vertex index data from staging memory (host visible) to device local memory through a command buffer

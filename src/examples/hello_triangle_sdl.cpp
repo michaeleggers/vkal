@@ -161,16 +161,16 @@ int main(int argc, char** argv)
          0,  1, 0,  0.0, 1.0, 0.0,  1.0, 0.0,
          1, -1, 0,  0.0, 0.0, 1.0,  0.0, 1.0
     };
-    uint32_t vertex_count = sizeof(rect_vertices) / sizeof(*rect_vertices);
+    uint32_t vertex_count = 3;
 
     uint16_t rect_indices[] = 
     {
         0, 1, 2,
     };
-    uint32_t index_count = sizeof(rect_indices) / sizeof(*rect_indices);
+    uint32_t index_count = 3;
 
     // Upload Model Data to GPU
-    uint64_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 3 * sizeof(glm::vec3), vertex_count);
+    uint64_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 2*sizeof(glm::vec3) + sizeof(glm::vec2), vertex_count);
 	uint64_t offset_indices = vkal_index_buffer_add(rect_indices, index_count);
 
 	// Setup the camera and setup storage for Uniform Buffer
