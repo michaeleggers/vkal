@@ -217,15 +217,17 @@ int main(int argc, char** argv)
 
         {
             uint32_t image_id = vkal_get_image();
-            
+               
+            VkCommandBuffer currentCmdBuffer = vkal_info->default_command_buffers[image_id];
+
             vkal_set_clear_color({0.2f, 0.2f, 0.2f, 1.0f});
 
             vkal_begin_command_buffer(image_id);
             vkal_begin_render_pass(image_id, vkal_info->render_pass);
-            vkal_viewport(vkal_info->default_command_buffers[image_id],
+            vkal_viewport(currentCmdBuffer,
                 0, 0,
                 (float)width, (float)height);
-            vkal_scissor(vkal_info->default_command_buffers[image_id],
+            vkal_scissor(currentCmdBuffer,
                 0, 0,
                 (float)width, (float)height);
             vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
@@ -234,8 +236,8 @@ int main(int argc, char** argv)
                 offset_vertices);
             vkal_end_renderpass(image_id);
             vkal_end_command_buffer(image_id);
-            VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
-            vkal_queue_submit(command_buffers1, 1);
+
+            vkal_queue_submit(&currentCmdBuffer, 1);
 
             vkal_present(image_id);
         }
