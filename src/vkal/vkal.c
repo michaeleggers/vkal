@@ -329,24 +329,20 @@ void vkal_create_instance_sdl(
 
     // Check if requested instance extensions are available and if so, load them.
     {
-        uint32_t required_extension_count = 0;
-        char const** required_extensions;
-
+        uint32_t required_extension_count = 0;    
         SDL_Vulkan_GetInstanceExtensions(window, &required_extension_count, NULL);
 
         uint32_t total_instance_ext_count = required_extension_count + instance_extension_count;
-        char** all_instance_extensions = (char**)malloc(total_instance_ext_count * sizeof(char*));
-
-        for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
-            all_instance_extensions[i] = (char*)malloc(256 * sizeof(char));
-        }
+        
+        char* all_instance_extensions[256] = { 0 };
 
         SDL_Vulkan_GetInstanceExtensions(window, &required_extension_count, all_instance_extensions);
  
         uint32_t j = 0;
-        for (uint32_t i = required_extension_count; i < total_instance_ext_count; ++i) {
-            strcpy(all_instance_extensions[i], instance_extensions[j++]);
+        for (uint32_t i = required_extension_count; i < total_instance_ext_count; ++i) {          
+            all_instance_extensions[i] = instance_extensions[j++];
         }
+
         int extension_ok = 0;
         for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
             extension_ok = check_instance_extension_support(all_instance_extensions[i],
@@ -361,12 +357,6 @@ void vkal_create_instance_sdl(
         create_info.ppEnabledExtensionNames = (const char* const*)all_instance_extensions;
 
         VKAL_ASSERT(vkCreateInstance(&create_info, 0, &vkal_info.instance), "failed to create VkInstance");
-
-        free(all_instance_extensions);
-
-        /*for (uint32_t i = 0; i < total_instance_ext_count; ++i) {
-            free(&all_instance_extensions[i]);
-        }*/
     }
 
     create_sdl_surface();
