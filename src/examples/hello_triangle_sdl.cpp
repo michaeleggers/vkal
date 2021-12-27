@@ -196,12 +196,10 @@ int main(int argc, char** argv)
             case SDL_QUIT: running = false; break;
             case SDL_KEYDOWN:
             {
-                printf("Keydown event.");
                 switch (event.key.keysym.sym)
                 {
                 case SDLK_ESCAPE:
                 {
-                    printf("escape pressed");
                     running = false;
                 }
                 break;
