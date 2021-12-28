@@ -13,6 +13,14 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
+# HACK: Unix Makefiles wont generate a Debug/Release/... folders. 
+# So the realtive paths in the examples wont match. Annoying...
+if (UNIX)
+	set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/out")
+	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/out")
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/out")
+endif (UNIX)
+
 if (APPLE)
 	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -D_DEBUG")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
@@ -37,9 +45,12 @@ add_subdirectory(src/vkal)
 # Examples
 add_subdirectory(src/examples)
 
-add_dependencies(GLFW_Texture      vkal)
-add_dependencies(GLFW_ModelLoading vkal)
-add_dependencies(SDL_HelloTriangle vkal)
+target_compile_definitions(vkal PUBLIC ${WINDOWING})
+
+add_dependencies(GLFW_Texture       vkal)
+add_dependencies(GLFW_ModelLoading  vkal)
+add_dependencies(SDL_HelloTriangle  vkal)
+add_dependencies(GLFW_HelloTriangle vkal)
 
 
 

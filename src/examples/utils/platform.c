@@ -8,7 +8,6 @@
 
 #include "platform.h"
 
-
 #ifdef _WIN32
 
 #include <Windows.h>
@@ -138,7 +137,34 @@
 	}
 
 #elif __linux__
+	#include <unistd.h>
 
+	void read_file(char const * filename, uint8_t ** out_buffer, int * out_size)
+	{
+		char exe_path[256];
+		get_exe_path(exe_path, 256 * sizeof(char));
+		char abs_path[256];
+		memcpy(abs_path, exe_path, 256);
+		strcat(abs_path, filename);
+		printf("abs-path: %s\n", abs_path);
+		FILE * file = fopen(abs_path, "rb");
+		fseek(file, 0L, SEEK_END);
+		*out_size = ftell(file);
+		fseek(file, 0L, SEEK_SET);
+		*out_buffer = (uint8_t*)malloc(*out_size);
+		fread(*out_buffer, sizeof(char), *out_size, file);
+		fclose(file);
+	}
+
+	void get_exe_path(char * out_buffer, int buffer_size)
+	{
+		readlink("/proc/self/exe", out_buffer, buffer_size);
+		int len = strlen(out_buffer);
+		char * slash = out_buffer + len + 1;
+		while (len >= 0 && *slash != '/') { slash--; len--; }
+		out_buffer[len + 1] = '\0';
+		printf("%s\n", out_buffer);
+	}
 #endif 
 
 

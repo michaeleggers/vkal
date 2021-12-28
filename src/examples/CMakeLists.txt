@@ -13,6 +13,7 @@ target_include_directories(GLFW_HelloTriangle
     PUBLIC external
 )
 target_link_libraries(GLFW_HelloTriangle
+	PUBLIC glfw
 	PUBLIC vkal)
 
 # Hello Triangle Example using SDL2

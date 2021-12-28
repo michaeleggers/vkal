@@ -30,6 +30,15 @@ if (WIN32)
     )
 endif (WIN32)
 
+if (UNIX)
+    target_include_directories(vkal
+        PUBLIC Vulkan::Vulkan
+    )
+    target_link_libraries(vkal PUBLIC
+        Vulkan::Vulkan
+    )
+endif (UNIX)
+
 if (APPLE)
     target_include_directories(vkal
         # PUBLIC /macOS/Debug/MoltenVK/include
