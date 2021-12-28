@@ -3,13 +3,13 @@ project(VKAL VERSION 1.0)
 cmake_minimum_required(VERSION 3.12)
 
 
-if (WIN32)
-    find_package(Vulkan REQUIRED)
-endif (WIN32)
+# if (WIN32)
+#     find_package(Vulkan REQUIRED)
+# endif (WIN32)
 
-if (APPLE)
-    find_package(Vulkan REQUIRED)
-endif (APPLE)
+# if (APPLE)
+#     find_package(Vulkan REQUIRED)
+# endif (APPLE)
 
 message("Cmake Module Path: " ${Vulkan_INCLUDE_DIRS})
 

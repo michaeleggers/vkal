@@ -330,11 +330,15 @@ void vkal_create_instance_sdl(
     // Check if requested instance extensions are available and if so, load them.
     {
         uint32_t required_extension_count = 0;    
-        SDL_Vulkan_GetInstanceExtensions(window, &required_extension_count, NULL);
+        if (!SDL_Vulkan_GetInstanceExtensions(window, &required_extension_count, NULL)) {
+            printf("%s\n", SDL_GetError());
+            getchar();
+            exit(-1);
+        }
 
         uint32_t total_instance_ext_count = required_extension_count + instance_extension_count;
         
-        char* all_instance_extensions[256] = { 0 };
+        const char* all_instance_extensions[256] = { 0 };
 
         SDL_Vulkan_GetInstanceExtensions(window, &required_extension_count, all_instance_extensions);
  

@@ -46,7 +46,13 @@ typedef struct ViewProjection
 void init_window()
 {
     SDL_Init(SDL_INIT_EVERYTHING);
-
+    
+    if (!SDL_Vulkan_LoadLibrary(NULL)) {
+        printf("SDL_Vulkan_LoadLibrary:\n%s\n", SDL_GetError());
+        getchar();
+        exit(-1);
+    }
+    
     window = SDL_CreateWindow(
         "Hello Vulkan SDL",
         SDL_WINDOWPOS_UNDEFINED,
@@ -54,6 +60,12 @@ void init_window()
         SCREEN_WIDTH, SCREEN_HEIGHT,
         SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
     );
+    
+    if (!window) {
+        printf("SDL_CreateWindow:\n%s\n", SDL_GetError());
+        getchar();
+        exit(-1);
+    }
 
     width = SCREEN_WIDTH;
     height = SCREEN_HEIGHT;
@@ -220,7 +232,7 @@ int main(int argc, char** argv)
                
             VkCommandBuffer currentCmdBuffer = vkal_info->default_command_buffers[image_id];
 
-            vkal_set_clear_color({0.2f, 0.2f, 0.2f, 1.0f});
+            vkal_set_clear_color((VkClearColorValue){0.2f, 0.2f, 0.2f, 1.0f});
 
             vkal_begin_command_buffer(image_id);
             vkal_begin_render_pass(image_id, vkal_info->render_pass);
