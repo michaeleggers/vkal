@@ -29,7 +29,7 @@ Otherwise, VKAL does depends on the C Standard Library.
 On windows you can also use [plain WIN32 to get the window](https://docs.microsoft.com/en-us/windows/win32/learnwin32/creating-a-window). VKAL can use the Window Handle to setup
 everything.
 
-## Using VKAL
+# Using VKAL
 Clone this repo with:
 ```
 git clone --recurse-submodules git@github.com:michaeleggers/vkal.git
@@ -49,7 +49,24 @@ cmake -G "<your target here>" -DWINDOWING=VKAL_SDL ..
 cmake -G "<your target here>" -DWINDOWING=VKAL_WIN32 ..
 ```
 
-## Examples
+# Examples for generating targets on Win, MacOS, GNU/Linux
+
+So for example, if you want to create Visual Studio Solution on Windows using SDL for window-creation type:
+```
+cmake -G "Visual Studio 17 2022" -DWINDOWING=VKAL_SDL ..
+```
+
+On MacOS, create eg. a Xcode project with:
+```
+cmake -G "Xcode" -DWINDOWING=VKAL_GLFW ..
+```
+
+On GNU/Linux you can use eg.
+```
+cmake -G "Unix Makefiles" -DWINDOWING=VKAL_SDL ..
+```
+
+# Examples
 
 Some of the examples use some further libraries from other authors, specifically:
 
