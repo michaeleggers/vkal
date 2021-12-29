@@ -27,7 +27,6 @@
 #define SCREEN_HEIGHT 768
 
 static HWND      window;
-static Platform  p;
 
 typedef struct Image
 {
@@ -53,9 +52,21 @@ typedef struct Camera
 
 Image load_image_file(char const * file)
 {
+	char exe_path[256];
+	get_exe_path(exe_path, 256);
+	char* lastBackslash = exe_path;
+	while (*lastBackslash != '\0') {
+		lastBackslash++;
+	}
+	lastBackslash -= 1;
+	*lastBackslash = '\0';
+	char abs_path[256];
+	memcpy(abs_path, exe_path, 256);
+	strcat(abs_path, file);
+
     Image image = (Image){0};
     int tw, th, tn;
-    image.data = stbi_load(file, &tw, &th, &tn, 4);
+    image.data = stbi_load(abs_path, &tw, &th, &tn, 4);
     assert(image.data != NULL);
     image.width = tw;
     image.height = th;
@@ -83,7 +94,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	window = CreateWindowEx(
 		0,                              // Optional window styles.
 		CLASS_NAME,                     // Window class
-		L"AzTech Engine 0.0.1",    // Window text
+		L"WIN32 and Vulkan",		    // Window text
 		WS_OVERLAPPEDWINDOW,            // Window style
 
 										// Size and position
@@ -110,8 +121,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	freopen_s(&pCin, "conin$", "r", stdin);
 	freopen_s(&pCout, "conout$", "w", stdout);
 	freopen_s(&pCerr, "conout$", "w", stderr);
-
-    init_platform(&p);
     
 	// Init VKAL
     char * device_extensions[] = {
@@ -158,10 +167,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.read_file("../src/examples/assets/shaders/texture_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("/../../src/examples/assets/shaders/texture_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.read_file("../src/examples/assets/shaders/texture_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("/../../src/examples/assets/shaders/texture_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 		vertex_byte_code, vertex_code_size, 
 		fragment_byte_code, fragment_code_size);
@@ -250,7 +259,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);
     
     /* Texture Data */
-    Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
+    Image image = load_image_file("/../../src/examples/assets/textures/vklogo.jpg");
     VkalTexture texture = vkal_create_texture(
 		1, image.data, image.width, image.height, 4, 0,
 		VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
@@ -284,6 +293,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
 		{
+			vkal_set_clear_color((VkClearColorValue){ 0.2f, 0.2f, 0.2f, 1.0f });
 			vkDeviceWaitIdle(vkal_info->device);
 			vkal_update_descriptor_set_texture(descriptor_set[0], texture);
 

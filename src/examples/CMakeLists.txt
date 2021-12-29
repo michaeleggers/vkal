@@ -37,6 +37,23 @@ target_link_libraries(SDL_HelloTriangle
 	# endif()
 )
 
+# Texturing Example using WIN32 (without SDL2 or GLFW)
+add_executable(WIN32_Texture WIN32
+	texture_win32.c
+	utils/platform.c
+	utils/platform.h
+	utils/tr_math.c
+	utils/tr_math.h
+	assets/shaders/texture.vert
+	assets/shaders/texture.frag
+)
+target_include_directories(WIN32_Texture
+	PUBLIC external
+)
+target_link_libraries(WIN32_Texture
+	PUBLIC vkal
+)
+
 # Basic Texture Example
 add_executable(GLFW_Texture
     texture.c
@@ -89,9 +106,9 @@ target_link_libraries(GLFW_Primitives
 	PUBLIC vkal
 	PUBLIC glfw)
 	
-set_property(TARGET GLFW_Texture      PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
-set_property(TARGET GLFW_ModelLoading PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
-set_property(TARGET GLFW_Primitives   PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set_property(TARGET GLFW_Texture      		PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set_property(TARGET GLFW_ModelLoading 		PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set_property(TARGET GLFW_Primitives   		PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 
 set_property(TARGET GLFW_Primitives     PROPERTY CMAKE_XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
