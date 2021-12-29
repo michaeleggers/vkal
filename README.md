@@ -23,9 +23,11 @@ is being developed simply because I want to get more familiar with the Vulkan-AP
 In order to initialize VKAL, the OS-specific Window-Handle is needed. You can do this via:
 - [GLFW3](https://www.glfw.org/)
 - [SDL2](https://libsdl.org)
-- [Native Win32 (on Windows)](https://docs.microsoft.com/en-us/windows/win32/learnwin32/creating-a-window)
+- [LunarG Vulkan SDK](https://vulkan.lunarg.com/)
 
 Otherwise, VKAL does depends on the C Standard Library.
+On windows you can also use [plain WIN32 to get the window](https://docs.microsoft.com/en-us/windows/win32/learnwin32/creating-a-window). VKAL can use the Window Handle to setup
+everything.
 
 ## Using VKAL
 Clone this repo with:
@@ -49,7 +51,7 @@ cmake -G "<your target here>" -DWINDOWING=VKAL_WIN32 ..
 
 ## Examples
 
-The following libraries are required:
+Some of the examples use some further libraries from other authors, specifically:
 
 * [stb_image](https://github.com/nothings/stb) for loading image-data (PNG, JPG, ...)
 * [tinyobjloader-c](https://github.com/syoyo/tinyobjloader-c) for loading OBJ model files
