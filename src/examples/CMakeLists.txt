@@ -11,6 +11,7 @@ add_executable(GLFW_HelloTriangle
 )
 target_include_directories(GLFW_HelloTriangle
     PUBLIC external
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../vkal/
 )
 target_link_libraries(GLFW_HelloTriangle
 	PUBLIC glfw
@@ -27,6 +28,7 @@ add_executable(SDL_HelloTriangle
 )
 target_include_directories(SDL_HelloTriangle
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../external/SDL/include
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../vkal/
 	PUBLIC external
 )
 target_link_libraries(SDL_HelloTriangle
@@ -48,6 +50,7 @@ add_executable(WIN32_Texture WIN32
 	assets/shaders/texture.frag
 )
 target_include_directories(WIN32_Texture
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../vkal/
 	PUBLIC external
 )
 target_link_libraries(WIN32_Texture
@@ -65,6 +68,7 @@ add_executable(GLFW_Texture
     assets/shaders/texture.frag
 )
 target_include_directories(GLFW_Texture
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../vkal/
     PUBLIC external
 )
 target_link_libraries(GLFW_Texture
@@ -84,6 +88,7 @@ add_executable(GLFW_ModelLoading
 )
 target_include_directories(GLFW_ModelLoading
     PUBLIC external
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../vkal/
 )
 target_link_libraries(GLFW_ModelLoading
     PUBLIC vkal
@@ -101,6 +106,7 @@ add_executable(GLFW_Primitives
 )
 target_include_directories(GLFW_Primitives
 	PUBLIC external
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../vkal/
 )
 target_link_libraries(GLFW_Primitives
 	PUBLIC vkal

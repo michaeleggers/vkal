@@ -17,7 +17,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
-#include "../vkal/vkal.h"
+#include <vkal.h>
 
 #include "utils/platform.h"
 

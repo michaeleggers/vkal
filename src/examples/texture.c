@@ -11,8 +11,7 @@
 
 #include <GLFW/glfw3.h>
 
-//#include "../vkal.h"
-#include "../vkal/vkal.h"
+#include <vkal.h>
 
 #include "utils/platform.h"
 #include "utils/tr_math.h"

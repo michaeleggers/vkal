@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include "../vkal.h"
+#include <vkal.h>
 
 #include "utils/platform.h"
 #include "utils/tr_math.h"

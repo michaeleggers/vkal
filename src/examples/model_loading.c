@@ -14,7 +14,8 @@
 
 #include <GLFW/glfw3.h>
 
-#include "../vkal/vkal.h"
+#include <vkal.h>
+
 #include "utils/platform.h"
 #define TRM_NDC_ZERO_TO_ONE
 #include "utils/tr_math.h"
