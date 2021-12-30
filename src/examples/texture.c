@@ -225,6 +225,8 @@ int main(int argc, char ** argv)
     vkal_update_descriptor_set_texture(descriptor_set[0], texture);
     view_proj_data.image_aspect = (float)texture.width/(float)texture.height;
 
+    vkal_set_clear_color((VkClearColorValue) { 1.0f, 1.0f, 1.0f, 1.0f });
+
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -237,15 +239,12 @@ int main(int argc, char ** argv)
         glfwWaitEvents();
 #endif
 
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
-	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
+	    int width, height;
+	    glfwGetFramebufferSize(window, &width, &height);
+	    view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
+	    vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
 		{
-			vkDeviceWaitIdle(vkal_info->device);
-			vkal_update_descriptor_set_texture(descriptor_set[0], texture);
-
 			uint32_t image_id = vkal_get_image();
 
 			vkal_begin_command_buffer(image_id);
