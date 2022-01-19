@@ -52,14 +52,9 @@
 #define VKAL_ASSERT(result)	                	\
 	assert(VK_SUCCESS == result);			    \
 
-#define VKAL_MAKE_ARRAY(arr, type, count)		\
-	arr = (type *)malloc(count * sizeof(type)); \
+#define VKAL_MALLOC(pointer, count) pointer = malloc(count * sizeof(*pointer))
 
-#define VKAL_MAKE_ARRAY2(arr, type, count)				\
-	type * arr = (type *)malloc(count * sizeof(type));	\
-
-#define VKAL_KILL_ARRAY(arr)	\
-	free(arr)					\
+#define VKAL_FREE(pointer) free(pointer)					
 
 #define VKAL_ARRAY_LENGTH(arr)		\
 	sizeof(arr) / sizeof(arr[0])	\

@@ -92,8 +92,7 @@ void vkal_create_instance_glfw(
     // Query available extensions.
     {
 		vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count, 0);
-		VKAL_MAKE_ARRAY(vkal_info.available_instance_extensions, VkExtensionProperties,
-				vkal_info.available_instance_extension_count);
+        VKAL_MALLOC(vkal_info.available_instance_extensions, vkal_info.available_instance_extension_count);
 		vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count,
 							   vkal_info.available_instance_extensions);
     }
@@ -101,7 +100,7 @@ void vkal_create_instance_glfw(
     // If debug build check if validation layers defined in struct are available and load them
     {
         vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count, 0);
-        VKAL_MAKE_ARRAY(vkal_info.available_instance_layers, VkLayerProperties, vkal_info.available_instance_layer_count);
+        VKAL_MALLOC(vkal_info.available_instance_layers, vkal_info.available_instance_layer_count);
         vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count,
                            vkal_info.available_instance_layers);
     #ifdef _DEBUG
@@ -192,8 +191,7 @@ void vkal_create_instance_win32(
 	// Query available extensions.
 	{
 		vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count, 0);
-		VKAL_MAKE_ARRAY(vkal_info.available_instance_extensions, VkExtensionProperties,
-			vkal_info.available_instance_extension_count);
+        VKAL_MALLOC(vkal_info.available_instance_extensions, vkal_info.available_instance_extension_count);
 		vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count,
 			vkal_info.available_instance_extensions);
 	}
@@ -201,7 +199,7 @@ void vkal_create_instance_win32(
 	// If debug build check if validation layers defined in struct are available and load them
 	{
 		vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count, 0);
-		VKAL_MAKE_ARRAY(vkal_info.available_instance_layers, VkLayerProperties, vkal_info.available_instance_layer_count);
+        VKAL_MALLOC(vkal_info.available_instance_layers, vkal_info.available_instance_layer_count);
 		vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count,
 			vkal_info.available_instance_layers);
 #ifdef _DEBUG
@@ -294,16 +292,15 @@ void vkal_create_instance_sdl(
     // Query available extensions.
     {
         vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count, 0);
-        VKAL_MAKE_ARRAY(vkal_info.available_instance_extensions, VkExtensionProperties,
-            vkal_info.available_instance_extension_count);
+        VKAL_MALLOC(vkal_info.available_instance_extensions, vkal_info.available_instance_extension_count);
         vkEnumerateInstanceExtensionProperties(0, &vkal_info.available_instance_extension_count,
             vkal_info.available_instance_extensions);
     }
 
     // If debug build check if validation layers defined in struct are available and load them
     {
-        vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count, 0);
-        VKAL_MAKE_ARRAY(vkal_info.available_instance_layers, VkLayerProperties, vkal_info.available_instance_layer_count);
+        vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count, 0);      
+        VKAL_MALLOC(vkal_info.available_instance_layers, vkal_info.available_instance_layer_count);
         vkEnumerateInstanceLayerProperties(&vkal_info.available_instance_layer_count,
             vkal_info.available_instance_layers);
 #ifdef _DEBUG
@@ -510,7 +507,8 @@ void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int fre
 		return;
     }
 
-    VKAL_ASSERT(vkEndCommandBuffer(command_buffer) && "failed to end command buffer");
+    VkResult result = vkEndCommandBuffer(command_buffer);
+    VKAL_ASSERT(result && "failed to end command buffer");
 
     VkSubmitInfo submit_info = {0};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -522,13 +520,15 @@ void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int fre
     fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_info.flags = 0;
 
-    VkFence fence;
-    VKAL_ASSERT(vkCreateFence(vkal_info.device, &fence_info, NULL, &fence) && "failed to create fence");
+    VkFence fence = VK_NULL_HANDLE;
+    result = vkCreateFence(vkal_info.device, &fence_info, NULL, &fence);
+    VKAL_ASSERT(result && "failed to create fence");
 
     // Submit to the queue
-    VkResult result = vkQueueSubmit(queue, 1, &submit_info, fence);
+    result = vkQueueSubmit(queue, 1, &submit_info, fence);
     // Wait for the fence to signal that command buffer has finished executing
-    VKAL_ASSERT(vkWaitForFences(vkal_info.device, 1, &fence, VK_TRUE, UINT64_MAX) && "failed waiting on fence");
+    result = vkWaitForFences(vkal_info.device, 1, &fence, VK_TRUE, UINT64_MAX);
+    VKAL_ASSERT(result && "failed waiting on fence");
 
     vkDestroyFence(vkal_info.device, fence, NULL);
 
@@ -598,8 +598,9 @@ VkalImage create_vkal_image(
 		// start recording
 		VkCommandBufferBeginInfo cmd_begin_info = {0};
 		cmd_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        VkResult result = vkBeginCommandBuffer(cmd_buf, &cmd_begin_info);
 		VKAL_ASSERT(
-			vkBeginCommandBuffer(cmd_buf, &cmd_begin_info) &&
+			result &&
 			"failed to put command buffer into recording state");
 
 		VkImageSubresourceRange subresource_range;
@@ -794,18 +795,16 @@ void cleanup_swapchain(void)
     for (uint32_t i = 0; i < vkal_info.framebuffer_count; ++i) {
         vkDestroyFramebuffer(vkal_info.device, vkal_info.framebuffers[i], 0);
     }
-    VKAL_KILL_ARRAY(vkal_info.framebuffers);
+    VKAL_FREE(vkal_info.framebuffers);
     
     vkFreeCommandBuffers(vkal_info.device, vkal_info.default_command_pools[0], vkal_info.default_command_buffer_count, vkal_info.default_command_buffers);
-    VKAL_KILL_ARRAY(vkal_info.default_command_buffers);
+    VKAL_FREE(vkal_info.default_command_buffers);
     
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
         vkDestroyImageView(vkal_info.device, vkal_info.swapchain_image_views[i], 0);
     }
-    //VKAL_KILL_ARRAY(vkal_info.swapchain_image_views);
     
     vkDestroySwapchainKHR(vkal_info.device, vkal_info.swapchain, 0);
-    //VKAL_KILL_ARRAY(vkal_info.swapchain_images);
 }
 
 void recreate_swapchain(void)
@@ -1187,12 +1186,13 @@ DeviceMemory vkal_allocate_devicememory(uint32_t size,
     uint32_t mem_type_bits = check_memory_type_index(buffer_memory_requirements.memoryTypeBits, memory_property_flags);
     vkDestroyBuffer(vkal_info.device, buffer, NULL);
 
-    VkDeviceMemory memory;
+    VkDeviceMemory memory = VK_NULL_HANDLE;
     VkMemoryAllocateInfo memory_info = { 0 };
     memory_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memory_info.allocationSize = buffer_memory_requirements.size;
     memory_info.memoryTypeIndex = mem_type_bits;
-    VKAL_ASSERT(vkAllocateMemory(vkal_info.device, &memory_info, 0, &memory) && "failed to allocate device memory.");
+    VkResult result = vkAllocateMemory(vkal_info.device, &memory_info, 0, &memory);
+    VKAL_ASSERT(result && "failed to allocate device memory.");
 
     DeviceMemory device_memory = { 0 };
     device_memory.vk_device_memory = memory;
@@ -1205,7 +1205,7 @@ DeviceMemory vkal_allocate_devicememory(uint32_t size,
 
 Buffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags)
 {
-    VkBuffer vk_buffer;
+    VkBuffer vk_buffer = VK_NULL_HANDLE;
     VkBufferCreateInfo buffer_info = { 0 };
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     buffer_info.size = size;
@@ -1214,39 +1214,39 @@ Buffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBuf
     buffer_info.queueFamilyIndexCount = 1;
     buffer_info.usage = buffer_usage_flags;
     buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    VKAL_ASSERT( vkCreateBuffer(vkal_info.device, &buffer_info, 0, &vk_buffer) && "Failed to create VkBuffer" );
-    VKAL_ASSERT( vkBindBufferMemory(vkal_info.device, vk_buffer, device_memory->vk_device_memory, device_memory->free )
-		       && "Failed to bind VkBuffer to VkDeviceMemory" );
+    VkResult result = vkCreateBuffer(vkal_info.device, &buffer_info, 0, &vk_buffer);
+    VKAL_ASSERT( result && "Failed to create VkBuffer" );
+    result = vkBindBufferMemory(vkal_info.device, vk_buffer, device_memory->vk_device_memory, device_memory->free);
+    VKAL_ASSERT( result && "Failed to bind VkBuffer to VkDeviceMemory" );
     /* NOTE: the offset in vkBindBufferMemory must be a multiple of alignment returend by vkGetBufferMemoryRequirements and denotes the
        offset into VkDeviceMemory.
     */
 	
-    Buffer result = { 0 };
-    result.size = size;
-    result.offset = device_memory->free;
-    result.device_memory = device_memory->vk_device_memory;
-    result.usage = buffer_usage_flags;
-    result.buffer = vk_buffer;
-    result.mapped = NULL;
+    Buffer buffer = { 0 };
+    buffer.size = size;
+    buffer.offset = device_memory->free;
+    buffer.device_memory = device_memory->vk_device_memory;
+    buffer.usage = buffer_usage_flags;
+    buffer.buffer = vk_buffer;
+    buffer.mapped = NULL;
 
     VkDeviceSize alignment = device_memory->alignment;
     VkDeviceSize next_offset = device_memory->free + (size / alignment) * alignment;
     next_offset += size % alignment ? alignment : 0;
     device_memory->free = next_offset;
 
-    return result;
+    return buffer;
 }
 
 void vkal_update_buffer(Buffer buffer, uint8_t* data)
 {
     void * mapped_memory = 0;
-    VKAL_ASSERT( vkMapMemory(
-			   vkal_info.device, buffer.device_memory, 
-			   buffer.offset, buffer.size, 
-			   0,
-			   &mapped_memory)
-		       && "Failed to map memory!"
-	);
+    VkResult result = vkMapMemory(
+        vkal_info.device, buffer.device_memory,
+        buffer.offset, buffer.size,
+        0,
+        &mapped_memory);
+    VKAL_ASSERT( result && "Failed to map memory!" );
 
     memcpy(mapped_memory, data, sizeof(Buffer));
     VkMappedMemoryRange memory_range = { 0 };
@@ -1254,8 +1254,8 @@ void vkal_update_buffer(Buffer buffer, uint8_t* data)
     memory_range.memory = buffer.device_memory;
     memory_range.offset = buffer.offset;
     memory_range.size = VK_WHOLE_SIZE; // TODO: figure out how much we need to flush, really.
-    VKAL_ASSERT( vkFlushMappedMemoryRanges(vkal_info.device, 1, &memory_range)
-		       && "Failed to flush mapped memory!" );
+    result = vkFlushMappedMemoryRanges(vkal_info.device, 1, &memory_range);
+    VKAL_ASSERT( result && "Failed to flush mapped memory!" );
 }
 
 void upload_texture(VkImage const image,
@@ -1420,32 +1420,37 @@ int rate_device(VkPhysicalDevice device)
 
 int check_device_extension_support(VkPhysicalDevice device, char ** extensions, uint32_t extension_count)
 {
-    VKAL_MAKE_ARRAY2(extensions_left, int, extension_count);
+    int* extensions_left = NULL;
+    VKAL_MALLOC(extensions_left, extension_count);
     memset(extensions_left, 1, extension_count * sizeof(int));
+
     printf("\nquery device extensions:\n");
     uint32_t supported_extension_count = 0;
     vkEnumerateDeviceExtensionProperties(device, 0, &supported_extension_count, 0);
-    VKAL_MAKE_ARRAY2(available_extensions, VkExtensionProperties, supported_extension_count);
+    VkExtensionProperties* available_extensions = NULL;
+    VKAL_MALLOC(available_extensions, supported_extension_count);
     vkEnumerateDeviceExtensionProperties(device, 0, &supported_extension_count, available_extensions);
+    
     uint32_t extensions_found = 0;
     for (uint32_t i = 0; i < supported_extension_count; ++i) {
-	for (uint32_t k = 0; k < extension_count; ++k) {
-	    if (!strcmp(available_extensions[i].extensionName, extensions[k])) {
-		printf("requested device extension: %s found!\n", extensions[k]);
-		extensions_found++;
-		extensions_left[k] = 0;
-		goto gt_next_extension;
-	    }
+	    for (uint32_t k = 0; k < extension_count; ++k) {
+	        if (!strcmp(available_extensions[i].extensionName, extensions[k])) {
+		        printf("requested device extension: %s found!\n", extensions[k]);
+		        extensions_found++;
+		        extensions_left[k] = 0;
+		        goto gt_next_extension;
+	        }
 	}
     gt_next_extension:;
     }
+    
     for (uint32_t i = 0; i < extension_count; ++i) {
-	if (extensions_left[i]) {
-	    printf("requested extension %s not available!\n", extensions[i]);
-	}
+	    if (extensions_left[i]) {
+	        printf("requested extension %s not available!\n", extensions[i]);
+	    }
     }
-    VKAL_KILL_ARRAY(extensions_left);
-    VKAL_KILL_ARRAY(available_extensions);
+    VKAL_FREE(extensions_left);
+    VKAL_FREE(available_extensions);
     return extension_count == extensions_found;
 }
 
@@ -1471,7 +1476,9 @@ QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR su
     QueueFamilyIndicies indicies;
     uint32_t queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, 0);
-    VKAL_MAKE_ARRAY2(queue_families, VkQueueFamilyProperties, queue_family_count);
+   
+    VkQueueFamilyProperties* queue_families = NULL;
+    VKAL_MALLOC(queue_families, queue_family_count);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families);
     indicies.has_graphics_family = 0;
     for (uint32_t i = 0; i < queue_family_count; ++i) {
@@ -1508,8 +1515,8 @@ void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count,
 	exit(-1);
     }
     
-    VKAL_MAKE_ARRAY(vkal_info.physical_devices, VkPhysicalDevice, vkal_info.physical_device_count);
-    VKAL_MAKE_ARRAY(vkal_info.suitable_devices, VkalPhysicalDevice, vkal_info.physical_device_count);
+    VKAL_MALLOC(vkal_info.physical_devices, vkal_info.physical_device_count);
+    VKAL_MALLOC(vkal_info.suitable_devices, vkal_info.physical_device_count);
     vkal_info.suitable_device_count = 0;
     vkEnumeratePhysicalDevices(vkal_info.instance, &vkal_info.physical_device_count, vkal_info.physical_devices);
     
@@ -1518,13 +1525,13 @@ void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count,
 	vkGetPhysicalDeviceProperties(vkal_info.physical_devices[i], &physical_device_property);
 	printf("physical device found: %s\n", physical_device_property.deviceName);
 	if ( is_device_suitable(vkal_info.physical_devices[i], extensions, extension_count) ) {
-	    QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_devices[i], vkal_info.surface);
-	    if (indicies.has_graphics_family && indicies.has_present_family) {
-		vkal_info.suitable_devices[i].device = vkal_info.physical_devices[i];
-		vkal_info.suitable_devices[i].property = physical_device_property;
-		vkal_info.suitable_device_count++;
+	        QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_devices[i], vkal_info.surface);
+	        if (indicies.has_graphics_family && indicies.has_present_family) {
+		        vkal_info.suitable_devices[i].device = vkal_info.physical_devices[i];
+		        vkal_info.suitable_devices[i].property = physical_device_property;
+		        vkal_info.suitable_device_count++;
+	        }
 	    }
-	}
     }
 
     *out_devices = vkal_info.suitable_devices;
@@ -1589,7 +1596,6 @@ void create_logical_device(char ** extensions, uint32_t extension_count)
     
     vkGetDeviceQueue(vkal_info.device, indicies.graphics_family, 0, &vkal_info.graphics_queue);
     vkGetDeviceQueue(vkal_info.device, indicies.present_family, 0, &vkal_info.present_queue);
-    //VKAL_KILL_ARRAY(queue_create_infos);
 }
 
 void create_shader_module(uint8_t const * shader_byte_code, int size, uint32_t * out_shader_module)
@@ -1807,21 +1813,22 @@ void create_default_framebuffers(void)
     // The order matches the order of the VkAttachmentDescriptions of the Renderpass.
     
     uint32_t framebuffer_count = 0;
-    VKAL_MAKE_ARRAY(vkal_info.framebuffers, VkFramebuffer, vkal_info.swapchain_image_count);
+    VKAL_MALLOC(vkal_info.framebuffers, vkal_info.swapchain_image_count);
+
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
-	attachments[0] = vkal_info.swapchain_image_views[i]; 
-	attachments[1] = get_image_view(vkal_info.depth_stencil_image_view);
-	VkFramebufferCreateInfo framebuffer_info = { 0 };
-	framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-	framebuffer_info.renderPass = vkal_info.render_pass;
-	framebuffer_info.width = vkal_info.swapchain_extent.width;
-	framebuffer_info.height = vkal_info.swapchain_extent.height;
-	framebuffer_info.pAttachments = attachments;
-	framebuffer_info.attachmentCount = 2; // matches the VkAttachmentDescription array-size in renderpass
-	framebuffer_info.layers = 1;
-	VkResult result = vkCreateFramebuffer(vkal_info.device, &framebuffer_info, 0, &vkal_info.framebuffers[i]);
-	VKAL_ASSERT(result && "failed to create framebuffer!");
-	framebuffer_count++;
+	    attachments[0] = vkal_info.swapchain_image_views[i]; 
+	    attachments[1] = get_image_view(vkal_info.depth_stencil_image_view);
+	    VkFramebufferCreateInfo framebuffer_info = { 0 };
+	    framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	    framebuffer_info.renderPass = vkal_info.render_pass;
+	    framebuffer_info.width = vkal_info.swapchain_extent.width;
+	    framebuffer_info.height = vkal_info.swapchain_extent.height;
+	    framebuffer_info.pAttachments = attachments;
+	    framebuffer_info.attachmentCount = 2; // matches the VkAttachmentDescription array-size in renderpass
+	    framebuffer_info.layers = 1;
+	    VkResult result = vkCreateFramebuffer(vkal_info.device, &framebuffer_info, 0, &vkal_info.framebuffers[i]);
+	    VKAL_ASSERT(result && "failed to create framebuffer!");
+	    framebuffer_count++;
     }
     vkal_info.framebuffer_count = framebuffer_count;
 }
@@ -2298,13 +2305,15 @@ VkCommandBuffer vkal_create_command_buffer(VkCommandBufferLevel cmd_buffer_level
     alloc_info.level = cmd_buffer_level;
     alloc_info.commandBufferCount = 1;
 
-    VkCommandBuffer command_buffer;
-    VKAL_ASSERT(vkAllocateCommandBuffers(vkal_info.device, &alloc_info, &command_buffer) && "Failed to allocate command buffer from pool");
+    VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+    VkResult result = vkAllocateCommandBuffers(vkal_info.device, &alloc_info, &command_buffer);
+    VKAL_ASSERT(result && "Failed to allocate command buffer from pool");
 
     if (begin) {
 		VkCommandBufferBeginInfo begin_info = {0};
 		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		VKAL_ASSERT(vkBeginCommandBuffer(command_buffer, &begin_info) && "Failed to begin command buffer recording");
+        result = vkBeginCommandBuffer(command_buffer, &begin_info);
+		VKAL_ASSERT(result && "Failed to begin command buffer recording");
     }
 
     return command_buffer;
@@ -2312,7 +2321,7 @@ VkCommandBuffer vkal_create_command_buffer(VkCommandBufferLevel cmd_buffer_level
 
 void create_default_command_buffers(void)
 {
-	VKAL_MAKE_ARRAY(vkal_info.default_command_buffers, VkCommandBuffer, vkal_info.framebuffer_count);
+    VKAL_MALLOC(vkal_info.default_command_buffers, vkal_info.framebuffer_count);
 	vkal_info.default_command_buffer_count = vkal_info.framebuffer_count;
 	VkCommandBufferAllocateInfo allocate_info = { 0 };
 	allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -2688,7 +2697,6 @@ void allocate_default_device_memory_vertex(void)
     
     VkResult result = vkBindBufferMemory(vkal_info.device, vkal_info.default_vertex_buffer.buffer, vkal_info.default_device_memory_vertex, 0);
     VKAL_ASSERT(result && "failed to bind vertex buffer memory!");
-    
 }
 
 void allocate_default_device_memory_index(void)
@@ -2791,6 +2799,7 @@ Buffer create_buffer(uint32_t size, VkBufferUsageFlags usage)
     buffer_info.usage = usage;
     buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     VkResult result = vkCreateBuffer(vkal_info.device, &buffer_info, 0, &vk_buffer);
+    VKAL_ASSERT(result && "Failed to create buffer.");
     
     Buffer buffer = { 0 };
     buffer.size = size;
@@ -2958,10 +2967,10 @@ void vkal_cleanup(void) {
 
     vkQueueWaitIdle(vkal_info.graphics_queue);
     
-    VKAL_KILL_ARRAY(vkal_info.available_instance_extensions);
-    VKAL_KILL_ARRAY(vkal_info.available_instance_layers);
-    VKAL_KILL_ARRAY(vkal_info.physical_devices);
-    VKAL_KILL_ARRAY(vkal_info.suitable_devices);
+    VKAL_FREE(vkal_info.available_instance_extensions);
+    VKAL_FREE(vkal_info.available_instance_layers);
+    VKAL_FREE(vkal_info.physical_devices);
+    VKAL_FREE(vkal_info.suitable_devices);
     
 
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
