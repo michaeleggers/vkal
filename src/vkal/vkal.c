@@ -674,7 +674,7 @@ void create_glfw_surface(void)
 #elif defined (VKAL_WIN32)
 void create_win32_surface(HINSTANCE hInstance)
 {
-	VkWin32SurfaceCreateInfoKHR surface_create_info;
+    VkWin32SurfaceCreateInfoKHR surface_create_info = { 0 };
 	surface_create_info.sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 	surface_create_info.pNext     = VKAL_NULL;
 	surface_create_info.flags     = 0;
@@ -1551,21 +1551,21 @@ void create_logical_device(char ** extensions, uint32_t extension_count)
     uint32_t unique_queue_families[2];
     unique_queue_families[0] = indicies.graphics_family;
     unique_queue_families[1] = indicies.present_family;
-    VkDeviceQueueCreateInfo queue_create_infos[2];
+    VkDeviceQueueCreateInfo queue_create_infos[2] = { 0 };
     uint32_t info_count = 0;
     if (indicies.graphics_family != indicies.present_family) {
-	info_count = 2;
+	    info_count = 2;
     }
     else {
-	info_count = 1;
+	    info_count = 1;
     }
     float queue_prio = 1.f;
     for (uint32_t i = 0; i < info_count; ++i) {
-	queue_create_infos[i] = (VkDeviceQueueCreateInfo){0};
-	queue_create_infos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queue_create_infos[i].queueFamilyIndex = unique_queue_families[i];
-	queue_create_infos[i].queueCount = 1;
-	queue_create_infos[i].pQueuePriorities = &queue_prio;
+	    queue_create_infos[i] = (VkDeviceQueueCreateInfo){0};
+	    queue_create_infos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	    queue_create_infos[i].queueFamilyIndex = unique_queue_families[i];
+	    queue_create_infos[i].queueCount = 1;
+	    queue_create_infos[i].pQueuePriorities = &queue_prio;
     }
     
     VkPhysicalDeviceFeatures device_features = { 0 };
@@ -2060,7 +2060,7 @@ VkPipeline vkal_create_graphics_pipeline(
 	VkRenderPass render_pass,
 	VkPipelineLayout pipeline_layout)
 {    
-    VkPipelineShaderStageCreateInfo shader_stages_infos[2];
+    VkPipelineShaderStageCreateInfo shader_stages_infos[2] = { 0 };
     shader_stages_infos[0] = shader_setup.vertex_shader_create_info;
     shader_stages_infos[1] = shader_setup.fragment_shader_create_info;
 
@@ -2657,7 +2657,7 @@ void vkal_present(uint32_t image_id)
 void create_default_semaphores(void)
 {
     for (int i = 0; i < VKAL_MAX_IMAGES_IN_FLIGHT; ++i) {
-		VkFenceCreateInfo fenceInfo;
+		VkFenceCreateInfo fenceInfo = { 0 };
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceInfo.pNext = NULL;
 		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
