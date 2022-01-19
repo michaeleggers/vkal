@@ -85,7 +85,7 @@ int main(int argc, char** argv)
 
     char* instance_layers[] = {
         "VK_LAYER_KHRONOS_validation",
-        //"VK_LAYER_LUNARG_monitor"
+        "VK_LAYER_LUNARG_monitor"
     };
     uint32_t instance_layer_count = 0;
 #ifdef _DEBUG
@@ -222,6 +222,7 @@ int main(int argc, char** argv)
 		vkal_update_uniform(&view_proj_ub, &view_proj_data);
 
         {
+            //vkDeviceWaitIdle(vkal_info->device);
             uint32_t image_id = vkal_get_image();
                
             VkCommandBuffer currentCmdBuffer = vkal_info->default_command_buffers[image_id];

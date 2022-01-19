@@ -26,14 +26,14 @@
 
 #define VKAL_NULL                       0
 
-#define MB								(1024 * 1024)
-#define STAGING_BUFFER_SIZE				(64 * MB)
-#define UNIFORM_BUFFER_SIZE				(64 * MB)
-#define VERTEX_BUFFER_SIZE				(64 * MB)
-#define INDEX_BUFFER_SIZE				(64 * MB)
+#define VKAL_MB								(1024 * 1024)
+#define STAGING_BUFFER_SIZE				(64 * VKAL_MB)
+#define UNIFORM_BUFFER_SIZE				(64 * VKAL_MB)
+#define VERTEX_BUFFER_SIZE				(64 * VKAL_MB)
+#define INDEX_BUFFER_SIZE				(64 * VKAL_MB)
 
-#define VKAL_MAX_IMAGES_IN_FLIGHT		2
-#define VKAL_MAX_SWAPCHAIN_IMAGES		2
+#define VKAL_MAX_SWAPCHAIN_IMAGES		4
+#define VKAL_MAX_IMAGES_IN_FLIGHT		4
 #define VKAL_MAX_DESCRIPTOR_SETS		10
 #define VKAL_MAX_COMMAND_POOLS			2
 #define VKAL_MAX_VKDEVICEMEMORY			128
