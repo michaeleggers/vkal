@@ -49,12 +49,8 @@
 #define VKAL_VSYNC_ON					1
 #define VKAL_SHADOW_MAP_DIMENSION		2048
 
-#define VKAL_ASSERT(result, msg)		\
-	if (result != VK_SUCCESS) {			\
-		printf("%s\n", msg);			\
-		getchar();						\
-		exit(-1);						\
-	}									\
+#define VKAL_ASSERT(result)	                	\
+	assert(VK_SUCCESS == result);			    \
 
 #define VKAL_MAKE_ARRAY(arr, type, count)		\
 	arr = (type *)malloc(count * sizeof(type)); \
