@@ -2718,21 +2718,28 @@ void create_default_uniform_buffer(uint32_t size)
 
 void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data) // TODO: Does uniform_buffer really have to be a pointer?
 {
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
+    uint64_t data_in_bytes = uniform_buffer->size;
+    uint64_t aligned_size = (data_in_bytes + alignment - 1) & ~(alignment - 1);
+
     void * mapped_uniform_memory = 0;
     VkResult result = vkMapMemory(
 		vkal_info.device, 
 		vkal_info.default_device_memory_uniform, 
-		uniform_buffer->offset, uniform_buffer->size, 
+		uniform_buffer->offset, aligned_size, 
 		0, 
 		&mapped_uniform_memory);
     VKAL_ASSERT(result && "failed to map device memory");
-	
+
+    uint64_t offset = uniform_buffer->offset;
+    uint64_t offset_alignment = (offset + alignment - 1) & ~(alignment - 1);
+
     memcpy(mapped_uniform_memory, data, uniform_buffer->size);
     VkMappedMemoryRange flush_range;
     flush_range.sType  = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     flush_range.pNext  = 0;
     flush_range.memory = vkal_info.default_device_memory_uniform;
-    flush_range.offset = uniform_buffer->offset;
+    flush_range.offset = offset_alignment;
     flush_range.size   = VK_WHOLE_SIZE;
     
     result = vkFlushMappedMemoryRanges(vkal_info.device, 1, &flush_range);
@@ -2877,7 +2884,8 @@ UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint3
     uniform_buffer.offset = vkal_info.default_uniform_buffer_offset;
 //    uniform_buffer.size = size;
     uniform_buffer.binding = binding;
-    uint64_t min_ubo_alignment = vkal_info.physical_device_properties.limits.minUniformBufferOffsetAlignment;
+    //uint64_t min_ubo_alignment = vkal_info.physical_device_properties.limits.minUniformBufferOffsetAlignment;
+    uint64_t min_ubo_alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
     uniform_buffer.alignment = (size + min_ubo_alignment - 1) & ~(min_ubo_alignment - 1);
     uniform_buffer.size = elements * uniform_buffer.alignment;
     uint64_t next_offset = uniform_buffer.size;
