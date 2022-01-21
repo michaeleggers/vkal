@@ -1263,14 +1263,18 @@ void upload_texture(VkImage const image,
 		    uint32_t array_layer_count,
 		    unsigned char * texture_data)
 {
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
+    uint64_t size = array_layer_count * w * h * n;
+    uint64_t aligned_size = (size + alignment - 1) & ~(alignment - 1);
+
     // Copy image data to staging buffer
     void * staging_buffer;
-    vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, array_layer_count*w*h*n, 0, &staging_buffer);
-    memcpy(staging_buffer, texture_data, array_layer_count*w*h*n);
+    vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, aligned_size, 0, &staging_buffer);
+    memcpy(staging_buffer, texture_data, size);
     VkMappedMemoryRange flush_range = { 0 };
     flush_range.memory = vkal_info.device_memory_staging;
     flush_range.offset = 0;
-    flush_range.size = VK_WHOLE_SIZE; // array_layer_count*w*h*4;
+    flush_range.size = aligned_size;
     flush_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     vkFlushMappedMemoryRanges(vkal_info.device, 1, &flush_range);
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
