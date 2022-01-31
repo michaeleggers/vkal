@@ -1,21 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(GLFW_Texture VERSION 1.0)
 
-# Hello Triangle Example using GLFW
-add_executable(GLFW_HelloTriangle
-	hello_triangle.cpp
-	utils/platform.c
-	utils/platform.h
-    assets/shaders/hello_triangle.vert
-    assets/shaders/hello_triangle.frag
-)
-target_include_directories(GLFW_HelloTriangle
-    PUBLIC external
-	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../vkal/
-)
-target_link_libraries(GLFW_HelloTriangle
-	PUBLIC glfw
-	PUBLIC vkal)
 
 # Hello Triangle Example using SDL2
 # include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../external/SDL)

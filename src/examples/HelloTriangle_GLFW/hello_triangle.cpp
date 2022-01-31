@@ -19,7 +19,7 @@
 
 #include <vkal.h>
 
-#include "utils/platform.h"
+#include "platform.h"
 
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
@@ -81,7 +81,7 @@ int main(int argc, char** argv)
 
     char* instance_layers[] = {
         "VK_LAYER_KHRONOS_validation",
-        //"VK_LAYER_LUNARG_monitor"
+        "VK_LAYER_LUNARG_monitor"
     };
     uint32_t instance_layer_count = 0;
 #ifdef _DEBUG

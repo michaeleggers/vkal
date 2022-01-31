@@ -52,6 +52,7 @@ add_subdirectory(src/vkal)
 
 # Examples
 add_subdirectory(src/examples)
+add_subdirectory(src/examples/HelloTriangle_GLFW)
 
 target_compile_definitions(vkal PUBLIC ${WINDOWING})
 
