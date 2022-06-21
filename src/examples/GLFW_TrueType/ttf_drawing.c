@@ -11,25 +11,24 @@
 #include <GLFW/glfw3.h>
 
 #include "../vkal.h"
-#include "utils/platform.h"
-#include "utils/tr_math.h"
+#include "platform.h"
+#include "tr_math.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "external/stb/stb_image.h"
+#include "stb/stb_image.h"
 
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "external/stb/stb_truetype.h"
+#include "stb/stb_truetype.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "external/stb/stb_image_write.h"
+#include "stb/stb_image_write.h"
 
 #define TRM_NDC_ZERO_TO_ONE
-#include "utils/tr_math.h"
+#include "tr_math.h"
 
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
 
 static GLFWwindow * window;
-static Platform p;
 
 typedef struct Image
 {
@@ -292,7 +291,6 @@ void reset_batch(Batch * batch)
 int main(int argc, char ** argv)
 {
     init_window();
-    init_platform(&p);
     
     char * device_extensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -336,10 +334,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.read_file("../src/examples/assets/shaders/ttf_drawing_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("../../src/examples/assets/shaders/ttf_drawing_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.read_file("../src/examples/assets/shaders/ttf_drawing_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("../../src/examples/assets/shaders/ttf_drawing_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -410,7 +408,7 @@ int main(int argc, char ** argv)
     /* TTF loading */
     uint8_t * ttf = NULL;
     int file_size = 0;
-    p.read_file("../src/examples/assets/fonts/efmi.ttf", &ttf, &file_size);
+    read_file("../../src/examples/assets/fonts/efmi.ttf", &ttf, &file_size);
     
     // stb_truetype texture baking API
     stbtt_fontinfo font;

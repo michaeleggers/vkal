@@ -13,6 +13,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
+option (BUILD_EXAMPLES "Create Example Projects" OFF)
+
 # HACK: Unix Makefiles wont generate a Debug/Release/... folders. 
 # So the realtive paths in the examples wont match. Annoying...
 if (UNIX)
@@ -49,17 +51,16 @@ endif()
 
 
 add_subdirectory(src/vkal)
-
-# Examples
-add_subdirectory(src/examples)
-add_subdirectory(src/examples/HelloTriangle_GLFW)
+if (BUILD_EXAMPLES)
+	add_subdirectory(src/examples/)
+endif (BUILD_EXAMPLES)
 
 target_compile_definitions(vkal PUBLIC ${WINDOWING})
 
-add_dependencies(GLFW_Texture       vkal)
-add_dependencies(GLFW_ModelLoading  vkal)
-add_dependencies(SDL_HelloTriangle  vkal)
-add_dependencies(GLFW_HelloTriangle vkal)
+# add_dependencies(GLFW_Texture       vkal)
+# add_dependencies(GLFW_ModelLoading  vkal)
+# add_dependencies(SDL_HelloTriangle  vkal)
+# add_dependencies(GLFW_HelloTriangle vkal)
 
 
 

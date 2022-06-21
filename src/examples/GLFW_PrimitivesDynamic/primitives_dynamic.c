@@ -16,13 +16,13 @@
 #include <GLFW/glfw3.h>
 
 #include "../vkal.h"
-#include "utils/platform.h"
-#include "utils/tr_math.h"
+#include "platform.h"
+#include "tr_math.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "external/stb/stb_image.h"
+#include "stb/stb_image.h"
 #define TRM_NDC_ZERO_TO_ONE
-#include "utils/tr_math.h"
+#include "tr_math.h"
 
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
@@ -104,7 +104,6 @@ void fill_circle(float x, float y, float r, uint32_t spans, vec3 color);
 
 /* Globals */
 static GLFWwindow * window;
-static Platform     p;
 static int          width, height; /* current framebuffer width/height */
 static Batch        g_default_batch = { 0 };
 static Batch        g_persistent_batch = { 0 };
@@ -179,9 +178,15 @@ void init_window()
 
 Image load_image_file(char const * file)
 {
+    char exe_path[256];
+    get_exe_path(exe_path, 256 * sizeof(char));
+    char abs_path[256];
+    memcpy(abs_path, exe_path, 256);
+    strcat(abs_path, file);
+
     Image image = (Image){0};
     int tw, th, tn;
-    image.data = stbi_load(file, &tw, &th, &tn, 4);
+    image.data = stbi_load(abs_path, &tw, &th, &tn, 4);
     assert(image.data != NULL);
     image.width = tw;
     image.height = th;
@@ -625,7 +630,6 @@ void fill_circle(float x, float y, float r, uint32_t spans, vec3 color)
 int main(int argc, char ** argv)
 {
     init_window();
-    init_platform(&p);
     
     char * device_extensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -669,10 +673,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.read_file("../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("../../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.read_file("../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("../../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -754,9 +758,9 @@ int main(int argc, char ** argv)
 
     /* Shader Setup Textured Rect */
     vertex_byte_code = 0;
-    p.read_file("../src/examples/assets/shaders/primitives_textured_rect_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("../../src/examples/assets/shaders/primitives_textured_rect_vert.spv", &vertex_byte_code, &vertex_code_size);
     fragment_byte_code = 0;
-    p.read_file("../src/examples/assets/shaders/primitives_textured_rect_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("../../src/examples/assets/shaders/primitives_textured_rect_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup_textured_rect = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -782,8 +786,8 @@ int main(int argc, char ** argv)
 	VK_FRONT_FACE_CLOCKWISE, 
 	vkal_info->render_pass, pipeline_layout_textured_rect);
 
-    MyTexture tex = create_texture("../src/examples/assets/textures/hk.jpg", 0);
-    MyTexture tex2 = create_texture("../src/examples/assets/textures/brucelee3.jpg", 1);
+    MyTexture tex = create_texture("../../src/examples/assets/textures/hk.jpg", 0);
+    MyTexture tex2 = create_texture("../../src/examples/assets/textures/brucelee3.jpg", 1);
     
     /* Create batches that hold Buffers for indices and vertices that can get updated every frame */
     /* Global Batch */

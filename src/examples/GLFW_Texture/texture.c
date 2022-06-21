@@ -13,13 +13,13 @@
 
 #include <vkal.h>
 
-#include "utils/platform.h"
-#include "utils/tr_math.h"
+#include "platform.h"
+#include "tr_math.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "external/stb/stb_image.h"
+#include "stb/stb_image.h"
 #define TRM_NDC_ZERO_TO_ONE
-#include "utils/tr_math.h"
+#include "tr_math.h"
 
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
@@ -67,9 +67,15 @@ void init_window()
 
 Image load_image_file(char const * file)
 {
+    char exe_path[256];
+    get_exe_path(exe_path, 256 * sizeof(char));
+    char abs_path[256];
+    memcpy(abs_path, exe_path, 256);
+    strcat(abs_path, file);
+
     Image image = (Image){0};
     int tw, th, tn;
-    image.data = stbi_load(file, &tw, &th, &tn, 4);
+    image.data = stbi_load(abs_path, &tw, &th, &tn, 4);
     assert(image.data != NULL);
     image.width = tw;
     image.height = th;
@@ -216,7 +222,7 @@ int main(int argc, char ** argv)
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);
     
     /* Texture Data */
-    Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
+    Image image = load_image_file("/../../src/examples/assets/textures/vklogo.jpg");
     VkalTexture texture = vkal_create_texture(
 		1, image.data, image.width, image.height, 4, 0,
 		VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
