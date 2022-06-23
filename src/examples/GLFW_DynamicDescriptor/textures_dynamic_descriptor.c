@@ -199,9 +199,9 @@ int main(int argc, char ** argv)
     vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, 1, &descriptor_sets);
 	
     /* HACK: Update Texture Slots so validation layer won't complain */
-    Image yakult_image = load_image_file("../../src/examples/assets/textures/yakult.png");
-    VkalTexture yakult_texture = vkal_create_texture(
-	0, yakult_image.data, yakult_image.width, yakult_image.height, 4, 0,
+    Image dummy_image = load_image_file("../../src/examples/assets/textures/hk.jpg");
+    VkalTexture dummy_texture = vkal_create_texture(
+	0, dummy_image.data, dummy_image.width, dummy_image.height, 4, 0,
 	VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 	VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     for (uint32_t i = 0; i < VKAL_MAX_TEXTURES; ++i) {
@@ -209,7 +209,7 @@ int main(int argc, char ** argv)
 			descriptor_sets[0], 
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 			i, /* texture-id (index into array) */
-			yakult_texture);
+			dummy_texture);
     }
 
     /* Pipeline */

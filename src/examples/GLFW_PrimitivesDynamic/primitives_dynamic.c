@@ -786,9 +786,6 @@ int main(int argc, char ** argv)
 	VK_FRONT_FACE_CLOCKWISE, 
 	vkal_info->render_pass, pipeline_layout_textured_rect);
 
-    MyTexture tex = create_texture("../../src/examples/assets/textures/hk.jpg", 0);
-    MyTexture tex2 = create_texture("../../src/examples/assets/textures/brucelee3.jpg", 1);
-    
     /* Create batches that hold Buffers for indices and vertices that can get updated every frame */
     /* Global Batch */
     create_batch(vkal_info, &g_default_batch);
@@ -806,16 +803,6 @@ int main(int argc, char ** argv)
     
     vkal_update_descriptor_set_uniform(descriptor_sets[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_descriptor_set_uniform(descriptor_sets[1], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    vkal_update_descriptor_set_texturearray(
-	descriptor_sets[1], 
-	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-	tex.id, /* texture-id (index into array) */
-	tex.texture);
-    vkal_update_descriptor_set_texturearray(
-	descriptor_sets[1], 
-	VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-	tex2.id, /* texture-id (index into array) */
-	tex2.texture);
     
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);    
 

@@ -165,9 +165,9 @@ int main(int argc, char ** argv)
     vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, 1, &descriptor_sets);
 	
     /* HACK: Update Texture Slots so validation layer won't complain */
-    Image yakult_image = load_image_file("../../src/examples/assets/textures/yakult.png");
-    VkalTexture yakult_texture = vkal_create_texture(
-	0, yakult_image.data, yakult_image.width, yakult_image.height, 4, 0,
+    Image dummy_image = load_image_file("../../src/examples/assets/textures/vklogo.jpg");
+    VkalTexture dummy_texture = vkal_create_texture(
+	0, dummy_image.data, dummy_image.width, dummy_image.height, 4, 0,
 	VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 	VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     for (uint32_t i = 0; i < VKAL_MAX_TEXTURES; ++i) {
@@ -175,7 +175,7 @@ int main(int argc, char ** argv)
 	    descriptor_sets[0], 
 	    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 	    i, /* texture-id (index into array) */
-	    yakult_texture);
+	    dummy_texture);
     }
 
     /* Push Constants */	
@@ -221,11 +221,11 @@ int main(int argc, char ** argv)
     uint32_t offset_indices  = vkal_index_buffer_add(rect_indices, index_count);
 
     /* Texture Data */
-    Image image2 = load_image_file("../../src/examples/assets/textures/mario.jpg");
+    Image image2 = load_image_file("../../src/examples/assets/textures/hk.jpg");
     VkalTexture mario_texture = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
 						VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 						VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-    Image image = load_image_file("../../src/examples/assets/textures/indy1.jpg");
+    Image image = load_image_file("../../src/examples/assets/textures/vklogo.jpg");
     VkalTexture indy_texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
 					       VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 					       VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
