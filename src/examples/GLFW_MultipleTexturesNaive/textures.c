@@ -21,11 +21,11 @@
 #include <GLFW/glfw3.h>
 
 #include "../vkal.h"
-#include "utils/platform.h"
-#include "utils/tr_math.h"
+#include "platform.h"
+#include "tr_math.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "external/stb/stb_image.h"
+#include "stb/stb_image.h"
 
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
@@ -51,7 +51,6 @@ typedef struct Camera
 } Camera;
 
 static GLFWwindow * window;
-static Platform p;
 
 typedef struct Image
 {
@@ -81,9 +80,15 @@ void init_window()
 
 Image load_image_file(char const * file)
 {
+    char exe_path[256];
+    get_exe_path(exe_path, 256 * sizeof(char));
+    char abs_path[256];
+    memcpy(abs_path, exe_path, 256);
+    strcat(abs_path, file);
+
     Image image = (Image){0};
     int tw, th, tn;
-    image.data = stbi_load(file, &tw, &th, &tn, 4);
+    image.data = stbi_load(abs_path, &tw, &th, &tn, 4);
     assert(image.data != NULL);
     image.width = tw;
     image.height = th;
@@ -95,7 +100,6 @@ Image load_image_file(char const * file)
 int main(int argc, char ** argv)
 {
     init_window();
-    init_platform(&p);
     
     char * device_extensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -141,10 +145,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    p.read_file("../src/examples/assets/shaders/textures_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("../../src/examples/assets/shaders/textures_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    p.read_file("../src/examples/assets/shaders/textures_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("../../src/examples/assets/shaders/textures_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -236,11 +240,11 @@ int main(int argc, char ** argv)
     uint32_t offset_indices  = vkal_index_buffer_add(rect_indices, index_count);
 
     /* Texture Data */
-    Image image = load_image_file("../src/examples/assets/textures/vklogo.jpg");
+    Image image = load_image_file("../../src/examples/assets/textures/vklogo.jpg");
     VkalTexture texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 					  VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-    Image image2 = load_image_file("../src/examples/assets/textures/hk.jpg");
+    Image image2 = load_image_file("../../src/examples/assets/textures/hk.jpg");
     VkalTexture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
 					   VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 					   VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
