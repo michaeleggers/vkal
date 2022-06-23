@@ -5,4 +5,4 @@
 - [ ] Fix formatting of sourcecode
 - [ ] Correct description-comments in examples
 - [ ] Use STL to load files in utils for platform independence
-- [x] Replace some of the textures for example programs
+- [x] Replace some of the (unlicensed) textures for example programs
