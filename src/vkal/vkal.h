@@ -26,7 +26,7 @@
 
 #define VKAL_NULL                       0
 
-#define VKAL_MB								(1024 * 1024)
+#define VKAL_MB							(1024 * 1024)
 #define STAGING_BUFFER_SIZE				(64 * VKAL_MB)
 #define UNIFORM_BUFFER_SIZE				(64 * VKAL_MB)
 #define VERTEX_BUFFER_SIZE				(64 * VKAL_MB)

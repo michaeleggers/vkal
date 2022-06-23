@@ -15,13 +15,12 @@
 
 #include <vkal.h>
 
-#include "utils/platform.h"
-#include "utils/tr_math.h"
+#include "platform.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "external/stb/stb_image.h"
+#include "stb/stb_image.h"
 #define TRM_NDC_ZERO_TO_ONE
-#include "utils/tr_math.h"
+#include "tr_math.h"
 
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768

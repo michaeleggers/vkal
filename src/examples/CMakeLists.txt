@@ -11,6 +11,8 @@ if (${WINDOWING} STREQUAL "VKAL_GLFW")
     add_subdirectory(GLFW_DynamicDescriptorTransformUniform)
 elseif(${WINDOWING} STREQUAL "VKAL_SDL")
     add_subdirectory(SDL_HelloTriangle)
+elseif(${WINDOWING} STREQUAL "VKAL_WIN32")
+    add_subdirectory(WIN32_Texture)
 endif()
 
 
