@@ -22,7 +22,7 @@ add_executable(GLFW_RenderToTexture
 target_include_directories(GLFW_RenderToTexture
     PUBLIC ../external
     PUBLIC ../utils
-	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../vkal/
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../
 )
 target_link_libraries(GLFW_RenderToTexture
 	PUBLIC glfw

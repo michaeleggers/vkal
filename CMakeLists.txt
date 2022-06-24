@@ -50,7 +50,61 @@ elseif(${WINDOWING} STREQUAL "VKAL_SDL")
 endif()
 
 
-add_subdirectory(src/vkal)
+
+
+# add_subdirectory(src/vkal)
+# Add VKAL sources as static lib
+message("Cmake Module Path: " ${Vulkan_INCLUDE_DIRS})
+add_library(vkal STATIC
+    vkal.c
+    vkal.h
+)
+
+if (WIN32)
+    target_include_directories(vkal
+        PUBLIC Vulkan::Vulkan
+        # if (${WINDOWING} STREQUAL "VKAL_SDL")
+	    #     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../external/SDL/include
+        # endif()
+    )
+    target_link_libraries(vkal PUBLIC
+        Vulkan::Vulkan
+    )
+endif (WIN32)
+
+if (UNIX)
+    target_include_directories(vkal
+        PUBLIC Vulkan::Vulkan
+    )
+    target_link_libraries(vkal PUBLIC
+        Vulkan::Vulkan
+    )
+endif (UNIX)
+
+if (APPLE)
+    target_include_directories(vkal
+        # PUBLIC /macOS/Debug/MoltenVK/include
+        PUBLIC Vulkan::Vulkan
+    )
+    target_link_libraries(vkal
+        # PUBLIC libMoltenVK.dylib
+        PUBLIC Vulkan::Vulkan
+        PUBLIC ${Vulkan_LIBRARIES} # XCode: include vulkan.framework from Vulkan SDK.
+    )
+endif (APPLE)
+        
+if (${WINDOWING} STREQUAL "VKAL_GLFW")
+	target_link_libraries(vkal PUBLIC
+		glfw
+	)
+elseif (${WINDOWING} STREQUAL "VKAL_SDL")
+    target_link_libraries(vkal PUBLIC
+        PUBLIC SDL2
+        PUBLIC SDL2main
+    )
+endif()	
+
+# Add example projects if set to ON
 if (BUILD_EXAMPLES)
 	add_subdirectory(src/examples/)
 endif (BUILD_EXAMPLES)

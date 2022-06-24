@@ -22,7 +22,7 @@ add_executable(WIN32_Texture
 target_include_directories(WIN32_Texture
 	PUBLIC ../external
 	PUBLIC ../utils
-	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../vkal/
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../
 )
 target_link_libraries(WIN32_Texture
 	PUBLIC vkal)

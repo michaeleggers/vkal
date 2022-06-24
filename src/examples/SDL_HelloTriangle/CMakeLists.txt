@@ -20,7 +20,7 @@ target_include_directories(SDL_HelloTriangle
     PUBLIC ../external
     PUBLIC ../utils
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../external/SDL/include
-	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../vkal/
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../
 )
 target_link_libraries(SDL_HelloTriangle
     PUBLIC SDL2

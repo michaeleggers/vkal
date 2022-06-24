@@ -21,7 +21,7 @@ add_executable(GLFW_Primitives
 target_include_directories(GLFW_Primitives
     PUBLIC ../external
     PUBLIC ../utils
-	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../vkal/
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../
 )
 target_link_libraries(GLFW_Primitives
 	PUBLIC glfw

@@ -19,7 +19,7 @@ add_executable(GLFW_HelloTriangle
 target_include_directories(GLFW_HelloTriangle
     PUBLIC ../external
     PUBLIC ../utils
-	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../vkal/
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../
 )
 target_link_libraries(GLFW_HelloTriangle
 	PUBLIC glfw
