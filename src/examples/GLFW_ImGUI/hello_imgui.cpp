@@ -75,48 +75,8 @@ void init_window()
     height = SCREEN_HEIGHT;
 }
 
-int main(int argc, char** argv)
+void init_imgui(VkalInfo * vkal_info)
 {
-    init_window();
-
-    char* device_extensions[] = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_KHR_MAINTENANCE3_EXTENSION_NAME
-    };
-    uint32_t device_extension_count = sizeof(device_extensions) / sizeof(*device_extensions);
-
-    char* instance_extensions[] = {
-    VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
-#ifdef _DEBUG
-    ,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-#endif
-    };
-    uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
-
-    char* instance_layers[] = {
-        "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_LUNARG_monitor"
-    };
-    uint32_t instance_layer_count = 0;
-#ifdef _DEBUG
-    instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);
-#endif
-
-    vkal_create_instance_glfw(window, instance_extensions, instance_extension_count, instance_layers, instance_layer_count);
-
-    VkalPhysicalDevice* devices = 0;
-    uint32_t device_count;
-    vkal_find_suitable_devices(device_extensions, device_extension_count, &devices, &device_count);
-    assert(device_count > 0);
-    printf("Suitable Devices:\n");
-    for (uint32_t i = 0; i < device_count; ++i) {
-        printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
-    }
-    vkal_select_physical_device(&devices[0]);
-    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count);
-
-    // Init ImGUI
-
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -128,7 +88,7 @@ int main(int argc, char** argv)
         printf("Could not initialize ImGui!\n");
         exit(-1);
     }
-   
+
     ImGui_ImplVulkan_InitInfo init_info = {};
     init_info.Instance = vkal_info->instance;
     init_info.PhysicalDevice = vkal_info->physical_device;
@@ -169,8 +129,49 @@ int main(int argc, char** argv)
         check_vk_result(err);
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
+}
 
-    // ! ImGUI
+int main(int argc, char** argv)
+{
+    init_window();
+
+    char* device_extensions[] = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_MAINTENANCE3_EXTENSION_NAME
+    };
+    uint32_t device_extension_count = sizeof(device_extensions) / sizeof(*device_extensions);
+
+    char* instance_extensions[] = {
+    VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+#ifdef _DEBUG
+    ,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+#endif
+    };
+    uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
+
+    char* instance_layers[] = {
+        "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_LUNARG_monitor"
+    };
+    uint32_t instance_layer_count = 0;
+#ifdef _DEBUG
+    instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);
+#endif
+
+    vkal_create_instance_glfw(window, instance_extensions, instance_extension_count, instance_layers, instance_layer_count);
+
+    VkalPhysicalDevice* devices = 0;
+    uint32_t device_count;
+    vkal_find_suitable_devices(device_extensions, device_extension_count, &devices, &device_count);
+    assert(device_count > 0);
+    printf("Suitable Devices:\n");
+    for (uint32_t i = 0; i < device_count; ++i) {
+        printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
+    }
+    vkal_select_physical_device(&devices[0]);
+    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count);
+
+    init_imgui(vkal_info);
 
     /* Shader Setup */
     uint8_t* vertex_byte_code = 0;
