@@ -149,6 +149,25 @@ int main(int argc, char** argv)
     }
     else {
         printf("ImGui Vulkan part NOT initialized!\n");
+        exit(-1);
+    }
+
+    // Upload Fonts
+    {
+        VkResult err;
+        VkCommandBuffer font_cmd_buffer = vkal_create_command_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+        ImGui_ImplVulkan_CreateFontsTexture(font_cmd_buffer);
+        err = vkEndCommandBuffer(font_cmd_buffer);
+        check_vk_result(err);
+        VkSubmitInfo submit_info = {  };
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.commandBufferCount = 1; // vkal_info.default_command_buffer_count;
+        submit_info.pCommandBuffers = &font_cmd_buffer;  //vkal_info.default_command_buffers;
+        err = vkQueueSubmit(vkal_info->graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+        check_vk_result(err);
+        err = vkDeviceWaitIdle(vkal_info->device);
+        check_vk_result(err);
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
     // ! ImGUI
@@ -156,10 +175,10 @@ int main(int argc, char** argv)
     /* Shader Setup */
     uint8_t* vertex_byte_code = 0;
     int vertex_code_size;
-    read_file("/../../src/examples/assets/shaders/imgui_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("/../../src/examples/assets/shaders/hello_triangle_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t* fragment_byte_code = 0;
     int fragment_code_size;
-    read_file("/../../src/examples/assets/shaders/imgui_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("/../../src/examples/assets/shaders/hello_triangle_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(vertex_byte_code, vertex_code_size, fragment_byte_code, fragment_code_size);
     
     /* Vertex Input Assembly */
@@ -240,6 +259,8 @@ int main(int argc, char** argv)
 	vkal_update_uniform(&view_proj_ub, &view_proj_data);
 
     // Main Loop
+    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -249,11 +270,37 @@ int main(int argc, char** argv)
 		view_proj_data.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
 		vkal_update_uniform(&view_proj_ub, &view_proj_data);
 
+        // Start the Dear ImGui frame
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        // 1. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+        {
+            static float f = 0.0f;
+            static int counter = 0;
+
+            ImGui::Begin("Hello, triangle!");                          // Create a window called "Hello, world!" and append into it.
+
+            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+            
+            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", counter);
+
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::End();
+        }
+
         {
             uint32_t image_id = vkal_get_image();
 
             vkal_begin_command_buffer(image_id);
             vkal_begin_render_pass(image_id, vkal_info->render_pass);
+
             vkal_viewport(vkal_info->default_command_buffers[image_id],
                 0, 0,
                 (float)width, (float)height);
@@ -264,6 +311,14 @@ int main(int argc, char** argv)
             vkal_draw_indexed(image_id, graphics_pipeline,
                 offset_indices, index_count,
                 offset_vertices);
+
+            // Rendering ImGUI
+            ImGui::Render();
+            ImDrawData* draw_data = ImGui::GetDrawData();
+            // Record dear imgui primitives into command buffer
+            ImGui_ImplVulkan_RenderDrawData(draw_data, vkal_info->default_command_buffers[image_id]);
+
+            // End renderpass and submit the buffer to graphics-queue.
             vkal_end_renderpass(image_id);
             vkal_end_command_buffer(image_id);
             VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
@@ -272,6 +327,14 @@ int main(int argc, char** argv)
             vkal_present(image_id);
         }
     }
+
+    // Cleanup
+
+    VkResult err = vkDeviceWaitIdle(vkal_info->device);
+    check_vk_result(err);
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
 	free(descriptor_sets);
 

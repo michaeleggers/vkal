@@ -7,3 +7,4 @@
 - [x] Use C-Library to load files instead of native OS-specific APIs.
 - [x] Replace some of the (unlicensed) textures for example programs.
 - [ ] Create DearImGUI example.
+- [ ] Define VKAL_TRUE / VKAL_FALSE instead of using uint32_t for true / false.
