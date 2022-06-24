@@ -46,4 +46,5 @@
 %VULKAN_SDK%/bin/glslc q2bsp_trans.vert -o q2bsp_trans_vert.spv
 %VULKAN_SDK%/bin/glslc q2bsp_trans.frag -o q2bsp_trans_frag.spv
 
-
+%VULKAN_SDK%/bin/glslc imgui.vert -o imgui_vert.spv
+%VULKAN_SDK%/bin/glslc imgui.frag -o imgui_frag.spv
