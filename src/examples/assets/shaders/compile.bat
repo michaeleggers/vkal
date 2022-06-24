@@ -1,5 +1,7 @@
 @echo off
 
+cd %~dp0
+
 %VULKAN_SDK%/bin/glslc hello_triangle.vert -o hello_triangle_vert.spv
 %VULKAN_SDK%/bin/glslc hello_triangle.frag -o hello_triangle_frag.spv
 
@@ -33,18 +35,6 @@
 
 %VULKAN_SDK%/bin/glslc ttf_drawing.vert -o ttf_drawing_vert.spv
 %VULKAN_SDK%/bin/glslc ttf_drawing.frag -o ttf_drawing_frag.spv
-
-%VULKAN_SDK%/bin/glslc q2bsp.vert -o q2bsp_vert.spv
-%VULKAN_SDK%/bin/glslc q2bsp.frag -o q2bsp_frag.spv
-
-%VULKAN_SDK%/bin/glslc q2bsp_bb.vert -o q2bsp_bb_vert.spv
-%VULKAN_SDK%/bin/glslc q2bsp_bb.frag -o q2bsp_bb_frag.spv
-
-%VULKAN_SDK%/bin/glslc q2bsp_sky.vert -o q2bsp_sky_vert.spv
-%VULKAN_SDK%/bin/glslc q2bsp_sky.frag -o q2bsp_sky_frag.spv
-
-%VULKAN_SDK%/bin/glslc q2bsp_trans.vert -o q2bsp_trans_vert.spv
-%VULKAN_SDK%/bin/glslc q2bsp_trans.frag -o q2bsp_trans_frag.spv
 
 %VULKAN_SDK%/bin/glslc imgui.vert -o imgui_vert.spv
 %VULKAN_SDK%/bin/glslc imgui.frag -o imgui_frag.spv

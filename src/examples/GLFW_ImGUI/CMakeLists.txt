@@ -15,6 +15,8 @@ add_executable(GLFW_ImGUI
 	../utils/platform.h
     ../assets/shaders/imgui.vert
     ../assets/shaders/imgui.frag
+    ../assets/shaders/hello_triangle.vert
+    ../assets/shaders/hello_triangle.frag
     ../external/imgui/backends/imgui_impl_glfw.cpp
     ../external/imgui/backends/imgui_impl_glfw.h
     ../external/imgui/backends/imgui_impl_vulkan.cpp
