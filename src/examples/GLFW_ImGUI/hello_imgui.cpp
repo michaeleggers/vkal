@@ -75,6 +75,7 @@ void init_window()
     height = SCREEN_HEIGHT;
 }
 
+
 void init_imgui(VkalInfo * vkal_info)
 {
     IMGUI_CHECKVERSION();
@@ -129,6 +130,15 @@ void init_imgui(VkalInfo * vkal_info)
         check_vk_result(err);
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
+}
+
+void deinit_imgui(VkalInfo* vkal_info)
+{
+    VkResult err = vkDeviceWaitIdle(vkal_info->device);
+    check_vk_result(err);
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 }
 
 int main(int argc, char** argv)
@@ -331,11 +341,7 @@ int main(int argc, char** argv)
 
     // Cleanup
 
-    VkResult err = vkDeviceWaitIdle(vkal_info->device);
-    check_vk_result(err);
-    ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    deinit_imgui(vkal_info);
 
 	free(descriptor_sets);
 
