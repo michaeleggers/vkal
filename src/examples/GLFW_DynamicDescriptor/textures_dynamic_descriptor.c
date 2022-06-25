@@ -7,7 +7,7 @@
    This way the index which is used to lookup the correct texture in the
    descriptor-array (this is not a texture-array, but it feels like an array of textures...)
    for samplers can be passed through a single descriptor set.
-   when binding, the offset within the buffer is provided.
+   When binding, the offset within the buffer is provided.
 */
 
 
@@ -232,16 +232,16 @@ int main(int argc, char ** argv)
 		-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
     	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  1.0, 1.0
     };
-    uint32_t vertex_count = sizeof(cube_vertices)/sizeof(*cube_vertices);
+    uint32_t vertex_count = sizeof(cube_vertices)/sizeof(*cube_vertices) / 8;
     
     uint16_t cube_indices[] = {
-	// front
- 	0, 1, 2,
-	2, 1, 3
+	    // front
+ 	    0, 1, 2,
+	    2, 1, 3
     };
     uint32_t index_count = sizeof(cube_indices)/sizeof(*cube_indices);
   
-    uint32_t offset_vertices = vkal_vertex_buffer_add(cube_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
+    uint32_t offset_vertices = vkal_vertex_buffer_add(cube_vertices, 2*sizeof(vec3) + sizeof(vec2), vertex_count);
     uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
 
     /* Texture Data */

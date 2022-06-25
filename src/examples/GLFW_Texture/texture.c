@@ -198,7 +198,7 @@ int main(int argc, char ** argv)
 		-1.0, -1.0, 1.0,  0.0, 0.0, 1.0,  0.0, 1.0,
     	 1.0, -1.0, 1.0,  1.0, 1.0, 0.0,  1.0, 1.0
     };
-    uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
+    uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices) / 8;
     
     uint16_t rect_indices[] = {
  		0, 1, 2,
@@ -206,7 +206,7 @@ int main(int argc, char ** argv)
     };
     uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
   
-    uint32_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 2*sizeof(vec3) + sizeof(vec2), 4);
+    uint32_t offset_vertices = vkal_vertex_buffer_add(rect_vertices, 2*sizeof(vec3) + sizeof(vec2), vertex_count);
     uint32_t offset_indices  = vkal_index_buffer_add(rect_indices, index_count);
 
     /* Uniform Buffer for view projection matrices */

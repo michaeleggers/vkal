@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <shaderc/shaderc.h>
 
@@ -32,7 +33,7 @@ void load_glsl_and_compile(char const* glsl_source_file, uint8_t** out_spirv, in
 	size_t spirv_size = shaderc_result_get_length(result);
 	*out_spirv = (uint8_t*)malloc(spirv_size);
 	uint32_t* code = (uint32_t*)shaderc_result_get_bytes(result);
-	memcpy(*out_spirv, code, spirv_size); 
+	memcpy(*out_spirv, (uint8_t*)code, spirv_size); 
 	*out_spirv_size = spirv_size;
 
 	shaderc_result_release(result);

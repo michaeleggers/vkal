@@ -284,17 +284,17 @@ int main(int argc, char ** argv)
 
     /* Model Data */
     float rect_vertices[] = {
-	// Pos                              // Color        // UV
-	100,  100.f, -1.0,                  1.0, 0.0, 0.0,  0.0, 0.0,
-	100,  SCREEN_HEIGHT, -1.0,          0.0, 1.0, 0.0,  1.0, 0.0,
-	SCREEN_WIDTH, 100.f, -1.0,          0.0, 0.0, 1.0,  0.0, 1.0,
-	SCREEN_WIDTH, SCREEN_HEIGHT, -1.0,  1.0, 1.0, 0.0,  1.0, 1.0
+	    // Pos                              // Color        // UV
+	    100,  100.f, -1.0,                  1.0, 0.0, 0.0,  0.0, 0.0,
+	    100,  SCREEN_HEIGHT, -1.0,          0.0, 1.0, 0.0,  1.0, 0.0,
+	    SCREEN_WIDTH, 100.f, -1.0,          0.0, 0.0, 1.0,  0.0, 1.0,
+	    SCREEN_WIDTH, SCREEN_HEIGHT, -1.0,  1.0, 1.0, 0.0,  1.0, 1.0
     };
-    uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices);
+    uint32_t vertex_count = sizeof(rect_vertices)/sizeof(*rect_vertices) / 8;
     
     uint16_t rect_indices[] = {
- 	0, 2, 1,
-	1, 2, 3
+ 	    0, 2, 1,
+	    1, 2, 3
     };
     uint32_t index_count = sizeof(rect_indices)/sizeof(*rect_indices);
 
@@ -304,19 +304,19 @@ int main(int argc, char ** argv)
     float theta = 0.0f;
     float steps = 2*TR_PI/32.f;
     for (uint32_t i = 0; i < 32; ++i) {
-	float r = rand_between(0.0, 1.0);
-	float g = rand_between(0.0, 1.0);
-	float b = rand_between(0.0, 1.0);
-	float thickness = rand_between(1.0, 30.0);
-//	line(&batch, rand_between(0, width), rand_between(0, height),
-//	     rand_between(0, width), rand_between(0, height), thickness, (vec3){r, g, b});
-	line(&batch, 500, 500, 500+400*cosf(theta), 500+400*sinf(theta), thickness, (vec3){r, g, b});
-//	line(&batch, 500, 500, 60, 800);
-//	fill_rect(&batch, 500, 500, 10, 10);
+	    float r = rand_between(0.0, 1.0);
+	    float g = rand_between(0.0, 1.0);
+	    float b = rand_between(0.0, 1.0);
+	    float thickness = rand_between(1.0, 30.0);
+//	    line(&batch, rand_between(0, width), rand_between(0, height),
+//	         rand_between(0, width), rand_between(0, height), thickness, (vec3){r, g, b});
+	    line(&batch, 500, 500, 500+400*cosf(theta), 500+400*sinf(theta), thickness, (vec3){r, g, b});
+//	    line(&batch, 500, 500, 60, 800);
+//	    fill_rect(&batch, 500, 500, 10, 10);
 
-	theta += steps;
-//	fill_rect(&batch, rand_between(0, SCREEN_WIDTH), rand_between(0, SCREEN_HEIGHT),
-//		  rand_between(100, 200), rand_between(100, 200));
+	    theta += steps;
+//	    fill_rect(&batch, rand_between(0, SCREEN_WIDTH), rand_between(0, SCREEN_HEIGHT),
+//	    	  rand_between(100, 200), rand_between(100, 200));
     }
     uint32_t offset_vertices = vkal_vertex_buffer_add(batch.vertices, 2*sizeof(vec3) + sizeof(vec2),
 						      batch.vertex_count);

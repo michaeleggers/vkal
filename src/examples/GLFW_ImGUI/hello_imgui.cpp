@@ -203,6 +203,8 @@ int main(int argc, char** argv)
 #endif
     
     ShaderStageSetup shader_setup = vkal_create_shaders(vertex_byte_code, vertex_code_size, fragment_byte_code, fragment_code_size);
+    free(vertex_byte_code);
+    free(fragment_byte_code);
 
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
@@ -256,7 +258,7 @@ int main(int argc, char** argv)
          0,  1, 0,  0.0, 1.0, 0.0,  1.0, 0.0,
          1, -1, 0,  0.0, 0.0, 1.0,  0.0, 1.0
     };
-    uint32_t vertex_count = sizeof(rect_vertices) / sizeof(*rect_vertices);
+    uint32_t vertex_count = sizeof(rect_vertices) / sizeof(*rect_vertices) / 8;
 
     uint16_t rect_indices[] = 
     {

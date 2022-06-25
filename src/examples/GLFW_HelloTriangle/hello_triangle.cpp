@@ -162,7 +162,7 @@ int main(int argc, char** argv)
          0,  1, 0,  0.0, 1.0, 0.0,  1.0, 0.0,
          1, -1, 0,  0.0, 0.0, 1.0,  0.0, 1.0
     };
-    uint32_t vertex_count = sizeof(rect_vertices) / sizeof(*rect_vertices);
+    uint32_t vertex_count = sizeof(rect_vertices) / sizeof(*rect_vertices) / 8;
 
     uint16_t rect_indices[] = 
     {
