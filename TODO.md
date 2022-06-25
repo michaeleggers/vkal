@@ -10,3 +10,4 @@
 - [x] Replace some of the (unlicensed) textures for example programs.
 - [x] Create DearImGUI example.
 - [ ] Define VKAL_TRUE / VKAL_FALSE instead of using uint32_t for true / false.
+- [ ] Free malloc'd memory.
