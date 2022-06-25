@@ -3,11 +3,11 @@
 #to use GLFW as a windowing backend.
 
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.24)
 project(VKAL VERSION 1.0)
-cmake_minimum_required(VERSION 3.12)
 
-find_package(Vulkan REQUIRED)
+find_package(Vulkan COMPONENTS shaderc_combined REQUIRED)
+message(STATUS "Vulkan_shaderc_combined_FOUND: ${Vulkan_shaderc_combined_FOUND}")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
@@ -61,14 +61,16 @@ add_library(vkal STATIC
 )
 
 if (WIN32)
-    target_include_directories(vkal
-        PUBLIC Vulkan::Vulkan
+    target_include_directories(vkal PUBLIC
+        Vulkan::Vulkan
+        PUBLIC Vulkan::shaderc_combined
         # if (${WINDOWING} STREQUAL "VKAL_SDL")
 	    #     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../external/SDL/include
         # endif()
     )
-    target_link_libraries(vkal PUBLIC
-        Vulkan::Vulkan
+    target_link_libraries(vkal
+        PUBLIC Vulkan::Vulkan
+        PUBLIC Vulkan::shaderc_combined
     )
 endif (WIN32)
 

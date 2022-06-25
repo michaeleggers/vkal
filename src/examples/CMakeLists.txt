@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.24)
 project(Examples VERSION 1.0)
 
 if (${WINDOWING} STREQUAL "VKAL_GLFW")
@@ -12,6 +12,7 @@ if (${WINDOWING} STREQUAL "VKAL_GLFW")
     add_subdirectory(GLFW_RenderToTexture)
     add_subdirectory(GLFW_TextureDescriptorArray)
     add_subdirectory(GLFW_MultipleTexturesNaive)
+    add_subdirectory(GLFW_ImGUI)
 elseif(${WINDOWING} STREQUAL "VKAL_SDL")
     add_subdirectory(SDL_HelloTriangle)
 elseif(${WINDOWING} STREQUAL "VKAL_WIN32")
