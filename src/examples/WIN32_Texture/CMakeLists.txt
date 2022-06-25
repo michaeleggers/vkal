@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.24)
 project(WIN32_Texture VERSION 1.0)
 
 # Hello Triangle Example using GLFW
@@ -12,7 +12,7 @@ ${CMAKE_CURRENT_SOURCE_DIR} *.h)
 add_executable(WIN32_Texture
 	${SRC_FILES}
 	${HEADER_FILES}
-	../utils/platform.c
+	../utils/platform.cpp
 	../utils/platform.h
 	../utils/tr_math.c
 	../utils/tr_math.h

@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
+#include <string>
+#include <sstream>
+#include <fstream>
 
 #include "platform.h"
 
@@ -93,4 +96,24 @@ void read_file(char const* filename, uint8_t** out_buffer, int* out_size)
 	*out_buffer = (uint8_t*)malloc(*out_size);
 	fread(*out_buffer, sizeof(char), *out_size, file);
 	fclose(file);
+}
+
+void read_text_file(char const* filename, char** out_buffer, int* out_size)
+{
+	char exe_path[256];
+	get_exe_path(exe_path, 256 * sizeof(char));
+	char abs_path[256];
+	memcpy(abs_path, exe_path, 256);
+	strcat(abs_path, filename);
+
+	std::ifstream iFileStream;
+	std::stringstream ss;
+	iFileStream.open(abs_path, std::ifstream::in);
+	ss << iFileStream.rdbuf();
+	std::string data = ss.str();
+	iFileStream.close();
+
+	*out_size = data.length();
+	*out_buffer = (char*)malloc(*out_size);
+	memcpy(*out_buffer, data.c_str(), *out_size);
 }

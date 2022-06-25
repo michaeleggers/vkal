@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.24)
 project(Examples VERSION 1.0)
 
 if (${WINDOWING} STREQUAL "VKAL_GLFW")

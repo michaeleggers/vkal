@@ -2,6 +2,8 @@
 
 cd %~dp0
 
+echo "COMPILING SHADERS..."
+
 %VULKAN_SDK%/bin/glslc hello_triangle.vert -o hello_triangle_vert.spv
 %VULKAN_SDK%/bin/glslc hello_triangle.frag -o hello_triangle_frag.spv
 

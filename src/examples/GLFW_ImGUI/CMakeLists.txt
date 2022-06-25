@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.24)
 project(GLFW_ImGUI VERSION 1.0)
 
 # Hello Triangle Example using GLFW
@@ -11,8 +11,10 @@ file(GLOB_RECURSE HEADER_FILES LIST_DIRECTORIES false RELATIVE
 add_executable(GLFW_ImGUI
 	${SRC_FILES}
     ${HEADER_FILES}
-	../utils/platform.c
+	../utils/platform.cpp
 	../utils/platform.h
+    ../utils/glslcompile.c
+	../utils/glslcompile.h
     ../assets/shaders/imgui.vert
     ../assets/shaders/imgui.frag
     ../assets/shaders/hello_triangle.vert

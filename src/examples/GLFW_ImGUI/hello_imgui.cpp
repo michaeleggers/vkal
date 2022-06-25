@@ -24,7 +24,7 @@
 #include <vkal.h>
 
 #include "platform.h"
-
+#include "glslcompile.h"
 
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
@@ -183,15 +183,27 @@ int main(int argc, char** argv)
 
     init_imgui(vkal_info);
 
+    /* Compile Shaders at runtime */
+    uint8_t * vertex_byte_code = 0;
+    int vertex_code_size = 0;
+    load_glsl_and_compile("/../../src/examples/assets/shaders/hello_triangle.vert", &vertex_byte_code, &vertex_code_size, SHADER_TYPE_VERTEX);
+
+    uint8_t * fragment_byte_code = 0;
+    int fragment_code_size = 0;
+    load_glsl_and_compile("/../../src/examples/assets/shaders/hello_triangle.frag", &fragment_byte_code, &fragment_code_size, SHADER_TYPE_FRAGMENT);
+
     /* Shader Setup */
+#if 0
     uint8_t* vertex_byte_code = 0;
     int vertex_code_size;
     read_file("/../../src/examples/assets/shaders/hello_triangle_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t* fragment_byte_code = 0;
     int fragment_code_size;
     read_file("/../../src/examples/assets/shaders/hello_triangle_frag.spv", &fragment_byte_code, &fragment_code_size);
-    ShaderStageSetup shader_setup = vkal_create_shaders(vertex_byte_code, vertex_code_size, fragment_byte_code, fragment_code_size);
+#endif
     
+    ShaderStageSetup shader_setup = vkal_create_shaders(vertex_byte_code, vertex_code_size, fragment_byte_code, fragment_code_size);
+
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
     {
