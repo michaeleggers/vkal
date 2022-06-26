@@ -13,7 +13,7 @@ add_executable(GLFW_ImGUI
     ${HEADER_FILES}
 	../utils/platform.cpp
 	../utils/platform.h
-    ../utils/glslcompile.c
+    ../utils/glslcompile.cpp
 	../utils/glslcompile.h
     ../assets/shaders/imgui.vert
     ../assets/shaders/imgui.frag

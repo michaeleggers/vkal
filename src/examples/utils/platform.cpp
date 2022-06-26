@@ -80,7 +80,7 @@
 
 
 
-/* Platform independent (only C-libary which _should_ work on all systems). */
+/* Platform independent part. Should work on all systems. */
 
 void read_file(char const* filename, uint8_t** out_buffer, int* out_size)
 {
@@ -98,7 +98,7 @@ void read_file(char const* filename, uint8_t** out_buffer, int* out_size)
 	fclose(file);
 }
 
-void read_text_file(char const* filename, char** out_buffer, int* out_size)
+std::string read_text_file(char const* filename)
 {
 	char exe_path[256];
 	get_exe_path(exe_path, 256 * sizeof(char));
@@ -109,11 +109,14 @@ void read_text_file(char const* filename, char** out_buffer, int* out_size)
 	std::ifstream iFileStream;
 	std::stringstream ss;
 	iFileStream.open(abs_path, std::ifstream::in);
+	if (!iFileStream.good()) {
+		fprintf(stderr, "Not able to open file: %s\n", abs_path);
+		system("pause"); // does this work on all systems?
+		exit(-1);
+	}
 	ss << iFileStream.rdbuf();
 	std::string data = ss.str();
 	iFileStream.close();
 
-	*out_size = data.length();
-	*out_buffer = (char*)malloc(*out_size);
-	memcpy(*out_buffer, data.c_str(), *out_size);
+	return data;
 }
