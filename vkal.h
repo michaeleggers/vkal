@@ -46,7 +46,7 @@
 #define VKAL_MAX_VKSAMPLER				128
 #define VKAL_MAX_TEXTURES				10
 #define VKAL_MAX_VKFRAMEBUFFER			64
-#define VKAL_VSYNC_ON					1
+#define VKAL_VSYNC_ON					0
 #define VKAL_SHADOW_MAP_DIMENSION		2048
 
 #define VKAL_ASSERT(result)	                	\

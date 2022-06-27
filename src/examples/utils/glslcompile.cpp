@@ -25,10 +25,13 @@ void load_glsl_and_compile(char const* glsl_source_file, uint8_t** out_spirv, in
 			compiler, glsl_source.c_str(), glsl_source_size, shader_kind,
 			glsl_source_file, "main", NULL);
 	shaderc_compilation_status status = shaderc_result_get_compilation_status(result);
-	printf("Shader compilation status: %d\n", (int)status);
+	printf("[SHADER-UTILS] Shader compilation info\n");
+	printf("[SHADER-UTILS]     file:   %s\n", glsl_source_file);
+	printf("[SHADER-UTILS]     status: %d\n", (int)status);
 	if (status != shaderc_compilation_status_success) {
-		printf("error: %s", shaderc_result_get_error_message(result));
+		printf("[SHADER-UTILS]     error: %s", shaderc_result_get_error_message(result));
 	}
+	printf("\n");
 
 	size_t spirv_size = shaderc_result_get_length(result);
 	*out_spirv = (uint8_t*)malloc(spirv_size);
