@@ -15,7 +15,7 @@
 
 #include <GLFW/glfw3.h>
 
-#include "../vkal.h"
+#include <vkal.h>
 #include "platform.h"
 #include "tr_math.h"
 
@@ -807,7 +807,7 @@ int main(int argc, char ** argv)
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);    
 
     /* Draw grid */
-    RenderCmd persistent_command = { 0 };
+    RenderCmd persistent_command = { };
     persistent_command.type = RENDER_CMD_STD;
     persistent_command.batch = &g_persistent_batch;
     

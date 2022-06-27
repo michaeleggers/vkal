@@ -10,7 +10,8 @@
 
 #include <GLFW/glfw3.h>
 
-#include "../vkal.h"
+#include <vkal.h>
+
 #include "platform.h"
 #include "tr_math.h"
 

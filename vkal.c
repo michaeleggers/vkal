@@ -748,9 +748,9 @@ VkSurfaceFormatKHR choose_swapchain_surface_format(VkSurfaceFormatKHR * availabl
     return available_formats[0];
 }
 
-VkPresentModeKHR choose_swapchain_present_mode(VkPresentModeKHR * available_present_modes, uint32_t present_mode_count)
+VkPresentModeKHR choose_swapchain_present_mode(VkPresentModeKHR * available_present_modes, uint32_t present_mode_count) // TODO: BUG IN UBUNTU: WON'T SELECT MAILBOX EVER EVEN IF AVAILABLE!
 {
-#if !VKAL_VSYNC_ON
+#if !VKAL_VSYNC_ON 
     VkPresentModeKHR * available_present_mode = available_present_modes;
     for (uint32_t i = 0; i < present_mode_count; ++i) {
         if (*available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
@@ -758,8 +758,9 @@ VkPresentModeKHR choose_swapchain_present_mode(VkPresentModeKHR * available_pres
         }
         available_present_mode++;
     }
-#endif
+#elif VKAL_VSYNC_ON
     return VK_PRESENT_MODE_FIFO_KHR; // only this mode is guaranteed to exist on _all_ Vk implementations.
+#endif
 }
 
 VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR * capabilities)
