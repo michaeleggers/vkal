@@ -85,7 +85,7 @@ Image load_image_file(char const * file)
     memcpy(abs_path, exe_path, 256);
     strcat(abs_path, file);
 
-    Image image = (Image){0};
+    Image image = { };
     int tw, th, tn;
     image.data = stbi_load(abs_path, &tw, &th, &tn, 4);
     assert(image.data != NULL);
@@ -273,18 +273,18 @@ int main(int argc, char ** argv)
     MaterialData * material_data = (MaterialData*)malloc(2*sizeof(material_ubo.alignment));
     material_data[0].index = 0;
     material_data[0].aspect = (float)image.width/(float)image.height;
-    material_data[0].position = (vec3){ -1, 0, 0 };
+    material_data[0].position = { -1, 0, 0 };
     ((MaterialData*)((uint8_t*)material_data + material_ubo.alignment))->index = 1;
     ((MaterialData*)((uint8_t*)material_data + material_ubo.alignment))->aspect = (float)image2.width/(float)image2.height;
-    ((MaterialData*)((uint8_t*)material_data + material_ubo.alignment))->position = (vec3){ 1, 0, 0 }; 
+    ((MaterialData*)((uint8_t*)material_data + material_ubo.alignment))->position = { 1, 0, 0 }; 
     vkal_update_descriptor_set_uniform(descriptor_sets[0], material_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
     vkal_update_uniform(&material_ubo, material_data);
 
     /* View Projection Uniform */
     Camera camera;
-    camera.pos = (vec3){ 0, 0.f, 5.f };
-    camera.center = (vec3){ 0 };
-    camera.up = (vec3){ 0, 1, 0 };
+    camera.pos = { 0, 0.f, 5.f };
+    camera.center = { 0 };
+    camera.up = { 0, 1, 0 };
     ViewProjection view_proj_data;
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
     view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );

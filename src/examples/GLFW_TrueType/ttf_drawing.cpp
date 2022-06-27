@@ -191,7 +191,7 @@ void init_window()
 
 Image load_image_file(char const * file)
 {
-    Image image = (Image){0};
+    Image image = { };
     int tw, th, tn;
     image.data = stbi_load(file, &tw, &th, &tn, 4);
     assert(image.data != NULL);
@@ -210,14 +210,14 @@ void fill_rect(Batch * batch, float x, float y, float width, float height,
     Vertex tr;
     Vertex br;
 
-    tl.pos = (vec3){x,y,-1};
-    bl.pos = (vec3){x, y+height,-1};
-    tr.pos = (vec3){x+width, y, -1};
-    br.pos = (vec3){x+width, y+height, -1};
-    tl.color = (vec3){0,1,0};
-    bl.color = (vec3){0,1,0};
-    tr.color = (vec3){0,1,0};
-    br.color = (vec3){1,1,0};
+    tl.pos = {x,y,-1};
+    bl.pos = {x, y+height,-1};
+    tr.pos = {x+width, y, -1};
+    br.pos = {x+width, y+height, -1};
+    tl.color = {0,1,0};
+    bl.color = {0,1,0};
+    tr.color = {0,1,0};
+    br.color = {1,1,0};
     tl.uv = tl_uv;
     bl.uv = bl_uv;
     tr.uv = tr_uv;
@@ -397,9 +397,9 @@ int main(int argc, char ** argv)
 
     /* Uniform Buffer for view projection matrices */
     Camera camera;
-    camera.pos = (vec3){ 0.0f, 0.0f, 0.0f };
-    camera.center = (vec3){ 0 };
-    camera.up = (vec3){ 0, 1, 0 };
+    camera.pos = { 0.0f, 0.0f, 0.0f };
+    camera.center = { 0 };
+    camera.up = { 0, 1, 0 };
     ViewProjection view_proj_data;
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
     UniformBuffer view_proj_ubo = vkal_create_uniform_buffer(sizeof(view_proj_data), 1, 0);

@@ -151,11 +151,11 @@ void glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int 
 	    static double x_old;
 	    static double y_old;
 	    if (click_state == 1) {
-		fill_circle( xpos, ypos, 5, 16, (vec3){1, 1, 0} );
+		fill_circle( xpos, ypos, 5, 16, {1, 1, 0} );
 	    }
 	    else if (click_state == 2) {
-		fill_circle( xpos, ypos, 5, 16, (vec3){1, 1, 0} );
-		line( x_old, y_old, xpos, ypos, 2, (vec3){1, 1, 1});
+		fill_circle( xpos, ypos, 5, 16, {1, 1, 0} );
+		line( x_old, y_old, xpos, ypos, 2, {1, 1, 1});
 		click_state = 0;
 	    }
 	    x_old = xpos;
@@ -184,7 +184,7 @@ Image load_image_file(char const * file)
     memcpy(abs_path, exe_path, 256);
     strcat(abs_path, file);
 
-    Image image = (Image){0};
+    Image image = { };
     int tw, th, tn;
     image.data = stbi_load(abs_path, &tw, &th, &tn, 4);
     assert(image.data != NULL);
@@ -288,10 +288,10 @@ void fill_rect(float x, float y, float width, float height, vec3 color)
     Vertex tr;
     Vertex br;
 
-    tl.pos = (vec3){x,y,-1};
-    bl.pos = (vec3){x, y+height,-1};
-    tr.pos = (vec3){x+width, y, -1};
-    br.pos = (vec3){x+width, y+height, -1};
+    tl.pos = {x,y,-1};
+    bl.pos = {x, y+height,-1};
+    tr.pos = {x+width, y, -1};
+    br.pos = {x+width, y+height, -1};
     tl.color = color;
     bl.color = color;
     tr.color = color;
@@ -322,10 +322,10 @@ void fill_rect_cmd(RenderCmd * render_cmd, float x, float y, float width, float 
     Vertex tr;
     Vertex br;
 
-    tl.pos = (vec3){x,y,-1};
-    bl.pos = (vec3){x, y+height,-1};
-    tr.pos = (vec3){x+width, y, -1};
-    br.pos = (vec3){x+width, y+height, -1};
+    tl.pos = {x,y,-1};
+    bl.pos = {x, y+height,-1};
+    tr.pos = {x+width, y, -1};
+    br.pos = {x+width, y+height, -1};
     tl.color = color;
     bl.color = color;
     tr.color = color;
@@ -378,14 +378,14 @@ void textured_rect(float x, float y, float width, float height, MyTexture textur
     Vertex tr;
     Vertex br;
 
-    tl.pos = (vec3){x,y,-1};
-    bl.pos = (vec3){x, y+height,-1};
-    tr.pos = (vec3){x+width, y, -1};
-    br.pos = (vec3){x+width, y+height, -1};
-    tl.uv = (vec2){0, 0};
-    bl.uv = (vec2){0, 1};
-    tr.uv = (vec2){1, 0};
-    br.uv = (vec2){1, 1};
+    tl.pos = {x,y,-1};
+    bl.pos = {x, y+height,-1};
+    tr.pos = {x+width, y, -1};
+    br.pos = {x+width, y+height, -1};
+    tl.uv = {0, 0};
+    bl.uv = {0, 1};
+    tr.uv = {1, 0};
+    br.uv = {1, 1};
 
     Batch * batch = render_cmd_ptr->batch;
     batch->vertices[batch->vertex_count++] = tl;
@@ -435,33 +435,33 @@ void line(float x0, float y0, float x1, float y1, float thickness, vec3 color)
        it is easier to reason about when applying the
        normal components as offsets.
     */
-    vec2 normal = (vec2){dy, dx};
+    vec2 normal = {dy, dx};
     normal = vec2_normalize(normal);
     float offset_x = thickness*normal.x/2.0;
     float offset_y = thickness*normal.y/2.0;
     if ( (x1 > x0) && (y1 > y0) ) { /* bottom right */
-	tl.pos = (vec3){x0 + offset_x, y0 - offset_y, -1};
-	bl.pos = (vec3){x0 - offset_x, y0 + offset_y, -1};
-	tr.pos = (vec3){x1 + offset_x, y1 - offset_y, -1};
-	br.pos = (vec3){x1 - offset_x, y1 + offset_y, -1};
+	tl.pos = {x0 + offset_x, y0 - offset_y, -1};
+	bl.pos = {x0 - offset_x, y0 + offset_y, -1};
+	tr.pos = {x1 + offset_x, y1 - offset_y, -1};
+	br.pos = {x1 - offset_x, y1 + offset_y, -1};
     }
     else if ( (x1 > x0) && (y1 < y0) ) { /* top right */
-	tl.pos = (vec3){x0 - offset_x, y0 - offset_y, -1};
-	bl.pos = (vec3){x0 + offset_x, y0 + offset_y, -1};
-	tr.pos = (vec3){x1 - offset_x, y1 - offset_y, -1};
-	br.pos = (vec3){x1 + offset_x, y1 + offset_y, -1};
+	tl.pos = {x0 - offset_x, y0 - offset_y, -1};
+	bl.pos = {x0 + offset_x, y0 + offset_y, -1};
+	tr.pos = {x1 - offset_x, y1 - offset_y, -1};
+	br.pos = {x1 + offset_x, y1 + offset_y, -1};
     }
     else if ( (x1 < x0) && (y1 < y0) ) { /* top left */
-	tl.pos = (vec3){x0 - offset_x, y0 + offset_y, -1};
-	bl.pos = (vec3){x0 + offset_x, y0 - offset_y, -1};
-	tr.pos = (vec3){x1 - offset_x, y1 + offset_y, -1};
-	br.pos = (vec3){x1 + offset_x, y1 - offset_y, -1};
+	tl.pos = {x0 - offset_x, y0 + offset_y, -1};
+	bl.pos = {x0 + offset_x, y0 - offset_y, -1};
+	tr.pos = {x1 - offset_x, y1 + offset_y, -1};
+	br.pos = {x1 + offset_x, y1 - offset_y, -1};
     }
     else { /* bottom left*/
-	tl.pos = (vec3){x0 + offset_x, y0 + offset_y, -1};
-	bl.pos = (vec3){x0 - offset_x, y0 - offset_y, -1};
-	tr.pos = (vec3){x1 + offset_x, y1 + offset_y, -1};
-	br.pos = (vec3){x1 - offset_x, y1 - offset_y, -1};
+	tl.pos = {x0 + offset_x, y0 + offset_y, -1};
+	bl.pos = {x0 - offset_x, y0 - offset_y, -1};
+	tr.pos = {x1 + offset_x, y1 + offset_y, -1};
+	br.pos = {x1 - offset_x, y1 - offset_y, -1};
     }
 
     tl.color = color;
@@ -501,33 +501,33 @@ void line_cmd(RenderCmd * render_cmd, float x0, float y0, float x1, float y1, fl
        it is easier to reason about when applying the
        normal components as offsets.
     */
-    vec2 normal = (vec2){dy, dx};
+    vec2 normal = {dy, dx};
     normal = vec2_normalize(normal);
     float offset_x = thickness*normal.x/2.0;
     float offset_y = thickness*normal.y/2.0;
     if ( (x1 > x0) && (y1 > y0) ) { /* bottom right */
-	tl.pos = (vec3){x0 + offset_x, y0 - offset_y, -1};
-	bl.pos = (vec3){x0 - offset_x, y0 + offset_y, -1};
-	tr.pos = (vec3){x1 + offset_x, y1 - offset_y, -1};
-	br.pos = (vec3){x1 - offset_x, y1 + offset_y, -1};
+	tl.pos = {x0 + offset_x, y0 - offset_y, -1};
+	bl.pos = {x0 - offset_x, y0 + offset_y, -1};
+	tr.pos = {x1 + offset_x, y1 - offset_y, -1};
+	br.pos = {x1 - offset_x, y1 + offset_y, -1};
     }
     else if ( (x1 > x0) && (y1 < y0) ) { /* top right */
-	tl.pos = (vec3){x0 - offset_x, y0 - offset_y, -1};
-	bl.pos = (vec3){x0 + offset_x, y0 + offset_y, -1};
-	tr.pos = (vec3){x1 - offset_x, y1 - offset_y, -1};
-	br.pos = (vec3){x1 + offset_x, y1 + offset_y, -1};
+	tl.pos = {x0 - offset_x, y0 - offset_y, -1};
+	bl.pos = {x0 + offset_x, y0 + offset_y, -1};
+	tr.pos = {x1 - offset_x, y1 - offset_y, -1};
+	br.pos = {x1 + offset_x, y1 + offset_y, -1};
     }
     else if ( (x1 < x0) && (y1 < y0) ) { /* top left */
-	tl.pos = (vec3){x0 - offset_x, y0 + offset_y, -1};
-	bl.pos = (vec3){x0 + offset_x, y0 - offset_y, -1};
-	tr.pos = (vec3){x1 - offset_x, y1 + offset_y, -1};
-	br.pos = (vec3){x1 + offset_x, y1 - offset_y, -1};
+	tl.pos = {x0 - offset_x, y0 + offset_y, -1};
+	bl.pos = {x0 + offset_x, y0 - offset_y, -1};
+	tr.pos = {x1 - offset_x, y1 + offset_y, -1};
+	br.pos = {x1 + offset_x, y1 - offset_y, -1};
     }
     else { /* bottom left*/
-	tl.pos = (vec3){x0 + offset_x, y0 + offset_y, -1};
-	bl.pos = (vec3){x0 - offset_x, y0 - offset_y, -1};
-	tr.pos = (vec3){x1 + offset_x, y1 + offset_y, -1};
-	br.pos = (vec3){x1 - offset_x, y1 - offset_y, -1};
+	tl.pos = {x0 + offset_x, y0 + offset_y, -1};
+	bl.pos = {x0 - offset_x, y0 - offset_y, -1};
+	tr.pos = {x1 + offset_x, y1 + offset_y, -1};
+	br.pos = {x1 - offset_x, y1 - offset_y, -1};
     }
 
     tl.color = color;
@@ -793,9 +793,9 @@ int main(int argc, char ** argv)
     
     /* Uniform Buffer for view projection matrices */
     Camera camera;
-    camera.pos = (vec3){ 0, 0.f, 0.f };
-    camera.center = (vec3){ 0 };
-    camera.up = (vec3){ 0, 1, 0 };
+    camera.pos = { 0, 0.f, 0.f };
+    camera.center = { 0 };
+    camera.up = { 0, 1, 0 };
     ViewProjection view_proj_data;
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
     view_proj_data.proj = ortho(0.f, (float)SCREEN_WIDTH, (float)SCREEN_HEIGHT, 0.f, -1.f, 2.f);
@@ -811,10 +811,10 @@ int main(int argc, char ** argv)
     persistent_command.type = RENDER_CMD_STD;
     persistent_command.batch = &g_persistent_batch;
     
-    fill_rect_cmd(&persistent_command,  0, 0, width, height, (vec3){0, 0, 0});
+    fill_rect_cmd(&persistent_command,  0, 0, width, height, {0, 0, 0});
     for (int i = 0; i < 200; ++i) {
-	line_cmd( &persistent_command, i*50, 0, i*50, height, 1, (vec3){.4, .4, .4});
-	line_cmd( &persistent_command, 0, i*50, width, i*50, 1, (vec3){.4, .4, .4});
+	line_cmd( &persistent_command, i*50, 0, i*50, height, 1, {.4, .4, .4});
+	line_cmd( &persistent_command, 0, i*50, width, i*50, 1,  {.4, .4, .4});
     }
     update_batch(&g_persistent_batch);
     
@@ -839,7 +839,7 @@ int main(int argc, char ** argv)
 	float theta = 2*TR_PI/64;
 
 	for (int i = 0; i < 64; ++i) {	   
-	    circle(  500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 2, (vec3){0, 0.5, 1.0});
+	    circle(  500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 2, {0, 0.5, 1.0});
 	}
 
 	update_batch(&g_default_batch);

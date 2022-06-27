@@ -83,14 +83,14 @@ void fill_rect(Batch * batch, float x, float y, float width, float height)
     Vertex tr;
     Vertex br;
 
-    tl.pos = (vec3){x,y,-1};
-    bl.pos = (vec3){x, y+height,-1};
-    tr.pos = (vec3){x+width, y, -1};
-    br.pos = (vec3){x+width, y+height, -1};
-    tl.color = (vec3){0,1,0};
-    bl.color = (vec3){0,1,0};
-    tr.color = (vec3){0,1,0};
-    br.color = (vec3){1,1,0};
+    tl.pos = {x,y,-1};
+    bl.pos = {x, y+height,-1};
+    tr.pos = {x+width, y, -1};
+    br.pos = {x+width, y+height, -1};
+    tl.color = {0,1,0};
+    bl.color = {0,1,0};
+    tr.color = {0,1,0};
+    br.color = {1,1,0};
     
     batch->vertices[batch->vertex_count++] = tl;
     batch->vertices[batch->vertex_count++] = bl;
@@ -120,33 +120,33 @@ void line(Batch * batch, float x0, float y0, float x1, float y1, float thickness
        it is easier to reason about when applying the
        normal components as offsets.
     */
-    vec2 normal = (vec2){dy, dx};
+    vec2 normal = {dy, dx};
     normal = vec2_normalize(normal);
     float offset_x = thickness*normal.x/2.0;
     float offset_y = thickness*normal.y/2.0;
     if ( (x1 > x0) && (y1 > y0) ) { /* bottom right */
-	tl.pos = (vec3){x0 + offset_x, y0 - offset_y, -1};
-	bl.pos = (vec3){x0 - offset_x, y0 + offset_y, -1};
-	tr.pos = (vec3){x1 + offset_x, y1 - offset_y, -1};
-	br.pos = (vec3){x1 - offset_x, y1 + offset_y, -1};
+	tl.pos = {x0 + offset_x, y0 - offset_y, -1};
+	bl.pos = {x0 - offset_x, y0 + offset_y, -1};
+	tr.pos = {x1 + offset_x, y1 - offset_y, -1};
+	br.pos = {x1 - offset_x, y1 + offset_y, -1};
     }
     else if ( (x1 > x0) && (y1 < y0) ) { /* top right */
-	tl.pos = (vec3){x0 - offset_x, y0 - offset_y, -1};
-	bl.pos = (vec3){x0 + offset_x, y0 + offset_y, -1};
-	tr.pos = (vec3){x1 - offset_x, y1 - offset_y, -1};
-	br.pos = (vec3){x1 + offset_x, y1 + offset_y, -1};
+	tl.pos = {x0 - offset_x, y0 - offset_y, -1};
+	bl.pos = {x0 + offset_x, y0 + offset_y, -1};
+	tr.pos = {x1 - offset_x, y1 - offset_y, -1};
+	br.pos = {x1 + offset_x, y1 + offset_y, -1};
     }
     else if ( (x1 < x0) && (y1 < y0) ) { /* top left */
-	tl.pos = (vec3){x0 - offset_x, y0 + offset_y, -1};
-	bl.pos = (vec3){x0 + offset_x, y0 - offset_y, -1};
-	tr.pos = (vec3){x1 - offset_x, y1 + offset_y, -1};
-	br.pos = (vec3){x1 + offset_x, y1 - offset_y, -1};
+	tl.pos = {x0 - offset_x, y0 + offset_y, -1};
+	bl.pos = {x0 + offset_x, y0 - offset_y, -1};
+	tr.pos = {x1 - offset_x, y1 + offset_y, -1};
+	br.pos = {x1 + offset_x, y1 - offset_y, -1};
     }
     else { /* bottom left*/
-	tl.pos = (vec3){x0 + offset_x, y0 + offset_y, -1};
-	bl.pos = (vec3){x0 - offset_x, y0 - offset_y, -1};
-	tr.pos = (vec3){x1 + offset_x, y1 + offset_y, -1};
-	br.pos = (vec3){x1 - offset_x, y1 - offset_y, -1};
+	tl.pos = {x0 + offset_x, y0 + offset_y, -1};
+	bl.pos = {x0 - offset_x, y0 - offset_y, -1};
+	tr.pos = {x1 + offset_x, y1 + offset_y, -1};
+	br.pos = {x1 - offset_x, y1 - offset_y, -1};
     }
 
     tl.color = color;
@@ -310,7 +310,7 @@ int main(int argc, char ** argv)
 	    float thickness = rand_between(1.0, 30.0);
 //	    line(&batch, rand_between(0, width), rand_between(0, height),
 //	         rand_between(0, width), rand_between(0, height), thickness, (vec3){r, g, b});
-	    line(&batch, 500, 500, 500+400*cosf(theta), 500+400*sinf(theta), thickness, (vec3){r, g, b});
+	    line(&batch, 500, 500, 500+400*cosf(theta), 500+400*sinf(theta), thickness, {r, g, b});
 //	    line(&batch, 500, 500, 60, 800);
 //	    fill_rect(&batch, 500, 500, 10, 10);
 
@@ -327,9 +327,9 @@ int main(int argc, char ** argv)
 */
     /* Uniform Buffer for view projection matrices */
     Camera camera;
-    camera.pos = (vec3){ 0, 0.f, 0.f };
-    camera.center = (vec3){ 0 };
-    camera.up = (vec3){ 0, 1, 0 };
+    camera.pos = { 0, 0.f, 0.f };
+    camera.center = { 0 };
+    camera.up = { 0, 1, 0 };
     ViewProjection view_proj_data;
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
     view_proj_data.proj = ortho(0.f, (float)SCREEN_WIDTH, (float)SCREEN_HEIGHT, 0.f, -1.f, 2.f);
