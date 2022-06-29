@@ -11,3 +11,4 @@
 - [x] Create DearImGUI example.
 - [ ] Define VKAL_TRUE / VKAL_FALSE instead of using uint32_t for true / false.
 - [ ] Free malloc'd memory.
+- [x] Print info about available swapchain present modes and which one was selected.
