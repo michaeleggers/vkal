@@ -754,19 +754,51 @@ VkSurfaceFormatKHR choose_swapchain_surface_format(VkSurfaceFormatKHR * availabl
 *  exist on any Vulkan implementation.
 *  Otherwise we try to use MAILBOX.
 */
-VkPresentModeKHR choose_swapchain_present_mode(VkPresentModeKHR * available_present_modes, uint32_t present_mode_count) // TODO: BUG IN UBUNTU: WON'T SELECT MAILBOX EVER EVEN IF AVAILABLE!
+VkPresentModeKHR choose_swapchain_present_mode(VkPresentModeKHR* available_present_modes, uint32_t present_mode_count) // TODO: BUG IN UBUNTU: WON'T SELECT MAILBOX EVER EVEN IF AVAILABLE!
 {
-#if !VKAL_VSYNC_ON 
-    VkPresentModeKHR * available_present_mode = available_present_modes;
+    VkPresentModeKHR* available_present_mode = available_present_modes;
+    printf("[VKAL] available swapchain present modes:\n");
     for (uint32_t i = 0; i < present_mode_count; ++i) {
-        if (*available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
-            printf("[VKAL] present-mode selected: PRESENT_MODE_MAILBOX\n");
-            return *available_present_mode;
+        if (*available_present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+            printf("[VKAL]     PRESENT_MODE_IMMEDIATE\n");
+        }
+        else if (*available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            printf("[VKAL]     PRESENT_MODE_MAILBOX\n");
+        }
+        else if (*available_present_mode == VK_PRESENT_MODE_FIFO_KHR) {
+            printf("[VKAL]     PRESENT_MODE_FIFO\n");
+        }
+        else if (*available_present_mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR) {
+            printf("[VKAL]     PRESENT_MODE_FIFO_RELAXED\n");
+        }
+        else if (*available_present_mode == VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR) {
+            printf("[VKAL]     PRESENT_MODE_SHARED_DEMAND_REFRESH\n");
+        }
+        else if (*available_present_mode == VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR) {
+            printf("[VKAL]     PRESENT_MODE_SHARED_CONTINUOUS_REFRESH\n");
         }
         available_present_mode++;
     }
+
+    printf("[VKAL] swapchain present mode selected: ");
+#if !VKAL_VSYNC_ON 
+    // Try to select Mailbox or Immediate
+    available_present_mode = available_present_modes;
+    for (uint32_t i = 0; i < present_mode_count; ++i) {
+        if (*available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            printf("PRESENT_MODE_MAILBOX\n");
+            return VK_PRESENT_MODE_MAILBOX_KHR;
+        }
+        else if (*available_present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+            printf("PRESENT_MODE_IMMEDIATE\n");
+            return VK_PRESENT_MODE_IMMEDIATE_KHR;
+        }
+        available_present_mode++;
+    }
+    printf("PRESENT_MODE_FIFO\n");
     return VK_PRESENT_MODE_FIFO_KHR;
 #elif VKAL_VSYNC_ON
+    printf("PRESENT_MODE_FIFO\n");
     return VK_PRESENT_MODE_FIFO_KHR; 
 #endif
 }
