@@ -11,3 +11,7 @@
 - [x] Create DearImGUI example.
 - [ ] Define VKAL_TRUE / VKAL_FALSE instead of using uint32_t for true / false.
 - [ ] Free malloc'd memory.
+- [x] Print info about available swapchain present modes and which one was selected.
+- [ ] Should ```render_pass``` not also be called ```default_render_pass```?
+- [ ] Rename vkal_update_descriptor_set_uniform. Everything is a buffer. The descriptor type has to be
+      passed to the function anyway, which is redundant information in case of a uniform buffer (and confusing otherwise!).

@@ -3,6 +3,11 @@
 
 #define TR_PI 3.14159265358979323846f
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 typedef struct vec2
 {
     float x, y;
@@ -84,6 +89,10 @@ vec3 vec4_as_vec3(vec4 v4);
 	#endif
 #else
 	#define perspective perspective_gl
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

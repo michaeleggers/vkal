@@ -73,7 +73,7 @@ Image load_image_file(char const * file)
     memcpy(abs_path, exe_path, 256);
     strcat(abs_path, file);
 
-    Image image = (Image){0};
+    Image image = { };
     int tw, th, tn;
     image.data = stbi_load(abs_path, &tw, &th, &tn, 4);
     assert(image.data != NULL);
@@ -211,9 +211,9 @@ int main(int argc, char ** argv)
 
     /* Uniform Buffer for view projection matrices */
     Camera camera;
-    camera.pos = (vec3){ 0, 0.f, 5.f };
-    camera.center = (vec3){ 0 };
-    camera.up = (vec3){ 0, 1, 0 };
+    camera.pos = { 0, 0.f, 5.f };
+    camera.center = { 0 };
+    camera.up = { 0, 1, 0 };
     ViewProjection view_proj_data;
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
     view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
@@ -231,7 +231,7 @@ int main(int argc, char ** argv)
     vkal_update_descriptor_set_texture(descriptor_set[0], texture);
     view_proj_data.image_aspect = (float)texture.width/(float)texture.height;
 
-    vkal_set_clear_color((VkClearColorValue) { 1.0f, 1.0f, 1.0f, 1.0f });
+    vkal_set_clear_color( { 1.0f, 1.0f, 1.0f, 1.0f } );
 
     // Main Loop
     while (!glfwWindowShouldClose(window))

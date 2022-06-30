@@ -1,5 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 
+#include <stdlib.h>
 #include <assert.h>
 
 #if defined (VKAL_WIN32)
@@ -115,7 +116,7 @@ void vkal_create_instance_glfw(
                                 vkal_info.available_instance_layers,
                                 vkal_info.available_instance_layer_count);
                 if (!layer_ok) {
-                    printf("validation layer not available: %s\n", instance_layers[i]);
+                    printf("[VKAL] validation layer not available: %s\n", instance_layers[i]);
                     VKAL_ASSERT(VK_ERROR_LAYER_NOT_PRESENT);
                 }
             }
@@ -151,7 +152,7 @@ void vkal_create_instance_glfw(
 									vkal_info.available_instance_extensions,
 									vkal_info.available_instance_extension_count);
 			if (!extension_ok) {
-				printf("instance extension not available: %s\n", all_instance_extensions[i]);
+				printf("[VKAL] instance extension not available: %s\n", all_instance_extensions[i]);
 				VKAL_ASSERT(VK_ERROR_EXTENSION_NOT_PRESENT);
 			}
 		}
@@ -214,7 +215,7 @@ void vkal_create_instance_win32(
 					vkal_info.available_instance_layers,
 					vkal_info.available_instance_layer_count);
 				if (!layer_ok) {
-					printf("validation layer not available: %s\n", instance_layers[i]);
+					printf("[VKAL] validation layer not available: %s\n", instance_layers[i]);
 					VKAL_ASSERT(VK_ERROR_LAYER_NOT_PRESENT && "requested isntance layer not present!");
 				}
 			}
@@ -253,7 +254,7 @@ void vkal_create_instance_win32(
 				vkal_info.available_instance_extensions,
 				vkal_info.available_instance_extension_count);
 			if (!extension_ok) {
-				printf("instance extension not available: %s\n", all_instance_extensions[i]);
+				printf("[VKAL] instance extension not available: %s\n", all_instance_extensions[i]);
 				VKAL_ASSERT(VK_ERROR_EXTENSION_NOT_PRESENT && "requested instance extension not present!");
 			}
 		}
@@ -315,7 +316,7 @@ void vkal_create_instance_sdl(
                     vkal_info.available_instance_layers,
                     vkal_info.available_instance_layer_count);
                 if (!layer_ok) {
-                    printf("validation layer not available: %s\n", instance_layers[i]);
+                    printf("[VKAL] validation layer not available: %s\n", instance_layers[i]);
                     VKAL_ASSERT(VK_ERROR_LAYER_NOT_PRESENT && "requested isntance layer not present!");
                 }
             }
@@ -330,7 +331,7 @@ void vkal_create_instance_sdl(
     {
         uint32_t required_extension_count = 0;    
         if (!SDL_Vulkan_GetInstanceExtensions(window, &required_extension_count, NULL)) {
-            printf("%s\n", SDL_GetError());
+            printf("[VKAL] %s\n", SDL_GetError());
             getchar();
             exit(-1);
         }
@@ -352,7 +353,7 @@ void vkal_create_instance_sdl(
                 vkal_info.available_instance_extensions,
                 vkal_info.available_instance_extension_count);
             if (!extension_ok) {
-                printf("instance extension not available: %s\n", all_instance_extensions[i]);
+                printf("[VKAL] instance extension not available: %s\n", all_instance_extensions[i]);
                 VKAL_ASSERT(VK_ERROR_EXTENSION_NOT_PRESENT && "requested instance extension not present!");
             }
         }
@@ -748,18 +749,58 @@ VkSurfaceFormatKHR choose_swapchain_surface_format(VkSurfaceFormatKHR * availabl
     return available_formats[0];
 }
 
-VkPresentModeKHR choose_swapchain_present_mode(VkPresentModeKHR * available_present_modes, uint32_t present_mode_count)
+/* If the user wants sync to the vertical blank of the display then
+*  VK_PRESENT_MODE_FIFO_KHR is selected.This mode is guaranteed to 
+*  exist on any Vulkan implementation.
+*  Otherwise we try to use MAILBOX.
+*/
+VkPresentModeKHR choose_swapchain_present_mode(VkPresentModeKHR* available_present_modes, uint32_t present_mode_count) // TODO: BUG IN UBUNTU: WON'T SELECT MAILBOX EVER EVEN IF AVAILABLE!
 {
-#if !VKAL_VSYNC_ON
-    VkPresentModeKHR * available_present_mode = available_present_modes;
+    VkPresentModeKHR* available_present_mode = available_present_modes;
+    printf("[VKAL] available swapchain present modes:\n");
     for (uint32_t i = 0; i < present_mode_count; ++i) {
-        if (*available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
-            return *available_present_mode;
+        if (*available_present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+            printf("[VKAL]     PRESENT_MODE_IMMEDIATE\n");
+        }
+        else if (*available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            printf("[VKAL]     PRESENT_MODE_MAILBOX\n");
+        }
+        else if (*available_present_mode == VK_PRESENT_MODE_FIFO_KHR) {
+            printf("[VKAL]     PRESENT_MODE_FIFO\n");
+        }
+        else if (*available_present_mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR) {
+            printf("[VKAL]     PRESENT_MODE_FIFO_RELAXED\n");
+        }
+        else if (*available_present_mode == VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR) {
+            printf("[VKAL]     PRESENT_MODE_SHARED_DEMAND_REFRESH\n");
+        }
+        else if (*available_present_mode == VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR) {
+            printf("[VKAL]     PRESENT_MODE_SHARED_CONTINUOUS_REFRESH\n");
         }
         available_present_mode++;
     }
+
+    printf("[VKAL] swapchain present mode selected: ");
+#if !VKAL_VSYNC_ON 
+    // Try to select Mailbox or Immediate
+    available_present_mode = available_present_modes;
+    for (uint32_t i = 0; i < present_mode_count; ++i) {
+        if (*available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            printf("PRESENT_MODE_MAILBOX\n");
+            return VK_PRESENT_MODE_MAILBOX_KHR;
+        }
+        else if (*available_present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+            printf("PRESENT_MODE_IMMEDIATE\n");
+            return VK_PRESENT_MODE_IMMEDIATE_KHR;
+        }
+        available_present_mode++;
+    }
+    printf("PRESENT_MODE_FIFO\n");
+    return VK_PRESENT_MODE_FIFO_KHR;
+#elif VKAL_VSYNC_ON
+    printf("PRESENT_MODE_FIFO\n");
+    return VK_PRESENT_MODE_FIFO_KHR; 
 #endif
-    return VK_PRESENT_MODE_FIFO_KHR; // only this mode is guaranteed to exist on _all_ Vk implementations.
 }
 
 VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR * capabilities)
@@ -1428,7 +1469,7 @@ int check_device_extension_support(VkPhysicalDevice device, char ** extensions, 
     VKAL_MALLOC(extensions_left, extension_count);
     memset(extensions_left, 1, extension_count * sizeof(int));
 
-    printf("\nquery device extensions:\n");
+    printf("\n[VKAL] query device extensions:\n");
     uint32_t supported_extension_count = 0;
     vkEnumerateDeviceExtensionProperties(device, 0, &supported_extension_count, 0);
     VkExtensionProperties* available_extensions = NULL;
@@ -1439,7 +1480,7 @@ int check_device_extension_support(VkPhysicalDevice device, char ** extensions, 
     for (uint32_t i = 0; i < supported_extension_count; ++i) {
 	    for (uint32_t k = 0; k < extension_count; ++k) {
 	        if (!strcmp(available_extensions[i].extensionName, extensions[k])) {
-		        printf("requested device extension: %s found!\n", extensions[k]);
+		        printf("[VKAL] requested device extension: %s found!\n", extensions[k]);
 		        extensions_found++;
 		        extensions_left[k] = 0;
 		        goto gt_next_extension;
@@ -1450,7 +1491,7 @@ int check_device_extension_support(VkPhysicalDevice device, char ** extensions, 
     
     for (uint32_t i = 0; i < extension_count; ++i) {
 	    if (extensions_left[i]) {
-	        printf("requested extension %s not available!\n", extensions[i]);
+	        printf("[VKAL] requested extension %s not available!\n", extensions[i]);
 	    }
     }
     VKAL_FREE(extensions_left);
@@ -1508,15 +1549,16 @@ void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count,
 				VkalPhysicalDevice ** out_devices, uint32_t * out_device_count)
 {
 	if (vkal_info.instance == NULL) {
-		printf("Error: VkInstance is null!\n");
-		getchar();
+		printf("[VKAL] Error: VkInstance is null!\n");
+        system("pause");
 		exit(-1);
 	}
     vkal_info.physical_device_count = 0;
     vkEnumeratePhysicalDevices(vkal_info.instance, &vkal_info.physical_device_count, 0);
     if (!vkal_info.physical_device_count) {
-	printf("No GPU with Vulkan support found\n");
-	exit(-1);
+	    printf("[VKAL] No GPU with Vulkan support found\n");
+        system("pause");
+	    exit(-1);
     }
     
     VKAL_MALLOC(vkal_info.physical_devices, vkal_info.physical_device_count);
@@ -1527,7 +1569,7 @@ void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count,
     for (uint32_t i = 0; i < vkal_info.physical_device_count; ++i) {
 	VkPhysicalDeviceProperties physical_device_property = { 0 };
 	vkGetPhysicalDeviceProperties(vkal_info.physical_devices[i], &physical_device_property);
-	printf("physical device found: %s\n", physical_device_property.deviceName);
+	printf("[VKAL] physical device found: %s\n", physical_device_property.deviceName);
 	if ( is_device_suitable(vkal_info.physical_devices[i], extensions, extension_count) ) {
 	        QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_devices[i], vkal_info.surface);
 	        if (indicies.has_graphics_family && indicies.has_present_family) {
@@ -1546,7 +1588,7 @@ void vkal_select_physical_device(VkalPhysicalDevice * physical_device)
 {
     vkal_info.physical_device = physical_device->device;
     vkal_info.physical_device_properties = physical_device->property;
-    printf("%llu\n", vkal_info.physical_device_properties.limits.nonCoherentAtomSize);
+    printf("[VKAL] physcial device limits: nonCoherentAtomSize: %llu\n", vkal_info.physical_device_properties.limits.nonCoherentAtomSize);
 }
 
 void create_logical_device(char ** extensions, uint32_t extension_count)
@@ -2295,7 +2337,7 @@ void create_default_command_pool(void)
 		}
     }
 	else {
-		printf("no graphics and present queues available!\n");
+		printf("[VKAL] no graphics and present queues available!\n");
 		getchar();
 		exit(-1);
 	}

@@ -77,9 +77,11 @@ endif (WIN32)
 if (UNIX)
     target_include_directories(vkal
         PUBLIC Vulkan::Vulkan
+        PUBLIC Vulkan::shaderc_combined
     )
     target_link_libraries(vkal PUBLIC
         Vulkan::Vulkan
+        PUBLIC Vulkan::shaderc_combined
     )
 endif (UNIX)
 

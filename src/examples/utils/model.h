@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct Model
 {
     float*    vertices;
@@ -19,5 +23,9 @@ void clear_model(Model * model);
 void CalcNormal(float N[3], float v0[3], float v1[3], float v2[3]);
 void get_file_data(char const * filename, char ** data, size_t * len);
 int  load_obj(float bmin[3], float bmax[3], char const * filename, Model * out_model);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

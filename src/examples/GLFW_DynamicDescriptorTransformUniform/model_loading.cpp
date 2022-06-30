@@ -98,7 +98,7 @@ void init_window()
 
 Image load_image_file(char const * file)
 {
-    Image image = (Image){0};
+    Image image = { };
     int tw, th, tn;
     image.data = stbi_load(file, &tw, &th, &tn, 4);
     assert(image.data != NULL);
@@ -294,7 +294,7 @@ int main(int argc, char ** argv)
     
     /* View Projection */
     mat4 view = mat4_identity();
-    view = translate(view, (vec3){ 0.f, 0.f, -50.f });
+    view = translate(view, { 0.f, 0.f, -50.f });
     ViewProjection view_proj_data;
     view_proj_data.view = view;
     view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );
@@ -304,7 +304,7 @@ int main(int argc, char ** argv)
     vkal_update_descriptor_set_uniform(descriptor_sets[0], view_proj_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_uniform(&view_proj_ubo, &view_proj_data);
     ViewportData viewport_data;
-    viewport_data.dimensions = (vec2){ SCREEN_WIDTH, SCREEN_HEIGHT };
+    viewport_data.dimensions = { SCREEN_WIDTH, SCREEN_HEIGHT };
     UniformBuffer viewport_ubo = vkal_create_uniform_buffer(sizeof(ViewportData), 1, 1);
     vkal_update_descriptor_set_uniform(descriptor_sets[0], viewport_ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     vkal_update_uniform(&viewport_ubo, &viewport_data);

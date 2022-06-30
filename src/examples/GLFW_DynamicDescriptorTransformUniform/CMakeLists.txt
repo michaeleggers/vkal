@@ -5,7 +5,7 @@ project(GLFW_DynamicDescriptorTransformUniform VERSION 1.0)
 # Hello Triangle Example using GLFW
 
 file(GLOB_RECURSE SRC_FILES LIST_DIRECTORIES false RELATIVE
-     ${CMAKE_CURRENT_SOURCE_DIR} *.c)
+     ${CMAKE_CURRENT_SOURCE_DIR} *.c??)
 file(GLOB_RECURSE HEADER_FILES LIST_DIRECTORIES false RELATIVE
      ${CMAKE_CURRENT_SOURCE_DIR} *.h)     
 
@@ -16,7 +16,7 @@ add_executable(GLFW_DynamicDescriptorTransformUniform
 	../utils/platform.h
     ../utils/tr_math.c
 	../utils/tr_math.h
-    ../utils/model.c
+    ../utils/model.cpp
     ../utils/model.h
     ../assets/shaders/model_loading.vert
     ../assets/shaders/model_loading.frag

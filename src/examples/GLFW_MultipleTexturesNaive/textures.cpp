@@ -20,7 +20,8 @@
 
 #include <GLFW/glfw3.h>
 
-#include "../vkal.h"
+#include <vkal.h>
+
 #include "platform.h"
 #include "tr_math.h"
 
@@ -86,7 +87,7 @@ Image load_image_file(char const * file)
     memcpy(abs_path, exe_path, 256);
     strcat(abs_path, file);
 
-    Image image = (Image){0};
+    Image image = {0};
     int tw, th, tn;
     image.data = stbi_load(abs_path, &tw, &th, &tn, 4);
     assert(image.data != NULL);
