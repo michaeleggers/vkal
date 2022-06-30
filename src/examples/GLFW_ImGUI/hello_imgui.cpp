@@ -260,6 +260,14 @@ int main(int argc, char** argv)
     };
     uint32_t vertex_count = sizeof(rect_vertices) / sizeof(*rect_vertices) / 8;
 
+    float rect_vertices_2[] =
+    {
+        // Pos      // Color        // UV
+        -2, -2, 0,  1.0, 0.0, 0.0,  0.0, 0.0,
+         0,  2, 0,  0.0, 1.0, 0.0,  1.0, 0.0,
+         1, -3, 0,  0.0, 0.0, 1.0,  0.0, 1.0
+    };
+
     uint16_t rect_indices[] = 
     {
         0, 1, 2,
@@ -285,7 +293,7 @@ int main(int argc, char** argv)
 
     // Main Loop
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
+    bool toggleVertexBuffer = false;
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -315,6 +323,17 @@ int main(int argc, char** argv)
                 counter++;
             ImGui::SameLine();
             ImGui::Text("counter = %d", counter);
+
+            // Overwrite existing data in the default vertex buffer by updating the buffer's data at position 0.
+            if (ImGui::Button("Update Vertex Buffer")) {
+                toggleVertexBuffer = !toggleVertexBuffer;
+                if (toggleVertexBuffer) {
+                    vkal_vertex_buffer_update(rect_vertices_2, vertex_count, 3 * sizeof(glm::vec3), 0);
+                }
+                else {
+                    vkal_vertex_buffer_update(rect_vertices, vertex_count, 3 * sizeof(glm::vec3), 0);
+                }
+            }
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();

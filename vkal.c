@@ -2979,6 +2979,38 @@ uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     return offset;
 }
 
+// NOTE: If vertex_count is higher than the current buffer, vertex data after offset+vertex_count (in bytes) will be overwritten!!!
+void vkal_vertex_buffer_update(void* vertices, uint32_t vertex_count, uint32_t vertex_size, VkDeviceSize offset)
+{
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
+    uint32_t vertices_in_bytes = vertex_count * vertex_size;
+    uint64_t size = (vertices_in_bytes + alignment - 1) & ~(alignment - 1);
+
+    // map staging memory and upload vertex data
+    void* staging_memory;
+    VkResult result = vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, size, 0, &staging_memory);
+    VKAL_ASSERT(result && "failed to map device staging memory!");
+    flush_to_memory(vkal_info.device_memory_staging, staging_memory, vertices, vertices_in_bytes, 0);
+    vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
+
+    // copy vertex buffer data from staging memory (host visible) to device local memory at offset position
+    VkCommandBuffer cmd_buffer = vkal_create_command_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+    VkBufferCopy buffer_copy = { 0 };
+    buffer_copy.dstOffset = offset;
+    buffer_copy.srcOffset = 0;
+    buffer_copy.size = vertices_in_bytes;
+    vkCmdCopyBuffer(cmd_buffer,
+        vkal_info.staging_buffer.buffer, vkal_info.default_vertex_buffer.buffer, 1, &buffer_copy);
+    vkEndCommandBuffer(cmd_buffer);
+
+    VkSubmitInfo submit_info = { 0 };
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;// vkal_info.command_buffer_count;
+    submit_info.pCommandBuffers = &cmd_buffer;
+    vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+    vkDeviceWaitIdle(vkal_info.device);
+}
+
 uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
 {
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;

@@ -437,6 +437,7 @@ void create_default_semaphores(void);
 void vkal_cleanup(void);
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset);
 uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count);
+void vkal_vertex_buffer_update(void* vertices, uint32_t vertex_count, uint32_t vertex_size, VkDeviceSize offset);
 uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count);
 
 #if defined (VKAL_GLFW)
