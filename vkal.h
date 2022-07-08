@@ -67,9 +67,7 @@
 extern "C" {
 #endif
 
-#ifdef _DEBUG
-	PFN_vkSetDebugUtilsObjectNameEXT                       vkSetDebugUtilsObjectName;
-#endif 
+
 
 #if _DEBUG																	
 #define VKAL_DBG_BUFFER_NAME(vkal_info_macro, vkal_buffer, macro_name) 												\

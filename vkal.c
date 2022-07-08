@@ -20,6 +20,9 @@
 
 #include "vkal.h"
 
+#ifdef _DEBUG
+    PFN_vkSetDebugUtilsObjectNameEXT                       vkSetDebugUtilsObjectName;
+#endif 
 
 static VkalInfo vkal_info;
 
