@@ -51,9 +51,12 @@
 
 #elif __APPLE__
 
+	#include <mach-o/dyld.h>
+
 	void get_exe_path(char * out_buffer, int buffer_size)
 	{
-		int error = _NSGetExecutablePath(out_buffer, &buffer_size);
+		uint32_t u_buffer_size = (uint32_t)buffer_size;
+		int error = _NSGetExecutablePath(out_buffer, &u_buffer_size);
 		if (error) {
 			// TOOO: handle error
 		}

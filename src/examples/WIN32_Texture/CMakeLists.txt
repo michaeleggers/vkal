@@ -28,5 +28,6 @@ target_link_libraries(WIN32_Texture
 	PUBLIC vkal)
 
 set_property(TARGET WIN32_Texture   PROPERTY CMAKE_XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set_property(TARGET WIN32_Texture   PROPERTY CXX_STANDARD 11)
 
 set_target_properties(WIN32_Texture PROPERTIES WIN32_EXECUTABLE TRUE) 

@@ -28,3 +28,4 @@ target_link_libraries(SDL_HelloTriangle
 	PUBLIC vkal)
 
 set_property(TARGET SDL_HelloTriangle   PROPERTY CMAKE_XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set_property(TARGET SDL_HelloTriangle   PROPERTY CXX_STANDARD 11)

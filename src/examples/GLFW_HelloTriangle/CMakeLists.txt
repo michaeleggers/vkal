@@ -26,3 +26,4 @@ target_link_libraries(GLFW_HelloTriangle
 	PUBLIC vkal)
 
 set_property(TARGET GLFW_HelloTriangle   PROPERTY CMAKE_XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set_property(TARGET GLFW_HelloTriangle   PROPERTY CXX_STANDARD 11)
