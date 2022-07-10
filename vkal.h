@@ -67,34 +67,9 @@
 extern "C" {
 #endif
 
-
-
-#if _DEBUG																	
-#define VKAL_DBG_BUFFER_NAME(vkal_info_macro, vkal_buffer, macro_name) 												\
-		{																												\
-		VkDebugUtilsObjectNameInfoEXT obj_info;																			\
-		obj_info.pNext = VKAL_NULL;																						\
-		obj_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;											\
-		obj_info.objectType = VK_OBJECT_TYPE_BUFFER;																	\
-		obj_info.objectHandle = (uint64_t)vkal_buffer.buffer;															\
-		obj_info.pObjectName = macro_name;																				\
-		VKAL_ASSERT(vkSetDebugUtilsObjectName(vkal_info_macro, &obj_info),	"Failed to create debug name for Buffer");	\
-		}
-
-#define VKAL_DBG_IMAGE_NAME(vkal_info_macro, vkal_dbg_image_macro, name)											\
-		{																												\
-		VkDebugUtilsObjectNameInfoEXT obj_info = { 0 };																	\
-		obj_info.pNext = VKAL_NULL;																						\
-		obj_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;											\
-		obj_info.objectType = VK_OBJECT_TYPE_IMAGE;																		\
-		obj_info.objectHandle = (uint64_t)vkal_dbg_image_macro;															\
-		obj_info.pObjectName = name;																					\
-		VKAL_ASSERT(vkSetDebugUtilsObjectName(vkal_info_macro, &obj_info), "Failed to create debug name for Buffer");	\
-		}
-#else
-	#define VKAL_DBG_BUFFER_NAME(vkal_info_macro, vkal_buffer, macro_name)
-	#define VKAL_DBG_IMAGE_NAME(vkal_info_macro, vkal_dbg_image_macro, name)
-#endif																					
+// TODO: Remove those or give them functionality!
+#define VKAL_DBG_BUFFER_NAME(vkal_info_macro, vkal_buffer, macro_name)
+#define VKAL_DBG_IMAGE_NAME(vkal_info_macro, vkal_dbg_image_macro, name)
 
 #ifdef __cplusplus
 }
