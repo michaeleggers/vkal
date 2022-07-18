@@ -28,3 +28,4 @@ target_link_libraries(GLFW_PrimitivesDynamic
 	PUBLIC vkal)
 
 set_property(TARGET GLFW_PrimitivesDynamic   PROPERTY CMAKE_XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set_property(TARGET GLFW_PrimitivesDynamic   PROPERTY CXX_STANDARD 11)

@@ -28,3 +28,4 @@ target_link_libraries(GLFW_TrueType
 	PUBLIC vkal)
 
 set_property(TARGET GLFW_TrueType   PROPERTY CMAKE_XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set_property(TARGET GLFW_TrueType   PROPERTY CXX_STANDARD 11)

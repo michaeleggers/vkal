@@ -28,3 +28,4 @@ target_link_libraries(GLFW_Texture
 	PUBLIC vkal)
 
 set_property(TARGET GLFW_Texture   PROPERTY CMAKE_XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set_property(TARGET GLFW_Texture   PROPERTY CXX_STANDARD 11)
