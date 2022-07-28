@@ -636,7 +636,7 @@ RenderImage create_render_image(uint32_t width, uint32_t height)
     render_image.depth_image = create_vkal_image(
 		width, height,
 		VK_FORMAT_D32_SFLOAT,
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
 		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
 	render_image.color_image = create_vkal_image(
@@ -1047,6 +1047,7 @@ VkImageView get_image_view(uint32_t id)
     return vkal_info.user_image_views[id].image_view;
 }
 
+// TODO: Too view options!
 VkSampler create_sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode u,
 			 VkSamplerAddressMode v, VkSamplerAddressMode w)
 {
@@ -1057,7 +1058,7 @@ VkSampler create_sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddr
     sampler_info.addressModeV = v; // VK_SAMPLER_ADDRESS_MODE_REPEAT; // VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
     sampler_info.addressModeW = w; // VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler_info.anisotropyEnable = VK_FALSE;
-    sampler_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE; // VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+    sampler_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
     sampler_info.compareEnable = VK_FALSE;
     sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
     sampler_info.minFilter = min_filter;
@@ -1736,7 +1737,7 @@ void create_render_to_image_render_pass(void)
     attachments[1].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     attachments[1].initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachments[1].finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    attachments[1].finalLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     VkAttachmentReference color_attachment_refs[] =
 	{

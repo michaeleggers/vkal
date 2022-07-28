@@ -16,3 +16,6 @@
 - [ ] Rename vkal_update_descriptor_set_uniform. Everything is a buffer. The descriptor type has to be
       passed to the function anyway, which is redundant information in case of a uniform buffer (and confusing otherwise!).
 - [ ] read_file: Better error message when file not found.
+- [ ] vkal_end_command_buffer -> vkal_end_default_command_buffer
+- [ ] descriptor set layout creation: * layout param should be in plural form.
+- [ ] Function that can bind multiple descriptor sets at once? Or just use original vk* command for this?
