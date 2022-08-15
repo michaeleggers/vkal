@@ -36,6 +36,10 @@ if (APPLE)
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 endif (APPLE)
 
+if (NOT DEFINED WINDOWING)
+    set(WINDOWING "VKAL_GLFW")
+endif()
+
 if (${WINDOWING} STREQUAL "VKAL_GLFW")
     message ("Using GLFW...")
 	# GLFW, https://www.glfw.org/docs/latest/build.html#build_link_cmake_source
@@ -47,9 +51,9 @@ elseif(${WINDOWING} STREQUAL "VKAL_SDL")
 	message("Using SDL2...")
 	add_subdirectory(src/external/SDL)
 	# include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/external/SDL)
+elseif(${WINDOWING} STREQUAL "VKAL_WIN32")
+	message("Using native WIN32 API...")
 endif()
-
-
 
 
 # add_subdirectory(src/vkal)
