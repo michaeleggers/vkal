@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.24)
 project(GLFW_MultipleTexturesNaive VERSION 1.0)
 
 # Hello Triangle Example using GLFW
