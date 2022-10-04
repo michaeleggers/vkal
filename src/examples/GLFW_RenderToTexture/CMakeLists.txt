@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.23)
 project(GLFW_RenderToTexture VERSION 1.0)
 
 # Hello Triangle Example using GLFW
