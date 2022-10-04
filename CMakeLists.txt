@@ -65,24 +65,15 @@ add_library(vkal STATIC
 )
 
 if (WIN32)
-    target_include_directories(vkal PUBLIC
-        Vulkan::Vulkan
-        PUBLIC Vulkan::shaderc_combined
-        # if (${WINDOWING} STREQUAL "VKAL_SDL")
-	    #     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../external/SDL/include
-        # endif()
-    )
     target_link_libraries(vkal
-        PUBLIC Vulkan::Vulkan
-        PUBLIC Vulkan::shaderc_combined
+        PRIVATE Vulkan::Vulkan
+        PRIVATE Vulkan::shaderc_combined
     )
+    target_include_directories(vkal
+        PRIVATE ${Vulkan_INCLUDE_DIRS})    
 endif (WIN32)
 
 if (UNIX)
-    target_include_directories(vkal
-        PUBLIC Vulkan::Vulkan
-        PUBLIC Vulkan::shaderc_combined
-    )
     target_link_libraries(vkal PUBLIC
         Vulkan::Vulkan
         PUBLIC Vulkan::shaderc_combined
@@ -90,10 +81,9 @@ if (UNIX)
 endif (UNIX)
 
 if (APPLE)
-    target_include_directories(vkal
-        # PUBLIC /macOS/Debug/MoltenVK/include
-        PUBLIC Vulkan::Vulkan
-    )
+    # target_include_directories(vkal
+    #     # PUBLIC /macOS/Debug/MoltenVK/include
+    # )
     target_link_libraries(vkal
         # PUBLIC libMoltenVK.dylib
         PUBLIC Vulkan::Vulkan
@@ -110,6 +100,11 @@ elseif (${WINDOWING} STREQUAL "VKAL_SDL")
         PUBLIC SDL2
         PUBLIC SDL2main
     )
+    # target_include_directories(vkal
+    #     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../external/SDL/include
+    #     PUBLIC ${Vulkan_INCLUDE_DIRS}
+    # )     
+    
 endif()	
 
 # Add example projects if set to ON

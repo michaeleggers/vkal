@@ -13,13 +13,15 @@
 
 
 
-#include <vulkan/vulkan.h>
 
 #if defined (VKAL_GLFW)
+    #define GLFW_INCLUDE_VULKAN
     #include <GLFW/glfw3.h>
 #elif defined (VKAL_WIN32)
+    #include <vulkan/vulkan.h>
 	#include <Windows.h>
 #elif defined (VKAL_SDL)
+    #include <vulkan/vulkan.h>
     #include <SDL.h>
     #include <SDL_vulkan.h>
 #endif
