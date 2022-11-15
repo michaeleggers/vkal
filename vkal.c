@@ -3056,6 +3056,17 @@ uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
     return offset;
 }
 
+VkDeviceAddress vkal_get_buffer_device_address(VkBuffer buffer)
+{
+    VkBufferDeviceAddressInfo bufferDeviceAddressInfo = {
+        VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+        NULL,
+        buffer
+    };
+
+    return vkGetBufferDeviceAddress(vkal_info.device, &bufferDeviceAddressInfo);
+}
+
 void vkal_cleanup(void) {
 
     vkQueueWaitIdle(vkal_info.graphics_queue);

@@ -207,6 +207,13 @@ typedef struct VkalPhysicalDevice
     VkPhysicalDevice			device;
 }VkalPhysicalDevice;
 
+typedef struct VkalAccelerationStructure
+{
+    VkAccelerationStructureKHR         handle;
+    uint64_t                           device_address;
+    Buffer buffer;
+} VkalAccelerationStructure;
+
 typedef struct VkalInfo
 {
     
@@ -574,6 +581,8 @@ void set_image_layout(
     VkPipelineStageFlags    src_mask, // = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
     VkPipelineStageFlags    dst_mask); // = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int free);
+
+VkDeviceAddress vkal_get_buffer_device_address(VkBuffer buffer);
 
 #ifdef __cplusplus
 }
