@@ -28,9 +28,8 @@
 #endif 
 
 PFN_vkGetAccelerationStructureBuildSizesKHR           vkGetAccelerationStructureBuildSizes;
-#define vkGetAccelerationStructureBuildSizesKHR       vkGetAccelerationStructureBuildSizes
 PFN_vkCreateAccelerationStructureKHR                  vkCreateAccelerationStructure;
-#define vkCreateAccelerationStructureKHR              vkCreateAccelerationStructure   
+PFN_vkCmdBuildAccelerationStructuresKHR               vkCmdBuildAccelerationStructures;
 
 static VkalInfo vkal_info;
 
@@ -530,7 +529,7 @@ void set_image_layout(
 	1, &barrier);
 }
 
-void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int free)
+void vkal_flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int free)
 {
     if (command_buffer == VK_NULL_HANDLE)
     {
@@ -647,7 +646,7 @@ VkalImage create_vkal_image(
 			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-		flush_command_buffer(cmd_buf, vkal_info.graphics_queue, 1);
+		vkal_flush_command_buffer(cmd_buf, vkal_info.graphics_queue, 1);
     }
 
     vkal_image.width = width;

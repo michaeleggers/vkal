@@ -580,7 +580,7 @@ void set_image_layout(
     VkImageSubresourceRange subresource_range,
     VkPipelineStageFlags    src_mask, // = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
     VkPipelineStageFlags    dst_mask); // = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int free);
+void vkal_flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int free);
 
 VkDeviceAddress vkal_get_buffer_device_address(VkBuffer buffer);
 
@@ -594,6 +594,9 @@ extern PFN_vkGetAccelerationStructureBuildSizesKHR           vkGetAccelerationSt
 #define vkGetAccelerationStructureBuildSizesKHR              vkGetAccelerationStructureBuildSizes
 extern PFN_vkCreateAccelerationStructureKHR                  vkCreateAccelerationStructure;
 #define vkCreateAccelerationStructureKHR                     vkCreateAccelerationStructure       
+extern PFN_vkCmdBuildAccelerationStructuresKHR               vkCmdBuildAccelerationStructures;
+#define vkCmdBuildAccelerationStructuresKHR                  vkCmdBuildAccelerationStructures
+
 
 
 #ifdef __cplusplus
