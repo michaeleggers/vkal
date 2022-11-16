@@ -27,6 +27,11 @@
     PFN_vkSetDebugUtilsObjectNameEXT                       vkSetDebugUtilsObjectName;
 #endif 
 
+PFN_vkGetAccelerationStructureBuildSizesKHR           vkGetAccelerationStructureBuildSizes;
+#define vkGetAccelerationStructureBuildSizesKHR       vkGetAccelerationStructureBuildSizes
+PFN_vkCreateAccelerationStructureKHR                  vkCreateAccelerationStructure;
+#define vkCreateAccelerationStructureKHR              vkCreateAccelerationStructure   
+
 static VkalInfo vkal_info;
 
 VkalInfo * vkal_init(char ** extensions, uint32_t extension_count)
@@ -51,6 +56,24 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count)
 	#endif
 
 #endif 
+
+
+#ifdef __cplusplus
+        extern "C" {
+#endif
+
+    #if defined (VKAL_GLFW)
+            vkGetAccelerationStructureBuildSizes = (PFN_vkGetAccelerationStructureBuildSizesKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureBuildSizesKHR");
+            vkCreateAccelerationStructure        = (PFN_vkCreateAccelerationStructureKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateAccelerationStructureKHR");
+    #elif defined (VKAL_WIN32)
+            vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
+    #elif defined (VKAL_SDL)
+            vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 //    pick_physical_device(extensions, extension_count);
     create_logical_device(extensions, extension_count);

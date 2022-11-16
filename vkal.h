@@ -584,6 +584,18 @@ void flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int fre
 
 VkDeviceAddress vkal_get_buffer_device_address(VkBuffer buffer);
 
+
+/* Function pointers for Raytracing extensions. 
+   NOTE: They need to be extern, otherwise you will have overlapping symbols during link-time if vkal.h
+         is included into multiple compilation units.
+         Therefore, the actual declaration is in vkal.c!
+ */
+extern PFN_vkGetAccelerationStructureBuildSizesKHR           vkGetAccelerationStructureBuildSizes;
+#define vkGetAccelerationStructureBuildSizesKHR              vkGetAccelerationStructureBuildSizes
+extern PFN_vkCreateAccelerationStructureKHR                  vkCreateAccelerationStructure;
+#define vkCreateAccelerationStructureKHR                     vkCreateAccelerationStructure       
+
+
 #ifdef __cplusplus
 }
 #endif
