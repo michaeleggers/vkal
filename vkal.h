@@ -596,6 +596,8 @@ extern PFN_vkCreateAccelerationStructureKHR                  vkCreateAcceleratio
 #define vkCreateAccelerationStructureKHR                     vkCreateAccelerationStructure       
 extern PFN_vkCmdBuildAccelerationStructuresKHR               vkCmdBuildAccelerationStructures;
 #define vkCmdBuildAccelerationStructuresKHR                  vkCmdBuildAccelerationStructures
+extern PFN_vkGetAccelerationStructureDeviceAddressKHR        vkGetAccelerationStructureDeviceAddress;
+#define vkGetAccelerationStructureDeviceAddressKHR           vkGetAccelerationStructureDeviceAddress
 
 
 
