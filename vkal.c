@@ -2041,6 +2041,19 @@ void vkal_allocate_descriptor_sets(VkDescriptorPool pool,
     VKAL_ASSERT(result && "failed to allocate descriptor set(s)!");
 }
 
+SingleShaderStageSetup vkal_create_shader(const uint8_t* shader_byte_code, uint32_t shader_byte_code_size, VkShaderStageFlagBits shader_stage_flag_bits)
+{
+    SingleShaderStageSetup shader_setup = { 0 };
+    create_shader_module(shader_byte_code, shader_byte_code_size, &shader_setup.shader_module);
+
+    shader_setup.shader_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shader_setup.shader_create_info.stage = shader_stage_flag_bits;
+    shader_setup.shader_create_info.module = get_shader_module(shader_setup.shader_module);
+    shader_setup.shader_create_info.pName = "main";
+
+    return shader_setup;
+}
+
 ShaderStageSetup vkal_create_shaders(const uint8_t * vertex_shader_code, uint32_t vertex_shader_code_size, const uint8_t * fragment_shader_code, uint32_t fragment_shader_code_size)
 {
     ShaderStageSetup shader_setup = { 0 };
