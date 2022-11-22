@@ -605,7 +605,8 @@ extern PFN_vkCmdBuildAccelerationStructuresKHR               vkCmdBuildAccelerat
 #define vkCmdBuildAccelerationStructuresKHR                  vkCmdBuildAccelerationStructures
 extern PFN_vkGetAccelerationStructureDeviceAddressKHR        vkGetAccelerationStructureDeviceAddress;
 #define vkGetAccelerationStructureDeviceAddressKHR           vkGetAccelerationStructureDeviceAddress
-
+extern PFN_vkCreateRayTracingPipelinesKHR                    vkCreateRayTracingPipelines;
+#define vkCreateRayTracingPipelinesKHR                       vkCreateRayTracingPipelines
 
 
 #ifdef __cplusplus

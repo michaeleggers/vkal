@@ -31,7 +31,7 @@ PFN_vkGetAccelerationStructureBuildSizesKHR           vkGetAccelerationStructure
 PFN_vkCreateAccelerationStructureKHR                  vkCreateAccelerationStructure;
 PFN_vkCmdBuildAccelerationStructuresKHR               vkCmdBuildAccelerationStructures;
 PFN_vkGetAccelerationStructureDeviceAddressKHR        vkGetAccelerationStructureDeviceAddress;
-
+PFN_vkCreateRayTracingPipelinesKHR                    vkCreateRayTracingPipelines;
 
 static VkalInfo vkal_info;
 
