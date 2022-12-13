@@ -335,10 +335,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    read_file("../../src/examples/assets/shaders/ttf_drawing_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("../../dependencies/vkal/src/examples/assets/shaders/ttf_drawing_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    read_file("../../src/examples/assets/shaders/ttf_drawing_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("../../dependencies/vkal/src/examples/assets/shaders/ttf_drawing_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -409,7 +409,7 @@ int main(int argc, char ** argv)
     /* TTF loading */
     uint8_t * ttf = NULL;
     int file_size = 0;
-    read_file("../../src/examples/assets/fonts/efmi.ttf", &ttf, &file_size);
+    read_file("../../dependencies/vkal/src/examples/assets/fonts/efmi.ttf", &ttf, &file_size);
     
     // stb_truetype texture baking API
     stbtt_fontinfo font;
@@ -533,7 +533,5 @@ int main(int argc, char ** argv)
 
     glfwDestroyWindow(window);
  
-    glfwTerminate();
-    
     return 0;
 }

@@ -673,10 +673,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    read_file("../../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("../../dependencies/vkal/src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    read_file("../../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("../../dependencies/vkal/src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -758,9 +758,9 @@ int main(int argc, char ** argv)
 
     /* Shader Setup Textured Rect */
     vertex_byte_code = 0;
-    read_file("../../src/examples/assets/shaders/primitives_textured_rect_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("../../dependencies/vkal/src/examples/assets/shaders/primitives_textured_rect_vert.spv", &vertex_byte_code, &vertex_code_size);
     fragment_byte_code = 0;
-    read_file("../../src/examples/assets/shaders/primitives_textured_rect_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("../../dependencies/vkal/src/examples/assets/shaders/primitives_textured_rect_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup_textured_rect = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -839,8 +839,9 @@ int main(int argc, char ** argv)
 	float theta = 2*TR_PI/64;
 
 	for (int i = 0; i < 64; ++i) {	   
-	    circle(  500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 2, {0, 0.5, 1.0});
+	    circle(  500 + radius*cosf(i*theta), 500 + radius*sinf(i*theta), radius, 32, 1, {0, 0.5, 1.0});
 	}
+    circle(500, 500, 200.0f, 64, 30, { 1.0, 0.5, 1.0 });
 
 	update_batch(&g_default_batch);
 	
@@ -894,7 +895,5 @@ int main(int argc, char ** argv)
 
     glfwDestroyWindow(window);
  
-    glfwTerminate();
-    
     return 0;
 }

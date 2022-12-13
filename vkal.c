@@ -32,6 +32,7 @@ PFN_vkCreateAccelerationStructureKHR                  vkCreateAccelerationStruct
 PFN_vkCmdBuildAccelerationStructuresKHR               vkCmdBuildAccelerationStructures;
 PFN_vkGetAccelerationStructureDeviceAddressKHR        vkGetAccelerationStructureDeviceAddress;
 PFN_vkCreateRayTracingPipelinesKHR                    vkCreateRayTracingPipelines;
+//PFN_vkGetBufferDeviceAddressKHR                       vkGetBufferDeviceAddress;
 
 static VkalInfo vkal_info;
 
@@ -114,7 +115,7 @@ void vkal_create_instance_glfw(
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "VKAL Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_API_VERSION_1_2;
+    app_info.apiVersion = VK_API_VERSION_1_3;
     
     VkInstanceCreateInfo create_info = {0};
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -213,7 +214,7 @@ void vkal_create_instance_win32(
 	app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	app_info.pEngineName = "VKAL Engine";
 	app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	app_info.apiVersion = VK_API_VERSION_1_2;
+	app_info.apiVersion = VK_API_VERSION_1_3;
 
 	VkInstanceCreateInfo create_info = { 0 };
 	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -314,7 +315,7 @@ void vkal_create_instance_sdl(
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "VKAL Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_API_VERSION_1_2;
+    app_info.apiVersion = VK_API_VERSION_1_3;
 
     VkInstanceCreateInfo create_info = { 0 };
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -1622,7 +1623,7 @@ void vkal_select_physical_device(VkalPhysicalDevice * physical_device)
     printf("[VKAL] physcial device limits: nonCoherentAtomSize: %llu\n", vkal_info.physical_device_properties.limits.nonCoherentAtomSize);
 }
 
-void create_logical_device(char ** extensions, uint32_t extension_count)
+void create_logical_device(char** extensions, uint32_t extension_count)
 {
     QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_device, vkal_info.surface);
     uint32_t unique_queue_families[2];
@@ -1631,43 +1632,47 @@ void create_logical_device(char ** extensions, uint32_t extension_count)
     VkDeviceQueueCreateInfo queue_create_infos[2] = { 0 };
     uint32_t info_count = 0;
     if (indicies.graphics_family != indicies.present_family) {
-	    info_count = 2;
+        info_count = 2;
     }
     else {
-	    info_count = 1;
+        info_count = 1;
     }
     float queue_prio = 1.f;
     for (uint32_t i = 0; i < info_count; ++i) {
-	    queue_create_infos[i] = (VkDeviceQueueCreateInfo){0};
-	    queue_create_infos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	    queue_create_infos[i].queueFamilyIndex = unique_queue_families[i];
-	    queue_create_infos[i].queueCount = 1;
-	    queue_create_infos[i].pQueuePriorities = &queue_prio;
+        queue_create_infos[i] = (VkDeviceQueueCreateInfo){ 0 };
+        queue_create_infos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_create_infos[i].queueFamilyIndex = unique_queue_families[i];
+        queue_create_infos[i].queueCount = 1;
+        queue_create_infos[i].pQueuePriorities = &queue_prio;
     }
-    
+
     VkPhysicalDeviceFeatures device_features = { 0 };
+    VkPhysicalDeviceVulkan12Features device_features12 = { 0 };
+    device_features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    device_features12.pNext = VK_NULL_HANDLE;
+    device_features12.bufferDeviceAddress = VK_TRUE;
+    device_features12.runtimeDescriptorArray = VK_TRUE;
+    VkPhysicalDeviceFeatures2 features2 = { 0 };
+    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    features2.pNext = &device_features12;
+    //vkGetPhysicalDeviceFeatures2(vkal_info.physical_device, &features2);
+
+    // TODO: WE NEED A BETTER WAY OF ENABLING/DISABLING FEATURES!
+    //       The following feature is not supported when the features above are being in use!
     VkPhysicalDeviceDescriptorIndexingFeatures indexing_features = { 0 };
     indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
     indexing_features.runtimeDescriptorArray = VK_TRUE;
+    indexing_features.pNext = &features2;
+
     VkDeviceCreateInfo create_info = { 0 };
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    create_info.pNext = &indexing_features;
+    create_info.pNext = &features2;
     create_info.pQueueCreateInfos = queue_create_infos;
     create_info.queueCreateInfoCount = info_count;
-    create_info.pEnabledFeatures = &device_features;
+    create_info.pEnabledFeatures = VKAL_NULL; // &device_features;
     create_info.enabledExtensionCount = extension_count;
     create_info.ppEnabledExtensionNames = (const char * const *)extensions;
-    // device specific validation layers are deprecated.
-    // just specify for compatib. reasons:
-    /*
-    if (vkal_info.enable_instance_layers) {
-	create_info.enabledLayerCount = VKAL_ARRAY_LENGTH(instance_layers);
-	create_info.ppEnabledLayerNames = instance_layers;
-    }
-    else {
-	create_info.enabledLayerCount = 0;
-    }
-    */
+    
     VkResult result = vkCreateDevice(vkal_info.physical_device, &create_info, 0, &vkal_info.device);
     VKAL_ASSERT(result && "failed to create logical device");
     

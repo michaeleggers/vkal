@@ -143,10 +143,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    read_file("../../src/examples/assets/shaders/textures_dynamic_descriptor_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("../../dependencies/vkal/src/examples/assets/shaders/textures_dynamic_descriptor_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    read_file("../../src/examples/assets/shaders/textures_dynamic_descriptor_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("../../dependencies/vkal/src/examples/assets/shaders/textures_dynamic_descriptor_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -200,7 +200,7 @@ int main(int argc, char ** argv)
     vkal_allocate_descriptor_sets(vkal_info->default_descriptor_pool, layouts, 1, &descriptor_sets);
 	
     /* HACK: Update Texture Slots so validation layer won't complain */
-    Image dummy_image = load_image_file("../../src/examples/assets/textures/hk.jpg");
+    Image dummy_image = load_image_file("../../dependencies/vkal/src/examples/assets/textures/hk.jpg");
     VkalTexture dummy_texture = vkal_create_texture(
 	0, dummy_image.data, dummy_image.width, dummy_image.height, 4, 0,
 	VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
@@ -246,11 +246,11 @@ int main(int argc, char ** argv)
     uint32_t offset_indices  = vkal_index_buffer_add(cube_indices, index_count);
 
     /* Texture Data */
-    Image image2 = load_image_file("../../src/examples/assets/textures/hk.jpg");
+    Image image2 = load_image_file("../../dependencies/vkal/src/examples/assets/textures/hk.jpg");
     VkalTexture mario_texture = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
 						VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 						VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-    Image image = load_image_file("../../src/examples/assets/textures/vklogo.jpg");
+    Image image = load_image_file("../../dependencies/vkal/src/examples/assets/textures/vklogo.jpg");
     VkalTexture indy_texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
 					       VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 					       VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
@@ -328,13 +328,12 @@ int main(int argc, char ** argv)
 
 	    vkal_present(image_id);
 	}
-    }
+    }       
     
     vkal_cleanup();
 
     glfwDestroyWindow(window);
  
-    glfwTerminate();
     
     return 0;
 }

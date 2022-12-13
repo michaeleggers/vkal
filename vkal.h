@@ -609,6 +609,9 @@ extern PFN_vkCreateRayTracingPipelinesKHR                    vkCreateRayTracingP
 #define vkCreateRayTracingPipelinesKHR                       vkCreateRayTracingPipelines
 
 
+
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -408,9 +408,7 @@ int main(int argc, char ** argv)
     
     vkal_cleanup();
 
-    glfwDestroyWindow(window);
- 
-    glfwTerminate();
+    glfwDestroyWindow(window);    
     
     return 0;
 }
