@@ -1655,6 +1655,15 @@ void create_logical_device(char** extensions, uint32_t extension_count)
     VkPhysicalDeviceFeatures2 features2 = { 0 };
     features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     features2.pNext = &device_features12;
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_features = { 0 };
+    ray_tracing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+    ray_tracing_features.rayTracingPipeline = VK_TRUE;
+    ray_tracing_features.pNext = &features2;
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features = { 0 };
+    acceleration_structure_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    acceleration_structure_features.accelerationStructure = VK_TRUE;
+    acceleration_structure_features.pNext = &ray_tracing_features;
+
     //vkGetPhysicalDeviceFeatures2(vkal_info.physical_device, &features2);
 
     // TODO: WE NEED A BETTER WAY OF ENABLING/DISABLING FEATURES!
@@ -1666,7 +1675,7 @@ void create_logical_device(char** extensions, uint32_t extension_count)
 
     VkDeviceCreateInfo create_info = { 0 };
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    create_info.pNext = &features2;
+    create_info.pNext = &acceleration_structure_features;
     create_info.pQueueCreateInfos = queue_create_infos;
     create_info.queueCreateInfoCount = info_count;
     create_info.pEnabledFeatures = VKAL_NULL; // &device_features;
