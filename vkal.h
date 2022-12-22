@@ -417,7 +417,7 @@ void create_default_command_pool(void);
 void allocate_default_device_memory_uniform(void);
 void allocate_default_device_memory_vertex(void);
 void allocate_default_device_memory_index(void);
-DeviceMemory vkal_allocate_devicememory(uint32_t size, VkBufferUsageFlags buffer_usage_flags, VkMemoryPropertyFlags memory_property_flags);
+DeviceMemory vkal_allocate_devicememory(uint32_t size, VkBufferUsageFlags buffer_usage_flags, VkMemoryPropertyFlags memory_property_flags, VkFlags mem_alloc_flags);
 void create_default_uniform_buffer(uint32_t size);
 void create_default_vertex_buffer(uint32_t size);
 void create_default_index_buffer(uint32_t size);

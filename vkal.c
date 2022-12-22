@@ -64,9 +64,12 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count)
         extern "C" {
 #endif
 
+            // TODO: Check if function pointers are loaded correctly!
     #if defined (VKAL_GLFW)
             vkGetAccelerationStructureBuildSizes = (PFN_vkGetAccelerationStructureBuildSizesKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureBuildSizesKHR");
             vkCreateAccelerationStructure        = (PFN_vkCreateAccelerationStructureKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateAccelerationStructureKHR");
+            vkCmdBuildAccelerationStructures     = (PFN_vkCmdBuildAccelerationStructuresKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCmdBuildAccelerationStructuresKHR");
+            vkGetAccelerationStructureDeviceAddress = (PFN_vkGetAccelerationStructureDeviceAddressKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureDeviceAddressKHR");
     #elif defined (VKAL_WIN32)
             vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
     #elif defined (VKAL_SDL)
@@ -1248,7 +1251,8 @@ void create_staging_buffer(uint32_t size)
 
 DeviceMemory vkal_allocate_devicememory(uint32_t size,
 					VkBufferUsageFlags buffer_usage_flags,
-					VkMemoryPropertyFlags memory_property_flags)
+					VkMemoryPropertyFlags memory_property_flags,
+                    VkFlags mem_alloc_flags)
 {
     /* Create a dummy buffer so we can select the best possible memory for this type
        of buffer via vkGetBufferMemoryRequirements 
@@ -1259,11 +1263,16 @@ DeviceMemory vkal_allocate_devicememory(uint32_t size,
     uint32_t mem_type_bits = check_memory_type_index(buffer_memory_requirements.memoryTypeBits, memory_property_flags);
     vkDestroyBuffer(vkal_info.device, buffer, NULL);
 
+    VkMemoryAllocateFlagsInfo mem_alloc_flags_info = { 0 };
+    mem_alloc_flags_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+    mem_alloc_flags_info.flags = mem_alloc_flags;    
+
     VkDeviceMemory memory = VK_NULL_HANDLE;
     VkMemoryAllocateInfo memory_info = { 0 };
     memory_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memory_info.allocationSize = buffer_memory_requirements.size;
     memory_info.memoryTypeIndex = mem_type_bits;
+    memory_info.pNext = (mem_alloc_flags == 0 ? 0 : &mem_alloc_flags_info);
     VkResult result = vkAllocateMemory(vkal_info.device, &memory_info, 0, &memory);
     VKAL_ASSERT(result && "failed to allocate device memory.");
 
