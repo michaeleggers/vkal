@@ -22,3 +22,6 @@
 - [ ] Fix VKAL_ASSERT macro.
 - [ ] Examples: Create a proper Vulkan projection matrix so that flipping y in shader is
       not necessary.
+- [ ] Better error message when examples cannot load file from disk.
+- [ ] Better Info about what GPUs are available and if they support the requested features.
+- [ ] Is there a way to check if a GPU has the appropriate drivers installed, before vkGetPhysicalDeviceSurfaceCapabilitiesKHR fails?!
