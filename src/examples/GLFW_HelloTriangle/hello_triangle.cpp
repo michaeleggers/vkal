@@ -98,16 +98,16 @@ int main(int argc, char** argv)
     for (uint32_t i = 0; i < device_count; ++i) {
         printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
-    vkal_select_physical_device(&devices[0]);
+    vkal_select_physical_device(&devices[1]);
     VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count);
 
     /* Shader Setup */
     uint8_t* vertex_byte_code = 0;
     int vertex_code_size;
-    read_file("../../dependencies/vkal/src/examples/assets/shaders/hello_triangle_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("../../src/examples/assets/shaders/hello_triangle_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t* fragment_byte_code = 0;
     int fragment_code_size;
-    read_file("../../dependencies/vkal/src/examples/assets/shaders/hello_triangle_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("../../src/examples/assets/shaders/hello_triangle_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(vertex_byte_code, vertex_code_size, fragment_byte_code, fragment_code_size);
     
     /* Vertex Input Assembly */
