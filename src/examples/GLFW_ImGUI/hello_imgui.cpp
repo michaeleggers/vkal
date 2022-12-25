@@ -178,7 +178,7 @@ int main(int argc, char** argv)
     for (uint32_t i = 0; i < device_count; ++i) {
         printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
-    vkal_select_physical_device(&devices[0]);
+    vkal_select_physical_device(&devices[1]);
     VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count);
 
     init_imgui(vkal_info);
@@ -186,11 +186,11 @@ int main(int argc, char** argv)
     /* Compile Shaders at runtime */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size = 0;
-    load_glsl_and_compile("../../dependencies/vkal/src/examples/assets/shaders/hello_triangle.vert", &vertex_byte_code, &vertex_code_size, SHADER_TYPE_VERTEX);
+    load_glsl_and_compile("../../src/examples/assets/shaders/hello_triangle.vert", &vertex_byte_code, &vertex_code_size, SHADER_TYPE_VERTEX);
 
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size = 0;
-    load_glsl_and_compile("../../dependencies/vkal/src/examples/assets/shaders/hello_triangle.frag", &fragment_byte_code, &fragment_code_size, SHADER_TYPE_FRAGMENT);
+    load_glsl_and_compile("../../src/examples/assets/shaders/hello_triangle.frag", &fragment_byte_code, &fragment_code_size, SHADER_TYPE_FRAGMENT);
 
     /* Shader Setup */
 #if 0

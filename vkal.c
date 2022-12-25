@@ -755,7 +755,7 @@ int check_instance_extension_support(char const * requested_extension,
 SwapChainSupportDetails query_swapchain_support(VkPhysicalDevice device)
 {
     SwapChainSupportDetails details = { 0 };
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, vkal_info.surface, &details.capabilities);
+    VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, vkal_info.surface, &details.capabilities);
     
     uint32_t format_count;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, vkal_info.surface, &format_count, 0);

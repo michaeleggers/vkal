@@ -260,7 +260,7 @@ int main(int argc, char ** argv)
     Model model = {0};
     model.is_indexed = 0;
     float bmin[3], bmax[3];
-    load_obj(bmin, bmax, "/../../src/examples/assets/models/lego.obj", &model);
+    load_obj(bmin, bmax, "../../src/examples/assets/models/lego.obj", &model);
     model.vertex_buffer_offset = vkal_vertex_buffer_add(model.vertices, 9*sizeof(float), model.vertex_count);
     clear_model(&model);
 

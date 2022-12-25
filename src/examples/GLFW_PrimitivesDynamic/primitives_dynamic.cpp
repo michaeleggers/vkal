@@ -202,7 +202,7 @@ void create_batch(VkalInfo * vkal_info, Batch * batch)
 						    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 						    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
 						    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
-						    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+						    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 0);
     batch->index_buffer = vkal_create_buffer(PRIMITIVES_INDEX_BUFFER_SIZE,
 					    &batch->index_memory,
 					    VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
@@ -214,7 +214,7 @@ void create_batch(VkalInfo * vkal_info, Batch * batch)
 						     VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 						     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
 						     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
-						     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+						     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 0);
     batch->vertex_buffer = vkal_create_buffer(PRIMITIVES_VERTEX_BUFFER_SIZE,
 					     &batch->vertex_memory,
 					     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
@@ -673,10 +673,10 @@ int main(int argc, char ** argv)
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size;
-    read_file("../../dependencies/vkal/src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("../../src/examples/assets/shaders/primitives_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t * fragment_byte_code = 0;
     int fragment_code_size;
-    read_file("../../dependencies/vkal/src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("../../src/examples/assets/shaders/primitives_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
@@ -758,9 +758,9 @@ int main(int argc, char ** argv)
 
     /* Shader Setup Textured Rect */
     vertex_byte_code = 0;
-    read_file("../../dependencies/vkal/src/examples/assets/shaders/primitives_textured_rect_vert.spv", &vertex_byte_code, &vertex_code_size);
+    read_file("../../src/examples/assets/shaders/primitives_textured_rect_vert.spv", &vertex_byte_code, &vertex_code_size);
     fragment_byte_code = 0;
-    read_file("../../dependencies/vkal/src/examples/assets/shaders/primitives_textured_rect_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("../../src/examples/assets/shaders/primitives_textured_rect_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup_textured_rect = vkal_create_shaders(
 	vertex_byte_code, vertex_code_size, 
 	fragment_byte_code, fragment_code_size);
