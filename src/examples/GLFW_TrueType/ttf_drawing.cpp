@@ -461,7 +461,7 @@ int main(int argc, char ** argv)
 							   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
 							   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
 							   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 0);
-    Buffer index_buffer = vkal_create_buffer(PRIMITIVES_INDEX_BUFFER_SIZE,
+    VkalBuffer index_buffer = vkal_create_buffer(PRIMITIVES_INDEX_BUFFER_SIZE,
 					     &index_memory,
 					     VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     VKAL_DBG_BUFFER_NAME(vkal_info->device, index_buffer, "Index Buffer");
@@ -473,7 +473,7 @@ int main(int argc, char ** argv)
 							   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
 							   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
 							   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 0);
-    Buffer vertex_buffer = vkal_create_buffer(PRIMITIVES_VERTEX_BUFFER_SIZE,
+    VkalBuffer vertex_buffer = vkal_create_buffer(PRIMITIVES_VERTEX_BUFFER_SIZE,
 					     &vertex_memory,
 					     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	VKAL_DBG_BUFFER_NAME(vkal_info->device, vertex_buffer, "Vertex Buffer");

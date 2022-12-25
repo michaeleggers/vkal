@@ -254,10 +254,10 @@ int main(int argc, char ** argv)
 
     /* Position and aspect ratio for textures */
     ModelData model_data_tex_1;
-    model_data_tex_1.position = (vec3){ -1, 0, 0 };
+    model_data_tex_1.position = { -1, 0, 0 };
     model_data_tex_1.image_aspect = (float)image.width/(float)image.height;
     ModelData model_data_tex_2;
-    model_data_tex_2.position = (vec3){ 1, 0, 0 };
+    model_data_tex_2.position = { 1, 0, 0 };
     model_data_tex_2.image_aspect = (float)image2.width/(float)image2.height;
     
     vkal_update_descriptor_set_texture(descriptor_set_tex_1[0], texture);
@@ -265,9 +265,9 @@ int main(int argc, char ** argv)
 
     /* View Projection Uniform */
     Camera camera;
-    camera.pos = (vec3){ 0, 0.f, 10.f };
-    camera.center = (vec3){ 0 };
-    camera.up = (vec3){ 0, 1, 0 };
+    camera.pos = { 0, 0.f, 10.f };
+    camera.center = { 0 };
+    camera.up = { 0, 1, 0 };
     ViewProjection view_proj_data;
     view_proj_data.view = look_at(camera.pos, camera.center, camera.up);
     view_proj_data.proj = perspective( tr_radians(45.f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.f );

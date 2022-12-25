@@ -75,8 +75,8 @@ typedef struct Batch
 
     DeviceMemory index_memory;
     DeviceMemory vertex_memory;
-    Buffer       index_buffer;
-    Buffer       vertex_buffer;
+    VkalBuffer       index_buffer;
+    VkalBuffer       vertex_buffer;
 } Batch;
 
 typedef enum RenderCmdType

@@ -685,12 +685,12 @@ RenderImage create_render_image(uint32_t width, uint32_t height)
     return render_image;
 }
 
-VkResult map_memory(Buffer * buffer, VkDeviceSize size, VkDeviceSize offset)
+VkResult map_memory(VkalBuffer * buffer, VkDeviceSize size, VkDeviceSize offset)
 {
     return vkMapMemory(vkal_info.device, buffer->device_memory, offset, size, 0, &((*buffer).mapped));
 }
 
-void unmap_memory(Buffer * buffer)
+void unmap_memory(VkalBuffer * buffer)
 {
     if (buffer->mapped) {
 		vkUnmapMemory(vkal_info.device, buffer->device_memory);
@@ -1285,7 +1285,7 @@ DeviceMemory vkal_allocate_devicememory(uint32_t size,
     return device_memory;
 }
 
-Buffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags)
+VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags)
 {
     VkBuffer vk_buffer = VK_NULL_HANDLE;
     VkBufferCreateInfo buffer_info = { 0 };
@@ -1304,7 +1304,7 @@ Buffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBuf
        offset into VkDeviceMemory.
     */
 	
-    Buffer buffer = { 0 };
+    VkalBuffer buffer = { 0 };
     buffer.size = size;
     buffer.offset = device_memory->free;
     buffer.device_memory = device_memory->vk_device_memory;
@@ -1320,7 +1320,7 @@ Buffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBuf
     return buffer;
 }
 
-void vkal_update_buffer(Buffer buffer, uint8_t* data)
+void vkal_update_buffer(VkalBuffer buffer, uint8_t* data)
 {
     void * mapped_memory = 0;
     VkResult result = vkMapMemory(
@@ -1330,7 +1330,7 @@ void vkal_update_buffer(Buffer buffer, uint8_t* data)
         &mapped_memory);
     VKAL_ASSERT( result && "Failed to map memory!" );
 
-    memcpy(mapped_memory, data, sizeof(Buffer));
+    memcpy(mapped_memory, data, sizeof(VkalBuffer));
     VkMappedMemoryRange memory_range = { 0 };
     memory_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     memory_range.memory = buffer.device_memory;
@@ -2616,9 +2616,9 @@ void vkal_draw_indexed(
 }
 
 void vkal_draw_indexed_from_buffers(
-    Buffer index_buffer, uint64_t index_buffer_offset, 
+    VkalBuffer index_buffer, uint64_t index_buffer_offset, 
 	uint32_t index_count, 
-	Buffer vertex_buffer, uint64_t vertex_buffer_offset,
+	VkalBuffer vertex_buffer, uint64_t vertex_buffer_offset,
     uint32_t image_id, 
 	VkPipeline pipeline)
 {
@@ -2647,7 +2647,7 @@ void vkal_draw(
 }
 
 void vkal_draw_from_buffers(
-    Buffer vertex_buffer,
+    VkalBuffer vertex_buffer,
     uint32_t image_id, 
 	VkPipeline pipeline,
     VkDeviceSize vertex_buffer_offset, uint32_t vertex_count)
@@ -2907,7 +2907,7 @@ VkDeviceMemory allocate_memory(VkDeviceSize size, uint32_t mem_type_bits)
     return memory;
 }
 
-Buffer create_buffer(uint32_t size, VkBufferUsageFlags usage)
+VkalBuffer create_buffer(uint32_t size, VkBufferUsageFlags usage)
 {
     VkBuffer vk_buffer;
     VkBufferCreateInfo buffer_info = { 0 };
@@ -2921,7 +2921,7 @@ Buffer create_buffer(uint32_t size, VkBufferUsageFlags usage)
     VkResult result = vkCreateBuffer(vkal_info.device, &buffer_info, 0, &vk_buffer);
     VKAL_ASSERT(result && "Failed to create buffer.");
     
-    Buffer buffer = { 0 };
+    VkalBuffer buffer = { 0 };
     buffer.size = size;
     buffer.usage = usage;
     buffer.buffer = vk_buffer;
@@ -2976,7 +2976,8 @@ void vkal_update_descriptor_set_uniform(
     vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_uniform, 0, 0);
 }
 
-void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type, uint32_t binding, uint32_t array_element, Buffer buffer)
+void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type, 
+    uint32_t binding, uint32_t array_element, VkalBuffer buffer)
 {
     // update floats in fragment shader
     VkDescriptorBufferInfo buffer_infos[1];

@@ -100,7 +100,7 @@ typedef struct DeviceMemory
     uint32_t       mem_type_index;
 } DeviceMemory;
 
-typedef struct Buffer
+typedef struct VkalBuffer
 {
     VkBuffer			buffer;
     uint64_t			size;
@@ -108,7 +108,7 @@ typedef struct Buffer
     VkDeviceMemory		device_memory;
     VkBufferUsageFlags	usage;
     void				* mapped;
-} Buffer;
+} VkalBuffer;
 
 typedef struct VkalImage
 {
@@ -211,7 +211,7 @@ typedef struct VkalAccelerationStructure
 {
     VkAccelerationStructureKHR         handle;
     uint64_t                           device_address;
-    Buffer buffer;
+    VkalBuffer buffer;
 } VkalAccelerationStructure;
 
 typedef struct VkalInfo
@@ -274,7 +274,7 @@ typedef struct VkalInfo
     uint32_t		device_memory_depth_stencil;
 
     VkDeviceMemory	device_memory_staging;
-    Buffer			staging_buffer;
+    VkalBuffer			staging_buffer;
 
     VkRenderPass		render_pass;
     VkRenderPass		render_to_image_render_pass;
@@ -295,9 +295,9 @@ typedef struct VkalInfo
     uint32_t			frames_rendered;
     //uint32_t current_frame;
     
-	Buffer			default_uniform_buffer;
-    Buffer			default_vertex_buffer;
-    Buffer			default_index_buffer;
+	VkalBuffer			default_uniform_buffer;
+    VkalBuffer			default_vertex_buffer;
+    VkalBuffer			default_index_buffer;
     VkDeviceMemory	default_device_memory_uniform;
     VkDeviceMemory	default_device_memory_vertex;
     VkDeviceMemory	default_device_memory_index;
@@ -440,7 +440,7 @@ UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint3
 void vkal_update_descriptor_set_uniform(
 	VkDescriptorSet descriptor_set, UniformBuffer uniform_buffer,
 	VkDescriptorType descriptor_type);
-void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type, uint32_t binding, uint32_t array_element, Buffer buffer);
+void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type, uint32_t binding, uint32_t array_element, VkalBuffer buffer);
 void vkal_update_descriptor_set_texturearray(
 	VkDescriptorSet descriptor_set,
 	VkDescriptorType descriptor_type,
@@ -449,11 +449,11 @@ void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data);
 uint32_t check_memory_type_index(uint32_t const memory_requirement_bits, VkMemoryPropertyFlags const wanted_property);
 void upload_texture(VkImage const image, uint32_t w, uint32_t h, uint32_t n, uint32_t array_layer_count, unsigned char * texture_data);
 void create_staging_buffer(uint32_t size);
-Buffer create_buffer(uint32_t size, VkBufferUsageFlags usage);
-Buffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags);
-VkResult map_memory(Buffer * buffer, VkDeviceSize size, VkDeviceSize offset);
-void unmap_memory(Buffer * buffer);
-void vkal_update_buffer(Buffer buffer, uint8_t* data);
+VkalBuffer create_buffer(uint32_t size, VkBufferUsageFlags usage);
+VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags);
+VkResult map_memory(VkalBuffer * buffer, VkDeviceSize size, VkDeviceSize offset);
+void unmap_memory(VkalBuffer * buffer);
+void vkal_update_buffer(VkalBuffer buffer, uint8_t* data);
 static void create_image(
 	uint32_t width, uint32_t height, uint32_t mip_levels, uint32_t array_layers,
 	VkImageCreateFlags flags, VkFormat format, VkImageUsageFlags usage_flags, uint32_t * out_image_id);
@@ -530,13 +530,13 @@ void vkal_draw_indexed(
     VkDeviceSize index_buffer_offset, uint32_t index_count,
     VkDeviceSize vertex_buffer_offset);
 void vkal_draw_indexed_from_buffers(
-    Buffer index_buffer, uint64_t index_buffer_offset, uint32_t index_count, Buffer vertex_buffer, uint64_t vertex_buffer_offset,
+    VkalBuffer index_buffer, uint64_t index_buffer_offset, uint32_t index_count, VkalBuffer vertex_buffer, uint64_t vertex_buffer_offset,
     uint32_t image_id, VkPipeline pipeline);
 void vkal_draw(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize vertex_buffer_offset, uint32_t vertex_count);
 void vkal_draw_from_buffers(
-    Buffer vertex_buffer,
+    VkalBuffer vertex_buffer,
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize vertex_buffer_offset, uint32_t vertex_count);
 void vkal_draw_indexed2(
