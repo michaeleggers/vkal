@@ -25,3 +25,4 @@
 - [ ] Better error message when examples cannot load file from disk.
 - [ ] Better Info about what GPUs are available and if they support the requested features.
 - [ ] Is there a way to check if a GPU has the appropriate drivers installed, before vkGetPhysicalDeviceSurfaceCapabilitiesKHR fails?!
+- [x] Change VKAL struct for Buffers from Buffer -> VkalBuffer.
