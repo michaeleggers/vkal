@@ -70,6 +70,7 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count)
             vkCreateAccelerationStructure        = (PFN_vkCreateAccelerationStructureKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateAccelerationStructureKHR");
             vkCmdBuildAccelerationStructures     = (PFN_vkCmdBuildAccelerationStructuresKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCmdBuildAccelerationStructuresKHR");
             vkGetAccelerationStructureDeviceAddress = (PFN_vkGetAccelerationStructureDeviceAddressKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureDeviceAddressKHR");
+            vkCreateRayTracingPipelines           = (PFN_vkCreateRayTracingPipelinesKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateRayTracingPipelinesKHR");
     #elif defined (VKAL_WIN32)
             vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
     #elif defined (VKAL_SDL)
