@@ -2830,6 +2830,11 @@ void create_default_uniform_buffer(uint32_t size)
 	VKAL_DBG_BUFFER_NAME(vkal_info.device, vkal_info.default_uniform_buffer, "Default Uniform Buffer");
 }
 
+uint32_t vkal_aligned_size(uint32_t size, uint32_t alignment)
+{
+    return (size + alignment - 1) & ~(alignment - 1);
+}
+
 void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data) // TODO: Does uniform_buffer really have to be a pointer?
 {
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;

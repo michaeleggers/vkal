@@ -591,6 +591,8 @@ void vkal_flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, in
 
 VkDeviceAddress vkal_get_buffer_device_address(VkBuffer buffer);
 
+uint32_t vkal_aligned_size(uint32_t size, uint32_t alignment);
+
 
 /* Function pointers for Raytracing extensions. 
    NOTE: They need to be extern, otherwise you will have overlapping symbols during link-time if vkal.h
