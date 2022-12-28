@@ -27,3 +27,4 @@
 - [ ] Is there a way to check if a GPU has the appropriate drivers installed, before vkGetPhysicalDeviceSurfaceCapabilitiesKHR fails?!
 - [x] Change VKAL struct for Buffers from Buffer -> VkalBuffer.
 - [ ] Fix permission denied error for Git submodule SDL when adding vkal itself as a submodule to another repo.
+- [ ] Use vkal_aligned_size whenever needing the aligned size of a value.
