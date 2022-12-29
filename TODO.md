@@ -10,7 +10,7 @@
 - [x] Replace some of the (unlicensed) textures for example programs.
 - [x] Create DearImGUI example.
 - [ ] Define VKAL_TRUE / VKAL_FALSE instead of using uint32_t for true / false.
-- [ ] Free malloc'd memory.
+- [x] Free malloc'd memory.
 - [x] Print info about available swapchain present modes and which one was selected.
 - [ ] Should ```render_pass``` not also be called ```default_render_pass```?
 - [ ] Rename vkal_update_descriptor_set_uniform. Everything is a buffer. The descriptor type has to be
@@ -22,9 +22,12 @@
 - [ ] Fix VKAL_ASSERT macro.
 - [ ] Examples: Create a proper Vulkan projection matrix so that flipping y in shader is
       not necessary.
-- [ ] Better error message when examples cannot load file from disk.
 - [ ] Better Info about what GPUs are available and if they support the requested features.
 - [ ] Is there a way to check if a GPU has the appropriate drivers installed, before vkGetPhysicalDeviceSurfaceCapabilitiesKHR fails?!
 - [x] Change VKAL struct for Buffers from Buffer -> VkalBuffer.
 - [ ] Fix permission denied error for Git submodule SDL when adding vkal itself as a submodule to another repo.
 - [ ] Use vkal_aligned_size whenever needing the aligned size of a value.
+- [ ] map_memory: Maybe just give it the VkalBuffer object as it contains its size and offset into the device memory already?
+      This would be far more convenient! See other instances where this function is being used.
+- [ ] map_memory: If called multiple times with the same device-memory object, this call will fail (as memory is already mapped into host)!
+      Make sure, multiple calles are possible. Maybe check how Khronos samples are doing it.
