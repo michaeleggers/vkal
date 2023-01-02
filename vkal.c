@@ -2981,7 +2981,7 @@ void vkal_update_descriptor_set_uniform(
 		uniform_buffer.binding, 1,
 		descriptor_type, buffer_infos);
 
-    vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_uniform, 0, 0);
+    vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_uniform, 0, VK_NULL_HANDLE);
 }
 
 void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type, 
