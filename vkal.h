@@ -610,8 +610,9 @@ extern PFN_vkGetAccelerationStructureDeviceAddressKHR        vkGetAccelerationSt
 extern PFN_vkCreateRayTracingPipelinesKHR                    vkCreateRayTracingPipelines;
 #define vkCreateRayTracingPipelinesKHR                       vkCreateRayTracingPipelines
 extern PFN_vkGetRayTracingShaderGroupHandlesKHR              vkGetRayTracingShaderGroupHandles;
-#define vkGetRayTracingShaderGroupHandlesKHR                 vkGetRayTracingShaderGroupHandles;
-
+#define vkGetRayTracingShaderGroupHandlesKHR                 vkGetRayTracingShaderGroupHandles
+extern PFN_vkCmdTraceRaysKHR                                 vkCmdTraceRays;
+#define vkCmdTraceRaysKHR                                    vkCmdTraceRays
 
 
 

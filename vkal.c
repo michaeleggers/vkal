@@ -33,6 +33,7 @@ PFN_vkCmdBuildAccelerationStructuresKHR               vkCmdBuildAccelerationStru
 PFN_vkGetAccelerationStructureDeviceAddressKHR        vkGetAccelerationStructureDeviceAddress;
 PFN_vkCreateRayTracingPipelinesKHR                    vkCreateRayTracingPipelines;
 PFN_vkGetRayTracingShaderGroupHandlesKHR              vkGetRayTracingShaderGroupHandles;
+PFN_vkCmdTraceRaysKHR                                 vkCmdTraceRays;
 //PFN_vkGetBufferDeviceAddressKHR                       vkGetBufferDeviceAddress;
 
 static VkalInfo vkal_info;
@@ -73,6 +74,9 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count)
             vkGetAccelerationStructureDeviceAddress = (PFN_vkGetAccelerationStructureDeviceAddressKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureDeviceAddressKHR");
             vkCreateRayTracingPipelines             = (PFN_vkCreateRayTracingPipelinesKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateRayTracingPipelinesKHR");
             vkGetRayTracingShaderGroupHandles       = (PFN_vkGetRayTracingShaderGroupHandlesKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetRayTracingShaderGroupHandlesKHR");
+            //vkCmdTraceRays                          = (PFN_vkCmdTraceRaysKHR)glfwGetInstanceProcAddress(vkal_info.instance, "PFN_vkCmdTraceRaysKHR");
+            vkCmdTraceRays = (PFN_vkCmdTraceRaysKHR)vkGetInstanceProcAddr(vkal_info.instance, "vkCmdTraceRaysKHR"); // TODO: Update GLFW (cannot load fn-ptr for vkCmdTraceRaysKHR!)
+
     #elif defined (VKAL_WIN32)
             vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
     #elif defined (VKAL_SDL)
