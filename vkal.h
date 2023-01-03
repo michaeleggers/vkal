@@ -388,7 +388,7 @@ RenderImage recreate_render_image(RenderImage render_image, uint32_t width, uint
 VkalImage create_vkal_image(
 	uint32_t width, uint32_t height, 
 	VkFormat format,
-	VkImageUsageFlagBits usage_flags, VkImageAspectFlags aspect_bits,
+    VkImageUsageFlags usage_flags, VkImageAspectFlags aspect_bits,
 	VkImageLayout layout);
 void create_default_command_buffers(void);
 VkCommandBuffer vkal_create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uint32_t begin);

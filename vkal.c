@@ -584,7 +584,7 @@ void vkal_flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, in
 VkalImage create_vkal_image(
     uint32_t width, uint32_t height,
     VkFormat format, 
-	VkImageUsageFlagBits usage_flags, 
+    VkImageUsageFlags usage_flags,
 	VkImageAspectFlags aspect_bits,
     VkImageLayout layout)
 {
