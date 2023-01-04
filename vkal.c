@@ -1673,6 +1673,8 @@ void create_logical_device(char** extensions, uint32_t extension_count)
     VkPhysicalDeviceVulkan11Features device_features11 = { 0 };
     device_features11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
     device_features11.shaderDrawParameters = VK_TRUE;
+    device_features11.uniformAndStorageBuffer16BitAccess = VK_TRUE;
+    device_features11.storageBuffer16BitAccess = VK_TRUE;
     VkPhysicalDeviceVulkan12Features device_features12 = { 0 };
     device_features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     device_features12.pNext = &device_features11;
