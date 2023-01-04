@@ -105,6 +105,7 @@ typedef struct VkalBuffer
     VkBuffer			buffer;
     uint64_t			size;
     uint64_t			offset;
+    /* TODO: Remove device_memory as vkal_device_memory has handle to the VkDeviceMemory */
     VkDeviceMemory		device_memory;
     DeviceMemory        * vkal_device_memory;
     VkBufferUsageFlags	usage;
