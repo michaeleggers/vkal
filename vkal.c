@@ -1294,10 +1294,13 @@ DeviceMemory vkal_allocate_devicememory(uint32_t size,
 
 VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags)
 {
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
+    uint64_t aligned_size = (size + alignment - 1) & ~(alignment - 1);
+
     VkBuffer vk_buffer = VK_NULL_HANDLE;
     VkBufferCreateInfo buffer_info = { 0 };
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_info.size = size;
+    buffer_info.size = aligned_size;
     QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_device, vkal_info.surface);
     buffer_info.pQueueFamilyIndices = &indicies.graphics_family;
     buffer_info.queueFamilyIndexCount = 1;
@@ -1312,16 +1315,16 @@ VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, V
     */
 	
     VkalBuffer buffer = { 0 };
-    buffer.size = size;
+    buffer.size = aligned_size;
     buffer.offset = device_memory->free;
     buffer.device_memory = device_memory->vk_device_memory;
     buffer.usage = buffer_usage_flags;
     buffer.buffer = vk_buffer;
     buffer.mapped = NULL;
 
-    VkDeviceSize alignment = device_memory->alignment;
-    VkDeviceSize next_offset = device_memory->free + (size / alignment) * alignment;
-    next_offset += size % alignment ? alignment : 0;
+    VkDeviceSize device_memory_alignment = device_memory->alignment;
+    VkDeviceSize next_offset = device_memory->free + (aligned_size / device_memory_alignment) * device_memory_alignment;
+    next_offset += aligned_size % device_memory_alignment ? device_memory_alignment : 0;
     device_memory->free = next_offset;
 
     return buffer;
@@ -1342,7 +1345,11 @@ void vkal_update_buffer(VkalBuffer buffer, uint8_t* data)
     memory_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     memory_range.memory = buffer.device_memory;
     memory_range.offset = buffer.offset;
-    memory_range.size = VK_WHOLE_SIZE; // TODO: figure out how much we need to flush, really.
+
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
+    uint64_t aligned_size = (buffer.size + alignment - 1) & ~(alignment - 1);
+
+    memory_range.size = aligned_size; // TODO: figure out how much we need to flush, really.
     result = vkFlushMappedMemoryRanges(vkal_info.device, 1, &memory_range);
     VKAL_ASSERT( result && "Failed to flush mapped memory!" );
 }
