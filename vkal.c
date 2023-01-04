@@ -1670,23 +1670,27 @@ void create_logical_device(char** extensions, uint32_t extension_count)
     }
 
     VkPhysicalDeviceFeatures device_features = { 0 };
+    VkPhysicalDeviceVulkan11Features device_features11 = { 0 };
+    device_features11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    device_features11.shaderDrawParameters = VK_TRUE;
     VkPhysicalDeviceVulkan12Features device_features12 = { 0 };
     device_features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-    device_features12.pNext = VK_NULL_HANDLE;
+    device_features12.pNext = &device_features11;
     device_features12.bufferDeviceAddress = VK_TRUE;
+    device_features12.uniformAndStorageBuffer8BitAccess = VK_TRUE;
     device_features12.runtimeDescriptorArray = VK_TRUE;
     device_features12.descriptorIndexing = VK_TRUE;
-    VkPhysicalDeviceFeatures2 features2 = { 0 };
-    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    features2.pNext = &device_features12;
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_features = { 0 };
     ray_tracing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
     ray_tracing_features.rayTracingPipeline = VK_TRUE;
-    ray_tracing_features.pNext = &features2;
+    ray_tracing_features.pNext = &device_features12;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features = { 0 };
     acceleration_structure_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
     acceleration_structure_features.accelerationStructure = VK_TRUE;
     acceleration_structure_features.pNext = &ray_tracing_features;
+    VkPhysicalDeviceFeatures2 features2 = { 0 };
+    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    features2.pNext = &acceleration_structure_features;
 
     //vkGetPhysicalDeviceFeatures2(vkal_info.physical_device, &features2);
 
@@ -1699,7 +1703,7 @@ void create_logical_device(char** extensions, uint32_t extension_count)
 
     VkDeviceCreateInfo create_info = { 0 };
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    create_info.pNext = &acceleration_structure_features;
+    create_info.pNext = &features2;
     create_info.pQueueCreateInfos = queue_create_infos;
     create_info.queueCreateInfoCount = info_count;
     create_info.pEnabledFeatures = VKAL_NULL; // &device_features;
