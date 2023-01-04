@@ -106,6 +106,7 @@ typedef struct VkalBuffer
     uint64_t			size;
     uint64_t			offset;
     VkDeviceMemory		device_memory;
+    DeviceMemory        * vkal_device_memory;
     VkBufferUsageFlags	usage;
     void				* mapped;
 } VkalBuffer;

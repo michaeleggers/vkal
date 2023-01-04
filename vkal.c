@@ -1312,12 +1312,12 @@ VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, V
     VKAL_ASSERT( result && "Failed to bind VkBuffer to VkDeviceMemory" );
     /* NOTE: the offset in vkBindBufferMemory must be a multiple of alignment returend by vkGetBufferMemoryRequirements and denotes the
        offset into VkDeviceMemory.
-    */
-	
+    */	
     VkalBuffer buffer = { 0 };
     buffer.size = aligned_size;
     buffer.offset = device_memory->free;
     buffer.device_memory = device_memory->vk_device_memory;
+    buffer.vkal_device_memory = device_memory;
     buffer.usage = buffer_usage_flags;
     buffer.buffer = vk_buffer;
     buffer.mapped = NULL;
