@@ -1675,6 +1675,7 @@ void create_logical_device(char** extensions, uint32_t extension_count)
     device_features12.pNext = VK_NULL_HANDLE;
     device_features12.bufferDeviceAddress = VK_TRUE;
     device_features12.runtimeDescriptorArray = VK_TRUE;
+    device_features12.descriptorIndexing = VK_TRUE;
     VkPhysicalDeviceFeatures2 features2 = { 0 };
     features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     features2.pNext = &device_features12;
