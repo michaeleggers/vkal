@@ -1330,8 +1330,10 @@ VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, V
     return buffer;
 }
 
-void vkal_update_buffer(VkalBuffer buffer, uint8_t* data)
+void vkal_update_buffer(VkalBuffer buffer, uint8_t* data, uint32_t byte_count)
 {
+    assert(byte_count <= buffer.size && "Byte-count is larger than available buffer-size");
+
     void * mapped_memory = 0;
     VkResult result = vkMapMemory(
         vkal_info.device, buffer.device_memory,
@@ -1340,7 +1342,7 @@ void vkal_update_buffer(VkalBuffer buffer, uint8_t* data)
         &mapped_memory);
     VKAL_ASSERT( result && "Failed to map memory!" );
 
-    memcpy(mapped_memory, data, sizeof(VkalBuffer));
+    memcpy(mapped_memory, data, byte_count);
     VkMappedMemoryRange memory_range = { 0 };
     memory_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     memory_range.memory = buffer.device_memory;
