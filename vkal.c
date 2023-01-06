@@ -878,9 +878,10 @@ void cleanup_swapchain(void)
         vkDestroyFramebuffer(vkal_info.device, vkal_info.framebuffers[i], 0);
     }
     VKAL_FREE(vkal_info.framebuffers);
-    
-    vkFreeCommandBuffers(vkal_info.device, vkal_info.default_command_pools[0], vkal_info.default_command_buffer_count, vkal_info.default_command_buffers);
-    VKAL_FREE(vkal_info.default_command_buffers);
+
+    // TODO: Do I really have to FREE them???
+    //vkFreeCommandBuffers(vkal_info.device, vkal_info.default_command_pools[0], vkal_info.default_command_buffer_count, vkal_info.default_command_buffers);
+    //VKAL_FREE(vkal_info.default_command_buffers);
     
     for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
         vkDestroyImageView(vkal_info.device, vkal_info.swapchain_image_views[i], 0);
@@ -903,7 +904,9 @@ void recreate_swapchain(void)
     destroy_device_memory( vkal_info.device_memory_depth_stencil ); // TODO: Is this smart to destroy the whole memory object?
     create_default_depth_buffer();
     create_default_framebuffers();
-    create_default_command_buffers();
+    // TODO: Maybe we need to recreate the default command buffers (if client uses them)
+    // If so, check cleanup_spwapchain, that frees the default command buffers.
+    // create_default_command_buffers();
 }
 
 void create_swapchain(void)
@@ -934,14 +937,14 @@ void create_swapchain(void)
     queue_family_indices[0] = indices.graphics_family;
     queue_family_indices[1] = indices.present_family;
     if (indices.graphics_family != indices.present_family) {
-	create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-	create_info.queueFamilyIndexCount = 2;
-	create_info.pQueueFamilyIndices = queue_family_indices;
+	    create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+	    create_info.queueFamilyIndexCount = 2;
+	    create_info.pQueueFamilyIndices = queue_family_indices;
     }
     else {
-	create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	create_info.queueFamilyIndexCount = 0;
-	create_info.pQueueFamilyIndices = 0;
+	    create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	    create_info.queueFamilyIndexCount = 0;
+	    create_info.pQueueFamilyIndices = 0;
     }
     
     create_info.preTransform = swap_chain_support.capabilities.currentTransform;
