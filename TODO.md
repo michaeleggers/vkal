@@ -23,6 +23,7 @@
 - [ ] Examples: Create a proper Vulkan projection matrix so that flipping y in shader is
       not necessary.
 - [ ] Better Info about what GPUs are available and if they support the requested features.
+- [ ] Let the User enable/disable features if available.
 - [ ] Is there a way to check if a GPU has the appropriate drivers installed, before vkGetPhysicalDeviceSurfaceCapabilitiesKHR fails?!
 - [x] Change VKAL struct for Buffers from Buffer -> VkalBuffer.
 - [ ] Fix permission denied error for Git submodule SDL when adding vkal itself as a submodule to another repo.
