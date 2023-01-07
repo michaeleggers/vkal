@@ -24,5 +24,5 @@ void main()
     out_color = color;
     out_uv = uv;
 	gl_Position = u_view_proj.proj * u_view_proj.view * vec4(position, 1.0);
-    gl_Position.y = -gl_Position.y; // Hack: vulkan's y is down
+    //gl_Position.y = -gl_Position.y; // Hack: vulkan's y is down
 }

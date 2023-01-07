@@ -13,6 +13,8 @@ add_executable(GLFW_HelloTriangle
     ${HEADER_FILES}
 	../utils/platform.cpp
 	../utils/platform.h
+	../utils/common.h
+	../utils/common.cpp
     ../assets/shaders/hello_triangle.vert
     ../assets/shaders/hello_triangle.frag
 )
