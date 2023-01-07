@@ -196,7 +196,7 @@ int main(int argc, char** argv)
 		int width, height;
         glfwGetFramebufferSize(window, &width, &height);
 
-		view_proj_data.proj = adjust_y_for_vulkan_viewspace * glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+		view_proj_data.proj = adjust_y_for_vulkan_ndc * glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
 		vkal_update_uniform(&view_proj_ub, &view_proj_data);
 
         {
