@@ -1333,6 +1333,33 @@ VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, V
     return buffer;
 }
 
+void vkal_update_buffer_offset(VkalBuffer* buffer, uint8_t* data, uint32_t byte_count, uint32_t offset)
+{
+    assert(byte_count <= buffer->size && "Byte-count is larger than available buffer-size");
+    assert(offset <= buffer->size && "Offset is beyond buffer-size!");
+
+    VkResult result = vkMapMemory(
+        vkal_info.device, buffer->device_memory,
+        offset, buffer->size,
+        0,
+        &buffer->mapped);
+    VKAL_ASSERT(result && "Failed to map memory!");
+
+    memcpy(buffer->mapped, data, byte_count);
+    VkMappedMemoryRange memory_range = { 0 };
+    memory_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+    memory_range.memory = buffer->device_memory;
+    memory_range.offset = offset;
+
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
+    uint64_t aligned_size = (buffer->size + alignment - 1) & ~(alignment - 1);
+
+    memory_range.size = aligned_size; // TODO: figure out how much we need to flush, really.
+    result = vkFlushMappedMemoryRanges(vkal_info.device, 1, &memory_range);
+    VKAL_ASSERT(result && "Failed to flush mapped memory!");
+}
+
+// TODO: Call vkal_update_buffer_offset with buffer.offset
 void vkal_update_buffer(VkalBuffer buffer, uint8_t* data, uint32_t byte_count)
 {
     assert(byte_count <= buffer.size && "Byte-count is larger than available buffer-size");
@@ -2973,6 +3000,7 @@ void create_default_index_buffer(uint32_t size)
 	VKAL_DBG_BUFFER_NAME(vkal_info.device, vkal_info.default_index_buffer, "Default Index Buffer");
 }
 
+// TODO: Error Assert messages out of date!
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset)
 {
     memcpy(dst_memory, src_memory, size);
