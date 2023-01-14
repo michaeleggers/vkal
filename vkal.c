@@ -1340,7 +1340,7 @@ void vkal_update_buffer_offset(VkalBuffer* buffer, uint8_t* data, uint32_t byte_
 
     VkResult result = vkMapMemory(
         vkal_info.device, buffer->device_memory,
-        offset, buffer->size,
+        offset, byte_count,
         0,
         &buffer->mapped);
     VKAL_ASSERT(result && "Failed to map memory!");
@@ -1352,7 +1352,7 @@ void vkal_update_buffer_offset(VkalBuffer* buffer, uint8_t* data, uint32_t byte_
     memory_range.offset = offset;
 
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
-    uint64_t aligned_size = (buffer->size + alignment - 1) & ~(alignment - 1);
+    uint64_t aligned_size = (byte_count + alignment - 1) & ~(alignment - 1);
 
     memory_range.size = aligned_size; // TODO: figure out how much we need to flush, really.
     result = vkFlushMappedMemoryRanges(vkal_info.device, 1, &memory_range);
@@ -1360,6 +1360,7 @@ void vkal_update_buffer_offset(VkalBuffer* buffer, uint8_t* data, uint32_t byte_
 }
 
 // TODO: Call vkal_update_buffer_offset with buffer.offset
+// TODO: Make sure buffer mapping, flushing does not violate vulkan spec! (see function above).
 void vkal_update_buffer(VkalBuffer buffer, uint8_t* data, uint32_t byte_count)
 {
     assert(byte_count <= buffer.size && "Byte-count is larger than available buffer-size");
