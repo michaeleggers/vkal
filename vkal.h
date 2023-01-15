@@ -56,7 +56,8 @@
         VkResult error = result;                                                            \
         if (error) {                                                                        \
             printf("VKAL assertion failed at line: %d in file: %s\n", __LINE__, __FILE__);  \
-            exit(-1);                                                                       \
+            printf("VkResult is: %d\n", error);                                             \
+            abort();                                                                        \
         }                                                                                   \
     } while (0);
  
