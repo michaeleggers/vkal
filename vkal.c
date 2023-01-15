@@ -441,94 +441,94 @@ void set_image_layout(
     // before it will be transitioned to the new layout
     switch (old_layout)
     {
-    case VK_IMAGE_LAYOUT_UNDEFINED:
-	// Image layout is undefined (or does not matter)
-	// Only valid as initial layout
-	// No flags required, listed only for completeness
-	barrier.srcAccessMask = 0;
-	break;
+        case VK_IMAGE_LAYOUT_UNDEFINED:
+	    // Image layout is undefined (or does not matter)
+	    // Only valid as initial layout
+	    // No flags required, listed only for completeness
+	    barrier.srcAccessMask = 0;
+	    break;
 
-    case VK_IMAGE_LAYOUT_PREINITIALIZED:
-	// Image is preinitialized
-	// Only valid as initial layout for linear images, preserves memory contents
-	// Make sure host writes have been finished
-	barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-	break;
+        case VK_IMAGE_LAYOUT_PREINITIALIZED:
+	    // Image is preinitialized
+	    // Only valid as initial layout for linear images, preserves memory contents
+	    // Make sure host writes have been finished
+	    barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+	    break;
 
-    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-	// Image is a color attachment
-	// Make sure any writes to the color buffer have been finished
-	barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	break;
+        case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+	    // Image is a color attachment
+	    // Make sure any writes to the color buffer have been finished
+	    barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	    break;
 
-    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-	// Image is a depth/stencil attachment
-	// Make sure any writes to the depth/stencil buffer have been finished
-	barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-	break;
+        case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+	    // Image is a depth/stencil attachment
+	    // Make sure any writes to the depth/stencil buffer have been finished
+	    barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	    break;
 
-    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-	// Image is a transfer source
-	// Make sure any reads from the image have been finished
-	barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-	break;
+        case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+	    // Image is a transfer source
+	    // Make sure any reads from the image have been finished
+	    barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+	    break;
 
-    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-	// Image is a transfer destination
-	// Make sure any writes to the image have been finished
-	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-	break;
+        case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+	    // Image is a transfer destination
+	    // Make sure any writes to the image have been finished
+	    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	    break;
 
-    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-	// Image is read by a shader
-	// Make sure any shader reads from the image have been finished
-	barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-	break;
-    default:
-	// Other source layouts aren't handled (yet)
-	break;
-    }
+        case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+	    // Image is read by a shader
+	    // Make sure any shader reads from the image have been finished
+	    barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	    break;
+        default:
+	    // Other source layouts aren't handled (yet)
+	    break;
+        }
 
-    // Target layouts (new)
-    // Destination access mask controls the dependency for the new image layout
-    switch (new_layout)
-    {
-    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-	// Image will be used as a transfer destination
-	// Make sure any writes to the image have been finished
-	barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-	break;
+        // Target layouts (new)
+        // Destination access mask controls the dependency for the new image layout
+        switch (new_layout)
+        {
+        case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+	    // Image will be used as a transfer destination
+	    // Make sure any writes to the image have been finished
+	    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	    break;
 
-    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-	// Image will be used as a transfer source
-	// Make sure any reads from the image have been finished
-	barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-	break;
+        case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+	    // Image will be used as a transfer source
+	    // Make sure any reads from the image have been finished
+	    barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+	    break;
 
-    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-	// Image will be used as a color attachment
-	// Make sure any writes to the color buffer have been finished
-	barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	break;
+        case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+	    // Image will be used as a color attachment
+	    // Make sure any writes to the color buffer have been finished
+	    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	    break;
 
-    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-	// Image layout will be used as a depth/stencil attachment
-	// Make sure any writes to depth/stencil buffer have been finished
-	barrier.dstAccessMask = barrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-	break;
+        case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+	    // Image layout will be used as a depth/stencil attachment
+	    // Make sure any writes to depth/stencil buffer have been finished
+	    barrier.dstAccessMask = barrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	    break;
 
-    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-	// Image will be read in a shader (sampler, input attachment)
-	// Make sure any writes to the image have been finished
-	if (barrier.srcAccessMask == 0)
-	{
-	    barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-	}
-	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-	break;
-    default:
-	// Other source layouts aren't handled (yet)
-	break;
+        case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+	    // Image will be read in a shader (sampler, input attachment)
+	    // Make sure any writes to the image have been finished
+	    if (barrier.srcAccessMask == 0)
+	    {
+	        barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+	    }
+	    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	    break;
+        default:
+	    // Other source layouts aren't handled (yet)
+	    break;
     }
 
     // Put barrier inside setup command buffer
@@ -738,10 +738,10 @@ int check_instance_layer_support(char const * requested_layer,
 {
     int found = 0;
     for (uint32_t i = 0; i < available_layer_count; ++i) {
-	if (!strcmp(available_layers[i].layerName, requested_layer)) {
-	    found = 1;
-	    break;
-	}
+	    if (!strcmp(available_layers[i].layerName, requested_layer)) {
+	        found = 1;
+	        break;
+	    }
     }
     return found;
 }
@@ -751,10 +751,10 @@ int check_instance_extension_support(char const * requested_extension,
 {
     int found = 0;
     for (uint32_t i = 0; i < available_extension_count; ++i) {
-	if (!strcmp(available_extensions[i].extensionName, requested_extension)) {
-	    found = 1;
-	    break;
-	}
+	    if (!strcmp(available_extensions[i].extensionName, requested_extension)) {
+	        found = 1;
+	        break;
+	    }
     }
     return found;
 }
@@ -781,11 +781,11 @@ VkSurfaceFormatKHR choose_swapchain_surface_format(VkSurfaceFormatKHR * availabl
 {
     VkSurfaceFormatKHR * available_format = available_formats;
     for (uint32_t i = 0; i < format_count; ++i) {
-	if (available_format->format == VK_FORMAT_R8G8B8A8_UNORM &&
-	    available_format->colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-	    return *available_format;
-	}
-	available_format++;
+	    if (available_format->format == VK_FORMAT_R8G8B8A8_UNORM &&
+	        available_format->colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+	        return *available_format;
+	    }
+	    available_format++;
     }
     return available_formats[0];
 }
@@ -1059,10 +1059,10 @@ void vkal_create_image_view(VkImage image,
 
     uint32_t free_index;
     for (free_index = 0; free_index < VKAL_MAX_VKDEVICEMEMORY; ++free_index) {
-	if (vkal_info.user_image_views[free_index].used) {
-	    continue;
-	}
-	break;
+	    if (vkal_info.user_image_views[free_index].used) {
+	        continue;
+	    }
+	    break;
     }
     VkResult result = vkCreateImageView(vkal_info.device, &view_info,
 					0,
@@ -1076,8 +1076,8 @@ void vkal_create_image_view(VkImage image,
 void vkal_destroy_image_view(uint32_t id)
 {
     if (vkal_info.user_image_views[id].used) {
-	vkDestroyImageView(vkal_info.device, vkal_info.user_image_views[id].image_view, 0);
-	vkal_info.user_image_views[id].used = 0;
+	    vkDestroyImageView(vkal_info.device, vkal_info.user_image_views[id].image_view, 0);
+	    vkal_info.user_image_views[id].used = 0;
     }
 }
 
@@ -1141,8 +1141,8 @@ VkSampler get_sampler(uint32_t id)
 void destroy_sampler(uint32_t id)
 {
     if (vkal_info.user_samplers[id].used) {
-	vkDestroySampler(vkal_info.device, get_sampler(id), 0);
-	vkal_info.user_samplers[id].used = 0;
+	    vkDestroySampler(vkal_info.device, get_sampler(id), 0);
+	    vkal_info.user_samplers[id].used = 0;
     }
 }
 
@@ -1415,54 +1415,54 @@ void upload_texture(VkImage const image,
     VkCommandBufferBeginInfo begin_info = { 0 };
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     for (uint32_t i = 0; i < vkal_info.default_command_buffer_count; ++i) {
-	vkBeginCommandBuffer(vkal_info.default_command_buffers[i], &begin_info);
+	    vkBeginCommandBuffer(vkal_info.default_command_buffers[i], &begin_info);
         
-	VkImageSubresourceRange image_subresource_range = { 0 };
-	image_subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	image_subresource_range.layerCount = array_layer_count;
-	image_subresource_range.baseArrayLayer = 0;
-	image_subresource_range.levelCount = 1;
-	image_subresource_range.baseMipLevel = 0;
+	    VkImageSubresourceRange image_subresource_range = { 0 };
+	    image_subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	    image_subresource_range.layerCount = array_layer_count;
+	    image_subresource_range.baseArrayLayer = 0;
+	    image_subresource_range.levelCount = 1;
+	    image_subresource_range.baseMipLevel = 0;
         
-	VkImageMemoryBarrier image_memory_barrier_undef_to_transfer = { 0 };
-	image_memory_barrier_undef_to_transfer.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	image_memory_barrier_undef_to_transfer.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-	image_memory_barrier_undef_to_transfer.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	image_memory_barrier_undef_to_transfer.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-	image_memory_barrier_undef_to_transfer.image = image;
-	image_memory_barrier_undef_to_transfer.subresourceRange = image_subresource_range;
-	vkCmdPipelineBarrier(vkal_info.default_command_buffers[i], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, 0, 0, 0, 1, &image_memory_barrier_undef_to_transfer);
+	    VkImageMemoryBarrier image_memory_barrier_undef_to_transfer = { 0 };
+	    image_memory_barrier_undef_to_transfer.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	    image_memory_barrier_undef_to_transfer.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	    image_memory_barrier_undef_to_transfer.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	    image_memory_barrier_undef_to_transfer.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	    image_memory_barrier_undef_to_transfer.image = image;
+	    image_memory_barrier_undef_to_transfer.subresourceRange = image_subresource_range;
+	    vkCmdPipelineBarrier(vkal_info.default_command_buffers[i], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, 0, 0, 0, 1, &image_memory_barrier_undef_to_transfer);
         
-	VkBufferImageCopy copy_info = { 0 };
-	copy_info.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	copy_info.imageSubresource.baseArrayLayer = 0;
-	copy_info.imageSubresource.layerCount = array_layer_count;
-	copy_info.imageSubresource.mipLevel = 0;
-	copy_info.bufferOffset = 0;
-	copy_info.bufferImageHeight = 0;
-	copy_info.bufferRowLength = 0;
-	copy_info.imageOffset = (VkOffset3D){ 0, 0, 0 };
-	copy_info.imageExtent.width  = w;
-	copy_info.imageExtent.height = h;
-	copy_info.imageExtent.depth  = 1;
-	vkCmdCopyBufferToImage(vkal_info.default_command_buffers[i], vkal_info.staging_buffer.buffer, image,
-                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
+	    VkBufferImageCopy copy_info = { 0 };
+	    copy_info.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	    copy_info.imageSubresource.baseArrayLayer = 0;
+	    copy_info.imageSubresource.layerCount = array_layer_count;
+	    copy_info.imageSubresource.mipLevel = 0;
+	    copy_info.bufferOffset = 0;
+	    copy_info.bufferImageHeight = 0;
+	    copy_info.bufferRowLength = 0;
+	    copy_info.imageOffset = (VkOffset3D){ 0, 0, 0 };
+	    copy_info.imageExtent.width  = w;
+	    copy_info.imageExtent.height = h;
+	    copy_info.imageExtent.depth  = 1;
+	    vkCmdCopyBufferToImage(vkal_info.default_command_buffers[i], vkal_info.staging_buffer.buffer, image,
+                                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
         
-	VkImageMemoryBarrier image_memory_barrier_transfer_to_shader_read = { 0 };
-	image_memory_barrier_transfer_to_shader_read.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	image_memory_barrier_transfer_to_shader_read.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-	image_memory_barrier_transfer_to_shader_read.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-	image_memory_barrier_transfer_to_shader_read.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-	image_memory_barrier_transfer_to_shader_read.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	image_memory_barrier_transfer_to_shader_read.image = image;
-	image_memory_barrier_transfer_to_shader_read.subresourceRange = image_subresource_range;
-	vkCmdPipelineBarrier(vkal_info.default_command_buffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, 0, 0, 0, 1, &image_memory_barrier_transfer_to_shader_read);
+	    VkImageMemoryBarrier image_memory_barrier_transfer_to_shader_read = { 0 };
+	    image_memory_barrier_transfer_to_shader_read.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	    image_memory_barrier_transfer_to_shader_read.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	    image_memory_barrier_transfer_to_shader_read.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	    image_memory_barrier_transfer_to_shader_read.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	    image_memory_barrier_transfer_to_shader_read.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	    image_memory_barrier_transfer_to_shader_read.image = image;
+	    image_memory_barrier_transfer_to_shader_read.subresourceRange = image_subresource_range;
+	    vkCmdPipelineBarrier(vkal_info.default_command_buffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                 VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, 0, 0, 0, 1, &image_memory_barrier_transfer_to_shader_read);
         
-	vkEndCommandBuffer(vkal_info.default_command_buffers[i]);
-        
+	    vkEndCommandBuffer(vkal_info.default_command_buffers[i]);        
     }
+
     VkSubmitInfo submit_info = { 0 };
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = vkal_info.default_command_buffer_count;
@@ -1474,11 +1474,11 @@ void upload_texture(VkImage const image,
 void create_default_depth_buffer(void)
 {
     {
-	create_image(
-	    vkal_info.swapchain_extent.width, vkal_info.swapchain_extent.height,
-	    1, 1, 0,
-	    VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-	    &vkal_info.depth_stencil_image);
+	    create_image(
+	        vkal_info.swapchain_extent.width, vkal_info.swapchain_extent.height,
+	        1, 1, 0,
+	        VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+	        &vkal_info.depth_stencil_image);
     }
     
     {
@@ -1514,16 +1514,16 @@ uint32_t check_memory_type_index(uint32_t const memory_requirement_bits, VkMemor
     uint32_t found               = 0;
     uint32_t type_bits           = memory_requirement_bits;
     for (; mem_type_index < memory_properties.memoryTypeCount; ++mem_type_index) {
-	if (type_bits & 1) {
-	    if ((memory_properties.memoryTypes[mem_type_index].propertyFlags & wanted_property) == wanted_property) {
-		found = 1;
-		best_mem_type_index = mem_type_index;
-		break;		
+	    if (type_bits & 1) {
+	        if ((memory_properties.memoryTypes[mem_type_index].propertyFlags & wanted_property) == wanted_property) {
+		        found = 1;
+		        best_mem_type_index = mem_type_index;
+		        break;		
+	        }
+	        found = 1;
+	        best_mem_type_index = mem_type_index;
 	    }
-	    found = 1;
-	    best_mem_type_index = mem_type_index;
-	}
-	type_bits >>= 1;
+	    type_bits >>= 1;
     }
     assert(found == 1);
     
@@ -1537,17 +1537,17 @@ int rate_device(VkPhysicalDevice device)
     
     switch (device_properties.deviceType)
     {
-    case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-    {
-	return 1000;
-    } break;
+        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+        {
+	        return 1000;
+        } break;
         
-    case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-    {
-	return 500;
-    } break;
+        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+        {
+	        return 500;
+        } break;
         
-    default: return 0;
+        default: return 0;
     }
 }
 
@@ -1573,8 +1573,8 @@ int check_device_extension_support(VkPhysicalDevice device, char ** extensions, 
 		        extensions_left[k] = 0;
 		        goto gt_next_extension;
 	        }
-	}
-    gt_next_extension:;
+	    }
+        gt_next_extension:;
     }
     
     for (uint32_t i = 0; i < extension_count; ++i) {
@@ -1597,7 +1597,7 @@ int is_device_suitable(VkPhysicalDevice device, char ** extensions, uint32_t ext
     int swapchain_adequate = 1;
 	
     if (!swapchain_support.formats || !swapchain_support.present_modes) {
-	swapchain_adequate = 0;
+	    swapchain_adequate = 0;
     }
     // NOTE: only test for swapchain support after the extension support has been checked!
     return check_device_extension_support(device, extensions, extension_count) && swapchain_adequate;
@@ -1615,20 +1615,20 @@ QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR su
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families);
     indicies.has_graphics_family = 0;
     for (uint32_t i = 0; i < queue_family_count; ++i) {
-	if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-	    indicies.graphics_family = i;
-	    indicies.has_graphics_family = 1;
-	    break;
-	}
+	    if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+	        indicies.graphics_family = i;
+	        indicies.has_graphics_family = 1;
+	        break;
+	    }
     }
     for (uint32_t i = 0; i < queue_family_count; ++i) {
-	VkBool32 present_support = VK_FALSE;
-	vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &present_support);
-	if (present_support) {
-	    indicies.has_present_family = 1;
-	    indicies.present_family = i;
-	    break;
-	}
+	    VkBool32 present_support = VK_FALSE;
+	    vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &present_support);
+	    if (present_support) {
+	        indicies.has_present_family = 1;
+	        indicies.present_family = i;
+	        break;
+	    }
     }
     return indicies;
 }
@@ -1655,10 +1655,10 @@ void vkal_find_suitable_devices(char ** extensions, uint32_t extension_count,
     vkEnumeratePhysicalDevices(vkal_info.instance, &vkal_info.physical_device_count, vkal_info.physical_devices);
     
     for (uint32_t i = 0; i < vkal_info.physical_device_count; ++i) {
-	VkPhysicalDeviceProperties physical_device_property = { 0 };
-	vkGetPhysicalDeviceProperties(vkal_info.physical_devices[i], &physical_device_property);
-	printf("[VKAL] physical device found: %s\n", physical_device_property.deviceName);
-	if ( is_device_suitable(vkal_info.physical_devices[i], extensions, extension_count) ) {
+	    VkPhysicalDeviceProperties physical_device_property = { 0 };
+	    vkGetPhysicalDeviceProperties(vkal_info.physical_devices[i], &physical_device_property);
+	    printf("[VKAL] physical device found: %s\n", physical_device_property.deviceName);
+	    if ( is_device_suitable(vkal_info.physical_devices[i], extensions, extension_count) ) {
 	        QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_devices[i], vkal_info.surface);
 	        if (indicies.has_graphics_family && indicies.has_present_family) {
 		        vkal_info.suitable_devices[i].device = vkal_info.physical_devices[i];
