@@ -19,7 +19,9 @@
 - [ ] vkal_end_command_buffer -> vkal_end_default_command_buffer
 - [ ] descriptor set layout creation: * layout param should be in plural form.
 - [ ] Function that can bind multiple descriptor sets at once? Or just use original vk* command for this?
-- [ ] Fix VKAL_ASSERT macro.
+- [ ] Fix VKAL_ASSERT macro: Does not fire when in Release-Build as it uses Libc's assert(). This is a problem
+      when wrapping a Vulkan or VKAL call inside VKAL_ASSERT as it won't evaluate the function and
+      lead to potentially uninitialized data!
 - [ ] Examples: Create a proper Vulkan projection matrix so that flipping y in shader is
       not necessary.
 - [ ] Better Info about what GPUs are available and if they support the requested features.
