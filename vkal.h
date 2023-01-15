@@ -51,8 +51,15 @@
 #define VKAL_VSYNC_ON					1
 #define VKAL_SHADOW_MAP_DIMENSION		2048
 
-#define VKAL_ASSERT(result)	                	\
-	assert(VK_SUCCESS == result);			    \
+#define VKAL_ASSERT(result)	                	                                            \
+	do {                                                                                    \
+        VkResult error = result;                                                            \
+        if (error) {                                                                        \
+            printf("VKAL assertion failed at line: %d in file: %s\n", __LINE__, __FILE__);  \
+            exit(-1);                                                                       \
+        }                                                                                   \
+    } while (0);
+ 
 
 #define VKAL_MALLOC(pointer, count) pointer = malloc(count * sizeof(*pointer))
 
@@ -457,24 +464,24 @@ VkResult map_memory(VkalBuffer * buffer, VkDeviceSize size, VkDeviceSize offset)
 void unmap_memory(VkalBuffer * buffer);
 void vkal_update_buffer_offset(VkalBuffer * buffer, uint8_t* data, uint32_t byte_count, uint32_t offset);
 void vkal_update_buffer(VkalBuffer buffer, uint8_t* data, uint32_t byte_count);
-static void create_image(
+void create_image(
 	uint32_t width, uint32_t height, uint32_t mip_levels, uint32_t array_layers,
 	VkImageCreateFlags flags, VkFormat format, VkImageUsageFlags usage_flags, uint32_t * out_image_id);
-static void destroy_image(uint32_t id);
+void vkal_destroy_image(uint32_t id);
 VkImage get_image(uint32_t id);
-static void create_image_view(
+void vkal_create_image_view(
 	VkImage image,
 	VkImageViewType view_type, VkFormat format, VkImageAspectFlags aspect_flags,
 	uint32_t base_mip_level, uint32_t mip_level_count,
 	uint32_t base_array_layer, uint32_t array_layer_count,
 	uint32_t * out_image_view);
-static void destroy_image_view(uint32_t id);
+void vkal_destroy_image_view(uint32_t id);
 VkImageView get_image_view(uint32_t id);
 VkSampler create_sampler(
 	VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode u,
 	VkSamplerAddressMode v, VkSamplerAddressMode w);
 static void internal_create_sampler(VkSamplerCreateInfo create_info, uint32_t * out_sampler);
-static VkSampler get_sampler(uint32_t id);
+VkSampler get_sampler(uint32_t id);
 void destroy_sampler(uint32_t id);
 VkPipelineLayout vkal_create_pipeline_layout(
     VkDescriptorSetLayout * descriptor_set_layouts, uint32_t descriptor_set_layout_count,
@@ -487,7 +494,7 @@ void destroy_pipeline_layout(uint32_t id);
 VkPipelineLayout get_pipeline_layout(uint32_t id);
 VkDeviceMemory allocate_memory(VkDeviceSize size, uint32_t mem_type_bits);
 void create_device_memory(VkDeviceSize size, uint32_t mem_type_bits, uint32_t * out_memory_id);
-uint32_t destroy_device_memory(uint32_t id);
+uint32_t vkal_destroy_device_memory(uint32_t id);
 VkDeviceMemory get_device_memory(uint32_t id);
 VkWriteDescriptorSet create_write_descriptor_set_image(
 	VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,

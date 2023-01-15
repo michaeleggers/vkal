@@ -617,7 +617,7 @@ VkalImage create_vkal_image(
 
     // Image View
     {
-		create_image_view(
+        vkal_create_image_view(
 			get_image(vkal_image.image),
 			VK_IMAGE_VIEW_TYPE_2D,
 			format,
@@ -899,9 +899,9 @@ void recreate_swapchain(void)
     create_swapchain();
     create_image_views();
 
-    destroy_image_view( vkal_info.depth_stencil_image_view );
-    destroy_image( vkal_info.depth_stencil_image );
-    destroy_device_memory( vkal_info.device_memory_depth_stencil ); // TODO: Is this smart to destroy the whole memory object?
+    vkal_destroy_image_view( vkal_info.depth_stencil_image_view );
+    vkal_destroy_image( vkal_info.depth_stencil_image );
+    vkal_destroy_device_memory( vkal_info.device_memory_depth_stencil ); // TODO: Is this smart to destroy the whole memory object?
     create_default_depth_buffer();
     create_default_framebuffers();
     // TODO: Maybe we need to recreate the default command buffers (if client uses them)
@@ -1021,7 +1021,7 @@ void create_image(uint32_t width, uint32_t height, uint32_t mip_levels, uint32_t
     *out_image_id = free_image_index;
 }
 
-void destroy_image(uint32_t id)
+void vkal_destroy_image(uint32_t id)
 {
     if (vkal_info.user_images[id].used) {
 		vkDestroyImage(vkal_info.device, get_image(id), 0);
@@ -1035,7 +1035,7 @@ VkImage get_image(uint32_t id)
     return vkal_info.user_images[id].image;
 }
 
-static void create_image_view(VkImage image,
+void vkal_create_image_view(VkImage image,
 			      VkImageViewType view_type, VkFormat format, VkImageAspectFlags aspect_flags,
 			      uint32_t base_mip_level, uint32_t mip_level_count, 
 			      uint32_t base_array_layer, uint32_t array_layer_count,
@@ -1073,7 +1073,7 @@ static void create_image_view(VkImage image,
     vkal_info.user_image_views[free_index].used = 1;
 }
 
-static void destroy_image_view(uint32_t id)
+void vkal_destroy_image_view(uint32_t id)
 {
     if (vkal_info.user_image_views[id].used) {
 	vkDestroyImageView(vkal_info.device, vkal_info.user_image_views[id].image_view, 0);
@@ -1131,7 +1131,7 @@ static void internal_create_sampler(VkSamplerCreateInfo create_info, uint32_t * 
     *out_sampler = free_index;
 }
 
-static VkSampler get_sampler(uint32_t id)
+VkSampler get_sampler(uint32_t id)
 {
     assert(id < VKAL_MAX_VKSAMPLER);
     assert(vkal_info.user_samplers[id].used);
@@ -1229,7 +1229,7 @@ VkalTexture vkal_create_texture(
 					get_image(texture.image), get_device_memory(texture.device_memory_id), 0);
     VKAL_ASSERT(result && "failed to bind texture image memory!");
     
-    create_image_view(get_image(texture.image), view_type,
+    vkal_create_image_view(get_image(texture.image), view_type,
 		      format, VK_IMAGE_ASPECT_COLOR_BIT,
 		      base_mip_level, mip_level_count, 
 		      base_array_layer, array_layer_count,
@@ -1496,7 +1496,7 @@ void create_default_depth_buffer(void)
     
     {
 		// depth stencil image view
-		create_image_view(
+        vkal_create_image_view(
 			get_image(vkal_info.depth_stencil_image), 
 			 VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT,
 			0, 1,
@@ -2045,13 +2045,13 @@ RenderImage recreate_render_image(RenderImage render_image, uint32_t width, uint
 		destroy_framebuffer(render_image.framebuffers[i]);
     }
 
-    destroy_image(render_image.color_image.image);
-    destroy_image(render_image.depth_image.image);
+    vkal_destroy_image(render_image.color_image.image);
+    vkal_destroy_image(render_image.depth_image.image);
 
-    destroy_image_view(render_image.color_image.image_view);
-    destroy_image_view(render_image.depth_image.image_view);
-	destroy_device_memory(render_image.color_image.device_memory);
-    destroy_device_memory(render_image.depth_image.device_memory);
+    vkal_destroy_image_view(render_image.color_image.image_view);
+    vkal_destroy_image_view(render_image.depth_image.image_view);
+    vkal_destroy_device_memory(render_image.color_image.device_memory);
+    vkal_destroy_device_memory(render_image.depth_image.device_memory);
 
     RenderImage new_render_image = create_render_image(width, height);
     return new_render_image;
@@ -2942,13 +2942,13 @@ VkDeviceMemory get_device_memory(uint32_t id)
     return vkal_info.user_device_memory[id].device_memory;
 }
 
-uint32_t destroy_device_memory(uint32_t id)
+uint32_t vkal_destroy_device_memory(uint32_t id)
 {
     uint32_t is_destroyed = 0;
     if (vkal_info.user_device_memory[id].used) {
-	vkFreeMemory(vkal_info.device, get_device_memory(id), 0);
-	vkal_info.user_device_memory[id].used = 0;
-	is_destroyed = 1;
+	    vkFreeMemory(vkal_info.device, get_device_memory(id), 0);
+	    vkal_info.user_device_memory[id].used = 0;
+	    is_destroyed = 1;
     }
     return is_destroyed;
 }
@@ -3228,7 +3228,7 @@ void vkal_cleanup(void) {
 
 	
     for (uint32_t i = 0; i < VKAL_MAX_VKDEVICEMEMORY; ++i) {
-		destroy_device_memory(i);
+        vkal_destroy_device_memory(i);
     }
     vkFreeMemory(vkal_info.device, vkal_info.device_memory_staging, 0); 
     vkFreeMemory(vkal_info.device, vkal_info.default_device_memory_index, 0);
@@ -3247,10 +3247,10 @@ void vkal_cleanup(void) {
     vkDestroyBuffer(vkal_info.device, vkal_info.staging_buffer.buffer, 0);
     
     for (uint32_t i = 0; i < VKAL_MAX_VKIMAGEVIEW; ++i) {
-		destroy_image_view(i);
+        vkal_destroy_image_view(i);
     }
     for (uint32_t i = 0; i < VKAL_MAX_VKIMAGE; ++i) {
-		destroy_image(i);
+        vkal_destroy_image(i);
     }
 
     for (uint32_t i = 0; i < VKAL_MAX_VKSHADERMODULE; ++i) {
