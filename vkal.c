@@ -1333,14 +1333,18 @@ VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, V
     return buffer;
 }
 
+// TODO: Fix offset into device memory (must be multiple of nonCoherentAtomSize)
 void vkal_update_buffer_offset(VkalBuffer* buffer, uint8_t* data, uint32_t byte_count, uint32_t offset)
 {
     assert(byte_count <= buffer->size && "Byte-count is larger than available buffer-size");
     assert(offset <= buffer->size && "Offset is beyond buffer-size!");
 
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
+    uint64_t aligned_size = (byte_count + alignment - 1) & ~(alignment - 1);
+
     VkResult result = vkMapMemory(
         vkal_info.device, buffer->device_memory,
-        offset, byte_count,
+        buffer->offset + offset, byte_count,
         0,
         &buffer->mapped);
     VKAL_ASSERT(result && "Failed to map memory!");
@@ -1351,8 +1355,6 @@ void vkal_update_buffer_offset(VkalBuffer* buffer, uint8_t* data, uint32_t byte_
     memory_range.memory = buffer->device_memory;
     memory_range.offset = offset;
 
-    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
-    uint64_t aligned_size = (byte_count + alignment - 1) & ~(alignment - 1);
 
     memory_range.size = aligned_size; // TODO: figure out how much we need to flush, really.
     result = vkFlushMappedMemoryRanges(vkal_info.device, 1, &memory_range);
