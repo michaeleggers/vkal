@@ -1341,6 +1341,11 @@ void vkal_update_buffer_offset(VkalBuffer* buffer, uint8_t* data, uint32_t byte_
 
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
     uint64_t aligned_size = (byte_count + alignment - 1) & ~(alignment - 1);
+    uint64_t aligned_offset = (offset + alignment - 1) & ~(alignment - 1);
+    uint64_t test = 0;
+    if (offset > 0) {
+        test = (offset / alignment) * alignment;
+    }
 
     VkResult result = vkMapMemory(
         vkal_info.device, buffer->device_memory,
@@ -1353,7 +1358,7 @@ void vkal_update_buffer_offset(VkalBuffer* buffer, uint8_t* data, uint32_t byte_
     VkMappedMemoryRange memory_range = { 0 };
     memory_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     memory_range.memory = buffer->device_memory;
-    memory_range.offset = offset;
+    memory_range.offset = buffer->offset + offset;
 
 
     memory_range.size = aligned_size; // TODO: figure out how much we need to flush, really.
