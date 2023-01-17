@@ -1267,7 +1267,10 @@ DeviceMemory vkal_allocate_devicememory(uint32_t size,
     /* Create a dummy buffer so we can select the best possible memory for this type
        of buffer via vkGetBufferMemoryRequirements 
     */
-    VkBuffer buffer = create_buffer(size, buffer_usage_flags).buffer;
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
+    uint64_t aligned_size = (size + alignment - 1) & ~(alignment - 1);
+
+    VkBuffer buffer = create_buffer(aligned_size, buffer_usage_flags).buffer;
     VkMemoryRequirements buffer_memory_requirements = { 0 };
     vkGetBufferMemoryRequirements(vkal_info.device, buffer, &buffer_memory_requirements);
     uint32_t mem_type_bits = check_memory_type_index(buffer_memory_requirements.memoryTypeBits, memory_property_flags);
@@ -1349,18 +1352,16 @@ void vkal_update_buffer_offset(VkalBuffer* buffer, uint8_t* data, uint32_t byte_
 
     VkResult result = vkMapMemory(
         vkal_info.device, buffer->device_memory,
-        buffer->offset + offset, byte_count,
+        buffer->offset + test, aligned_size,
         0,
         &buffer->mapped);
     VKAL_ASSERT(result && "Failed to map memory!");
 
-    memcpy(buffer->mapped, data, byte_count);
+    memcpy((uint8_t*)buffer->mapped + aligned_offset - offset, data, byte_count);
     VkMappedMemoryRange memory_range = { 0 };
     memory_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     memory_range.memory = buffer->device_memory;
-    memory_range.offset = buffer->offset + offset;
-
-
+    memory_range.offset = buffer->offset + test;
     memory_range.size = aligned_size; // TODO: figure out how much we need to flush, really.
     result = vkFlushMappedMemoryRanges(vkal_info.device, 1, &memory_range);
     VKAL_ASSERT(result && "Failed to flush mapped memory!");
