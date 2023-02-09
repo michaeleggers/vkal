@@ -464,7 +464,7 @@ VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, V
 VkResult map_memory(VkalBuffer * buffer, VkDeviceSize size, VkDeviceSize offset);
 void unmap_memory(VkalBuffer * buffer);
 void vkal_update_buffer_offset(VkalBuffer * buffer, uint8_t* data, uint32_t byte_count, uint32_t offset);
-void vkal_update_buffer(VkalBuffer buffer, uint8_t* data, uint32_t byte_count);
+void vkal_update_buffer(VkalBuffer* buffer, uint8_t* data, uint32_t byte_count);
 void create_image(
 	uint32_t width, uint32_t height, uint32_t mip_levels, uint32_t array_layers,
 	VkImageCreateFlags flags, VkFormat format, VkImageUsageFlags usage_flags, uint32_t * out_image_id);
