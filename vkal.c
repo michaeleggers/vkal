@@ -2695,6 +2695,7 @@ void vkal_draw_indexed_from_buffers(
     vkCmdDrawIndexed(vkal_info.default_command_buffers[image_id], index_count, 1, 0, 0, 0);
 }
 
+// TODO: Bind pipeline not here. Let it user do manually?
 void vkal_draw(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize vertex_buffer_offset, uint32_t vertex_count)
