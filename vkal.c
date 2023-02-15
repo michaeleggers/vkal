@@ -1300,7 +1300,11 @@ DeviceMemory vkal_allocate_devicememory(uint32_t size,
 
 VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags)
 {
-    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
+    VkalBuffer buffer0 = create_buffer(size, buffer_usage_flags);
+    VkMemoryRequirements buffer_memory_requirements = { 0 };
+    vkGetBufferMemoryRequirements(vkal_info.device, buffer0.buffer, &buffer_memory_requirements);
+
+    uint64_t alignment = buffer_memory_requirements.alignment;
     uint64_t aligned_size = (size + alignment - 1) & ~(alignment - 1);
 
     VkBuffer vk_buffer = VK_NULL_HANDLE;
@@ -1371,28 +1375,7 @@ void vkal_update_buffer_offset(VkalBuffer* buffer, uint8_t* data, uint32_t byte_
 // TODO: Make sure buffer mapping, flushing does not violate vulkan spec! (see function above).
 void vkal_update_buffer(VkalBuffer* buffer, uint8_t* data, uint32_t byte_count)
 {
-    assert(byte_count <= buffer->size && "Byte-count is larger than available buffer-size");
-
-    void * mapped_memory = 0;
-    VkResult result = vkMapMemory(
-        vkal_info.device, buffer->device_memory,
-        buffer->offset, buffer->size,
-        0,
-        &buffer->mapped);
-    VKAL_ASSERT( result && "Failed to map memory!" );
-
-    memcpy(buffer->mapped, data, byte_count);
-    VkMappedMemoryRange memory_range = { 0 };
-    memory_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-    memory_range.memory = buffer->device_memory;
-    memory_range.offset = buffer->offset;
-
-    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
-    uint64_t aligned_size = (buffer->size + alignment - 1) & ~(alignment - 1);
-
-    memory_range.size = aligned_size; // TODO: figure out how much we need to flush, really.
-    result = vkFlushMappedMemoryRanges(vkal_info.device, 1, &memory_range);
-    VKAL_ASSERT( result && "Failed to flush mapped memory!" );
+    vkal_update_buffer_offset(buffer, data, byte_count, 0);
 }
 
 void upload_texture(VkImage const image,
@@ -2962,7 +2945,6 @@ uint32_t vkal_destroy_device_memory(uint32_t id)
     return is_destroyed;
 }
 
-
 VkDeviceMemory allocate_memory(VkDeviceSize size, uint32_t mem_type_bits)
 {
     VkDeviceMemory memory;
@@ -2995,6 +2977,8 @@ VkalBuffer create_buffer(uint32_t size, VkBufferUsageFlags usage)
     buffer.buffer = vk_buffer;
     return buffer;
 }
+
+// TODO: Destroy Buffer
 
 void create_default_vertex_buffer(uint32_t size)
 {
