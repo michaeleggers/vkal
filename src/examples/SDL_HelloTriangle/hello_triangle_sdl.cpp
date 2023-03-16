@@ -21,6 +21,7 @@
 #include <vkal.h>
 
 #include "platform.h"
+#include <../utils/common.h>
 
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
@@ -156,7 +157,7 @@ int main(int argc, char** argv)
         vertex_attributes, vertex_attribute_count,
         shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL,
         VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-        VK_FRONT_FACE_CLOCKWISE,
+        VK_FRONT_FACE_COUNTER_CLOCKWISE,
         vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
@@ -164,8 +165,8 @@ int main(int argc, char** argv)
     {
         // Pos      // Color        // UV
         -1, -1, 0,  1.0, 0.0, 0.0,  0.0, 0.0,
-         0,  1, 0,  0.0, 1.0, 0.0,  1.0, 0.0,
-         1, -1, 0,  0.0, 0.0, 1.0,  0.0, 1.0
+         1, -1, 0,  0.0, 0.0, 1.0,  0.0, 1.0,
+         0,  1, 0,  0.0, 1.0, 0.0,  1.0, 0.0
     };
     uint32_t vertex_count = 3;
 
@@ -218,7 +219,7 @@ int main(int argc, char** argv)
 		int width, height;
         SDL_Vulkan_GetDrawableSize(window, &width, &height);
 
-		view_proj_data.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+		view_proj_data.proj = adjust_y_for_vulkan_ndc * glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
 		vkal_update_uniform(&view_proj_ub, &view_proj_data);
 
         {

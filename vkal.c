@@ -2880,6 +2880,9 @@ uint32_t vkal_aligned_size(uint32_t size, uint32_t alignment)
     return (size + alignment - 1) & ~(alignment - 1);
 }
 
+/* NOTE: It probably is not a good idea to map and unmap the buffer every frame. This function is supposed to be 
+         'safe' in that you don't have to worry about touching the memory after update. But when building for 
+         production the uniform buffer should probably stay mapped. */
 void vkal_update_uniform(UniformBuffer * uniform_buffer, void * data) // TODO: Does uniform_buffer really have to be a pointer?
 {
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;

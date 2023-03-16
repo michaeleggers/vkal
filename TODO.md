@@ -34,3 +34,4 @@
       This would be far more convenient! See other instances where this function is being used.
 - [ ] map_memory: If called multiple times with the same device-memory object, this call will fail (as memory is already mapped into host)!
       Make sure, multiple calles are possible. Maybe check how Khronos samples are doing it.
+
