@@ -62,11 +62,18 @@ struct Quad {
     Vertex v3; // Bottom left
 };
 
-// #pragma pack(push, 1)
+//#pragma pack(push, 1)
 struct GPUSprite {
-    float transform;
+    glm::mat4  transform;
+    glm::mat4  textureID;
 };
-// #pragma pack(pop)
+//#pragma pack(pop)
+
+struct Image
+{
+    uint32_t width, height, channels;
+    unsigned char* data;
+};
 
 float rand_between(float min, float max)
 {
@@ -95,6 +102,25 @@ void init_window()
 
     width = SCREEN_WIDTH;
     height = SCREEN_HEIGHT;
+}
+
+Image load_image_file(char const* file)
+{
+    char exe_path[256];
+    get_exe_path(exe_path, 256 * sizeof(char));
+    char abs_path[256];
+    memcpy(abs_path, exe_path, 256);
+    strcat(abs_path, file);
+
+    Image image = { 0 };
+    int tw, th, tn;
+    image.data = stbi_load(abs_path, &tw, &th, &tn, 4);
+    assert(image.data != NULL);
+    image.width = tw;
+    image.height = th;
+    image.channels = tn;
+
+    return image;
 }
 
 int main(int argc, char** argv)
@@ -161,7 +187,7 @@ int main(int argc, char** argv)
     uint32_t vertex_attribute_count = sizeof(vertex_attributes) / sizeof(*vertex_attributes);
 
     uint32_t numSprites = 200000;
-
+    uint32_t maxTextures = 32;
     /* Descriptor Sets */
     VkDescriptorSetLayoutBinding set_layout[] = 
     {
@@ -178,9 +204,16 @@ int main(int argc, char** argv)
             numSprites,
             VK_SHADER_STAGE_VERTEX_BIT,
             0
+        },
+        {
+            2,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            maxTextures,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            0
         }
     };
-    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 2);
+    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 3);
 
     VkDescriptorSetLayout layouts[] = {
         descriptor_set_layout
@@ -211,6 +244,13 @@ int main(int argc, char** argv)
         0, 3, 2  // Lower left tri
     };
 
+    /* Textures */
+    Image vulkanImage = load_image_file("../../src/examples/assets/textures/vklogo.jpg");
+    VkalTexture vulkanTexture = vkal_create_texture(
+        2, vulkanImage.data, vulkanImage.width, vulkanImage.height, 4, 0,
+        VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+
     // Upload Model Data to GPU
 	uint64_t offset_indices = vkal_index_buffer_add(quadIndices, 6);           // 3 indices
     Vertex vertices[] = { quad.v0, quad.v1, quad.v2, quad.v3 };
@@ -229,8 +269,11 @@ int main(int argc, char** argv)
     GPUSprite gpuSpriteData[1]; 
     //gpuSpriteData[1] = { transform1 };
     for (size_t i = 0; i < numSprites; i++) {
-        float transform = rand_between(-10000.0, 10000.0);
-        gpuSpriteData[0] = { transform };
+        float xPos = rand_between(-3.0, 3.0);
+        float yPos = rand_between(-3.0, 3.0);
+        glm::mat4 transform = glm::mat4(1.0);
+        transform = glm::translate(transform, glm::vec3(xPos, yPos, 0.0f));
+        gpuSpriteData[0] = { transform, glm::mat4(0.0) };
         vkal_update_buffer_offset(&gpuSpriteBuffer, (uint8_t*)gpuSpriteData, sizeof(GPUSprite), i*sizeof(GPUSprite));
         unmap_memory(&gpuSpriteBuffer);
     }
@@ -239,10 +282,13 @@ int main(int argc, char** argv)
     for (size_t i = 0; i < numSprites; i++) {
         vkal_update_descriptor_set_bufferarray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, i, gpuSpriteBuffer);
     }
+    for (size_t i = 0; i < maxTextures; i++) {
+        vkal_update_descriptor_set_texturearray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, i, vulkanTexture);
+    }
 
 	// Setup the camera and setup storage for Uniform Buffer
     Camera camera{};
-	camera.pos = glm::vec3(0.0f, 0.0f, 100.f);
+	camera.pos = glm::vec3(0.0f, 0.0f, 10.f);
 	camera.center = glm::vec3(0.0f);
 	camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
     ViewProjection view_proj_data{};
@@ -307,7 +353,7 @@ int main(int argc, char** argv)
             //    offset_vertices, 2);
             //vkCmdDrawIndexedIndirect(vkal_info.default_command_buffers[image_id], )
             vkCmdBindPipeline(vkal_info->default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
-            vkCmdDraw(vkal_info->default_command_buffers[image_id], numSprites, 1, 0, 0);
+            vkCmdDraw(vkal_info->default_command_buffers[image_id], totalVertexCount, 1, 0, 0);
             vkal_end_renderpass(image_id);
             vkal_end_command_buffer(image_id);
 

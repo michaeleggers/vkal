@@ -7,7 +7,8 @@
 // };
 
 struct GPUSprite {
-    float xTransform;
+    mat4  transform;
+    mat4  textureID;
 };
 
 vec3 quad[6] = vec3[6](
@@ -19,6 +20,15 @@ vec3 quad[6] = vec3[6](
     vec3(1, -1, 0),
     vec3(1, 1, 0),
     vec3(-1, 1, 0)
+);
+
+vec2 quadUVs[6] = vec2[6](
+    vec2(0, 0),
+    vec2(0, 1),
+    vec2(1, 1),
+    vec2(1, 1),
+    vec2(1, 0),
+    vec2(0, 0)
 );
 
 // layout (location = 0) in vec3 position;
@@ -47,6 +57,9 @@ layout (std430, set = 0, binding = 1) buffer readonly GPUSprites {
 //     return transform;
 // }
 
+layout (location = 0) out uint out_textureID;
+layout (location = 1) out vec2 out_UV;
+
 void main()
 {
     uint vertexIndex = gl_VertexIndex % 6;
@@ -54,14 +67,18 @@ void main()
     //int instanceIndex = gl_InstanceIndex;
 
     vec3 pos = quad[vertexIndex];
+    vec2 uv  = quadUVs[vertexIndex];
     GPUSprite spriteData = in_GPUSprites[instanceIndex];
     //mat4 transform = getTransform(instanceIndex);
 
-    float xTransform = spriteData.xTransform;
+    mat4 transform = spriteData.transform;
+    //mat4 transform = spriteData.xTransform;
     //out_position = (u_view_proj.proj * vec4(pos, 1.0)).xyz;
     //out_uv = uv;
-    vec3 worldPos = pos;
-    worldPos.x += xTransform;
+    vec4 worldPos = transform * vec4(pos, 1.0);
+    //worldPos.x += xTransform;
     
-	gl_Position = u_view_proj.proj * u_view_proj.view * vec4(worldPos, 1.0);
+    out_textureID = uint(spriteData.textureID[0].x);
+    out_UV = uv;
+	gl_Position = u_view_proj.proj * u_view_proj.view * worldPos;
 }
