@@ -190,7 +190,7 @@ int main(int argc, char** argv)
     };
     uint32_t vertex_attribute_count = sizeof(vertex_attributes) / sizeof(*vertex_attributes);
 
-    uint32_t numSprites = 200000;
+    uint32_t numSprites = 1000000;
     uint32_t maxTextures = 32;
     /* Descriptor Sets */
     VkDescriptorSetLayoutBinding set_layout[] = 
@@ -280,11 +280,12 @@ int main(int argc, char** argv)
     for (size_t i = 0; i < numSprites; i++) {
         float xPos = rand_between(-2*(float)width, 2*(float)width);
         float yPos = rand_between(-2*(float)height, 2*(float)height);
+        float zPos = -1.0f*i;
         //float xPos = (float)width;
         //float yPos = (float)height/2.0f + 300.0f;
         uint32_t textureID = static_cast<uint32_t>(rand_between(0.0, 1.99));
         glm::mat4 transform = glm::mat4(1.0);
-        transform = glm::translate(transform, glm::vec3(xPos, yPos, 0.0f));
+        transform = glm::translate(transform, glm::vec3(xPos, yPos, zPos));
         gpuSpriteData[0] = { transform, glm::mat4(textureID) };
         vkal_update_buffer_offset(&gpuSpriteBuffer, (uint8_t*)gpuSpriteData, sizeof(GPUSprite), i*sizeof(GPUSprite));
         unmap_memory(&gpuSpriteBuffer);
@@ -341,7 +342,7 @@ int main(int argc, char** argv)
         SDL_Vulkan_GetDrawableSize(window, &width, &height);
 
 		//view_proj_data.proj = adjust_y_for_vulkan_ndc * glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-        perFrameData.proj = adjust_y_for_vulkan_ndc  * glm::ortho(0.0f, (float)width, 0.0f, (float)height);
+        perFrameData.proj = adjust_y_for_vulkan_ndc  * glm::ortho(0.0f, (float)width, 0.0f, (float)height, 0.1f, 1000000.f);
         perFrameData.screenWidth = (float)width;
         perFrameData.screenHeight = (float)height;
 		vkal_update_uniform(&perFrameUniformBuffer, &perFrameData);
