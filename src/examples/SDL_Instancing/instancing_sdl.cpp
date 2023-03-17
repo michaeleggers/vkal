@@ -32,8 +32,11 @@
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
 
+/* current framebuffer width/height */
+static int width  = SCREEN_WIDTH;
+static int height = SCREEN_HEIGHT;
+
 static SDL_Window * window;
-static int width, height; /* current framebuffer width/height */
 
 struct Camera
 {
@@ -43,10 +46,11 @@ struct Camera
 	glm::vec3 right;
 };
 
-struct ViewProjection
+struct PerFrameData
 {
     glm::mat4 view;
     glm::mat4 proj;
+    float screenWidth, screenHeight;
 };
 
 struct Vertex {
@@ -273,8 +277,10 @@ int main(int argc, char** argv)
     GPUSprite gpuSpriteData[1]; 
     //gpuSpriteData[1] = { transform1 };
     for (size_t i = 0; i < numSprites; i++) {
-        float xPos = rand_between(-1000.0, 1000.0);
-        float yPos = rand_between(-1000.0, 1000.0);
+        float xPos = rand_between(0.0f, (float)width);
+        float yPos = rand_between(0.0f, (float)height);
+        //float xPos = (float)width;
+        //float yPos = (float)height/2.0f + 300.0f;
         uint32_t textureID = static_cast<uint32_t>(rand_between(0.0, 1.99));
         glm::mat4 transform = glm::mat4(1.0);
         transform = glm::translate(transform, glm::vec3(xPos, yPos, 0.0f));
@@ -295,16 +301,16 @@ int main(int argc, char** argv)
 
 	// Setup the camera and setup storage for Uniform Buffer
     Camera camera{};
-	camera.pos = glm::vec3(0.0f, 0.0f, 100.f);
+	camera.pos = glm::vec3(0.0f, 0.0f, 30.f);
 	camera.center = glm::vec3(0.0f);
 	camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
-    ViewProjection view_proj_data{};
-	view_proj_data.view = glm::lookAt(camera.pos, camera.center, camera.up);
+    PerFrameData perFrameData{};
+    perFrameData.view = glm::lookAt(camera.pos, camera.center, camera.up);
 
     // Uniform Buffer for View-Projection Matrix
-    UniformBuffer view_proj_ub = vkal_create_uniform_buffer(sizeof(ViewProjection), 1, 0);
-	vkal_update_descriptor_set_uniform(descriptor_sets[0], view_proj_ub, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	vkal_update_uniform(&view_proj_ub, &view_proj_data);
+    UniformBuffer perFrameUniformBuffer = vkal_create_uniform_buffer(sizeof(PerFrameData), 1, 0);
+	vkal_update_descriptor_set_uniform(descriptor_sets[0], perFrameUniformBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	vkal_update_uniform(&perFrameUniformBuffer, &perFrameData);
 
     // Main Loop
     uint32_t verticesPerSprite = 6;
@@ -330,12 +336,14 @@ int main(int argc, char** argv)
             break;
             }
         }
-
-		int width, height;
+		
         SDL_Vulkan_GetDrawableSize(window, &width, &height);
 
-		view_proj_data.proj = adjust_y_for_vulkan_ndc * glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-		vkal_update_uniform(&view_proj_ub, &view_proj_data);
+		//view_proj_data.proj = adjust_y_for_vulkan_ndc * glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+        perFrameData.proj = adjust_y_for_vulkan_ndc  * glm::ortho(0.0f, (float)width, 0.0f, (float)height);
+        perFrameData.screenWidth = (float)width;
+        perFrameData.screenHeight = (float)height;
+		vkal_update_uniform(&perFrameUniformBuffer, &perFrameData);
 
         {
             //vkDeviceWaitIdle(vkal_info->device);

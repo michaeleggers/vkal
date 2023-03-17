@@ -37,11 +37,13 @@ vec2 quadUVs[6] = vec2[6](
 // layout (location = 0) out vec3 out_position;
 // layout (location = 1) out vec2 out_uv;
 
-layout (set = 0, binding = 0) uniform ViewProj_t
+layout (set = 0, binding = 0) uniform PerFrameData
 {
     mat4  view;
     mat4  proj;
-} u_view_proj;
+    float screenWidth;
+    float screenHeight;
+} perFrameData;
 
 layout (std430, set = 0, binding = 1) buffer readonly GPUSprites {
     GPUSprite in_GPUSprites[];
@@ -72,13 +74,16 @@ void main()
     //mat4 transform = getTransform(instanceIndex);
 
     mat4 transform = spriteData.transform;
+    transform[3].y = perFrameData.screenHeight-transform[3].y;
     //mat4 transform = spriteData.xTransform;
     //out_position = (u_view_proj.proj * vec4(pos, 1.0)).xyz;
     //out_uv = uv;
-    vec4 worldPos = transform * vec4(pos, 1.0);
+    float scale = 1.0;
+    vec4 worldPos = transform * vec4(scale*pos, 1.0);
+//    worldPos.y = -worldPos.y;
     //worldPos.x += xTransform;
     
     out_textureID = uint(spriteData.textureID[0].x);
     out_UV = uv;
-	gl_Position = u_view_proj.proj * u_view_proj.view * worldPos;
+	gl_Position = perFrameData.proj * worldPos;
 }
