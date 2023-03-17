@@ -1705,6 +1705,8 @@ void create_logical_device(char** extensions, uint32_t extension_count)
     device_features12.bufferDeviceAddress = VK_TRUE;
     device_features12.uniformAndStorageBuffer8BitAccess = VK_TRUE;
     device_features12.runtimeDescriptorArray = VK_TRUE;
+    device_features12.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
+    device_features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
     device_features12.descriptorIndexing = VK_TRUE;
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_features = { 0 };
     ray_tracing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
@@ -1725,6 +1727,8 @@ void create_logical_device(char** extensions, uint32_t extension_count)
     VkPhysicalDeviceDescriptorIndexingFeatures indexing_features = { 0 };
     indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
     indexing_features.runtimeDescriptorArray = VK_TRUE;
+    indexing_features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
+    indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
     indexing_features.pNext = &features2;
 
     VkDeviceCreateInfo create_info = { 0 };

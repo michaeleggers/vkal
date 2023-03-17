@@ -78,7 +78,7 @@ void main()
     //mat4 transform = spriteData.xTransform;
     //out_position = (u_view_proj.proj * vec4(pos, 1.0)).xyz;
     //out_uv = uv;
-    float scale = 5.0;
+    float scale = 20.0;
     vec4 worldPos = transform * vec4(scale*pos, 1.0);
 //    worldPos.y = -worldPos.y;
     //worldPos.x += xTransform;
