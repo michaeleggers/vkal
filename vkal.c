@@ -1782,7 +1782,7 @@ void create_default_descriptor_pool(void)
 	{
 	    {
 		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,     // type of the resource
-		200000							           // number of descriptors of that type to be stored in the pool. This is per set maybe?
+		1000000							           // number of descriptors of that type to be stored in the pool. This is per set maybe?
 	    },
 	    {
 		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,

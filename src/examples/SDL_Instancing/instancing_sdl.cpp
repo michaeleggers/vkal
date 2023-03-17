@@ -190,7 +190,7 @@ int main(int argc, char** argv)
     };
     uint32_t vertex_attribute_count = sizeof(vertex_attributes) / sizeof(*vertex_attributes);
 
-    uint32_t numSprites = 200000;
+    uint32_t numSprites = 1000000;
     uint32_t maxTextures = 32;
     /* Descriptor Sets */
     VkDescriptorSetLayoutBinding set_layout[] = 
@@ -276,9 +276,10 @@ int main(int argc, char** argv)
     /* Secondly, upload data to the GPU */
     GPUSprite gpuSpriteData[1]; 
     //gpuSpriteData[1] = { transform1 };
+    float s = 10.0f;
     for (size_t i = 0; i < numSprites; i++) {
-        float xPos = rand_between(0.0f, (float)width);
-        float yPos = rand_between(0.0f, (float)height);
+        float xPos = rand_between(-2*(float)width, 2*(float)width);
+        float yPos = rand_between(-2*(float)height, 2*(float)height);
         //float xPos = (float)width;
         //float yPos = (float)height/2.0f + 300.0f;
         uint32_t textureID = static_cast<uint32_t>(rand_between(0.0, 1.99));
