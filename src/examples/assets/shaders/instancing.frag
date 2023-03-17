@@ -2,6 +2,13 @@
 // #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_nonuniform_qualifier    : enable
 
+layout (set = 0, binding = 0) uniform PerFrameData
+{
+    mat4  view;
+    mat4  proj;
+    float screenWidth;
+    float screenHeight;
+} perFrameData;
 
 layout (set = 0, binding = 2) uniform sampler2D textures[];
 
@@ -13,6 +20,9 @@ layout(location = 0) out vec4 outColor;
 
 void main() 
 {
+	float screenWidth = perFrameData.screenWidth;
+	float screenHeight = perFrameData.screenHeight;
 	vec4 color = texture(textures[nonuniformEXT(in_TextureID)], in_UV);
-	outColor = vec4(color.rgb, 1.0);
+	vec3 tint = vec3(gl_FragCoord.x / screenWidth, gl_FragCoord.y / screenHeight, 0.2);
+	outColor = vec4(color.rgb * tint, 1.0);
 }

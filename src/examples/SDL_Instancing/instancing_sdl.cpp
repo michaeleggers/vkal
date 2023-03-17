@@ -29,8 +29,8 @@
 #include <stb/stb_image.h>
 
 
-#define SCREEN_WIDTH  1280
-#define SCREEN_HEIGHT 768
+#define SCREEN_WIDTH  640
+#define SCREEN_HEIGHT 480
 
 /* current framebuffer width/height */
 static int width  = SCREEN_WIDTH;
@@ -72,6 +72,12 @@ struct GPUSprite {
     glm::mat4  textureID;
 };
 //#pragma pack(pop)
+
+struct Sprite {
+    glm::vec3 pos;
+    glm::vec3 velocity;
+    uint32_t textureID;
+};
 
 struct Image
 {
@@ -199,7 +205,7 @@ int main(int argc, char** argv)
             0,
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             1,
-            VK_SHADER_STAGE_VERTEX_BIT,
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
             0
         },
         {
@@ -273,23 +279,37 @@ int main(int argc, char** argv)
         VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT);
     VkalBuffer gpuSpriteBuffer = vkal_create_buffer(numSprites * sizeof(GPUSprite), &gpuSpriteDeviceMem, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
+    /* Create some sprites that live on the CPU and are manipulated on CPU */
+    Sprite* sprites = new Sprite[numSprites];
+    for (size_t i = 0; i < numSprites; i++) {
+        float xPos = rand_between(0.0f, (float)width);
+        float yPos = rand_between(0.0f, (float)height);
+        float zPos = -1.0f * i;
+        glm::vec3 velocity = glm::vec3(rand_between(-1.0, 1.0), rand_between(-1.0, 1.0), 0.0f);
+        uint32_t textureID = static_cast<uint32_t>(rand_between(0.0, 1.99));
+        sprites[i] = {
+            glm::vec3(xPos, yPos, zPos), 
+            glm::normalize(velocity),
+            textureID
+        };
+    }
+
     /* Secondly, upload data to the GPU */
     GPUSprite gpuSpriteData[1]; 
     //gpuSpriteData[1] = { transform1 };
     float s = 10.0f;
-    for (size_t i = 0; i < numSprites; i++) {
-        float xPos = rand_between(-2*(float)width, 2*(float)width);
-        float yPos = rand_between(-2*(float)height, 2*(float)height);
-        float zPos = -1.0f*i;
+    for (size_t i = 0; i < numSprites; i++) {    
+        glm::vec3 pos = sprites[i].pos;
+        uint32_t textureID = sprites[i].textureID;
         //float xPos = (float)width;
         //float yPos = (float)height/2.0f + 300.0f;
-        uint32_t textureID = static_cast<uint32_t>(rand_between(0.0, 1.99));
         glm::mat4 transform = glm::mat4(1.0);
-        transform = glm::translate(transform, glm::vec3(xPos, yPos, zPos));
+        transform = glm::translate(transform, pos);
         gpuSpriteData[0] = { transform, glm::mat4(textureID) };
         vkal_update_buffer_offset(&gpuSpriteBuffer, (uint8_t*)gpuSpriteData, sizeof(GPUSprite), i*sizeof(GPUSprite));
         unmap_memory(&gpuSpriteBuffer);
     }
+    map_memory(&gpuSpriteBuffer, numSprites * sizeof(GPUSprite), 0);
 
     /* Update Descriptor Set */
     for (size_t i = 0; i < numSprites; i++) {
@@ -318,8 +338,12 @@ int main(int argc, char** argv)
     uint32_t verticesPerSprite = 6;
     uint32_t totalVertexCount = numSprites * verticesPerSprite;
     bool running = true;
+    double dt = 0.0;
+    double titleUpdateTimer = 0.0;
     while (running)
     {
+        uint64_t start_time = SDL_GetTicks64();
+
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
@@ -346,6 +370,17 @@ int main(int argc, char** argv)
         perFrameData.screenWidth = (float)width;
         perFrameData.screenHeight = (float)height;
 		vkal_update_uniform(&perFrameUniformBuffer, &perFrameData);
+
+        /* Update Sprites (game logic) and update on GPU */
+        for (size_t i = 0; i < numSprites; i++) {
+            Sprite* sprite = &sprites[i];
+            if (sprite->pos.x >= width || sprite->pos.x < 0.0) sprite->velocity.x *= -1.0;
+            if (sprite->pos.y >= height || sprite->pos.y < 0.0) sprite->velocity.y *= -1.0;
+            sprite->pos.x += sprite->velocity.x;
+            sprite->pos.y += sprite->velocity.y;
+            GPUSprite* gpuSprite = (GPUSprite*)gpuSpriteBuffer.mapped + i;
+            gpuSprite->transform = glm::translate(glm::mat4(1), sprite->pos);
+        }
 
         {
             //vkDeviceWaitIdle(vkal_info->device);
@@ -379,6 +414,17 @@ int main(int argc, char** argv)
             vkal_queue_submit(&currentCmdBuffer, 1);
 
             vkal_present(image_id);
+        }
+
+        uint64_t end_time = SDL_GetTicks64();
+        uint64_t timePassed = end_time - start_time;     
+        dt = (double)end_time - (double)start_time;
+        titleUpdateTimer += (double)dt;
+        if (titleUpdateTimer > 1000.0) {
+            char window_title[256];
+            sprintf(window_title, "frametime: %fms (%f FPS)", dt, 1000.0/dt);            
+            SDL_SetWindowTitle(window, window_title);
+            titleUpdateTimer = 0.0;
         }
     }
 
