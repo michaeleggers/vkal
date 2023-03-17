@@ -63,8 +63,8 @@ layout (location = 1) out vec2 out_UV;
 void main()
 {
     uint vertexIndex = gl_VertexIndex % 6;
-    int instanceIndex = gl_VertexIndex / 6;
-    //int instanceIndex = gl_InstanceIndex;
+    //int instanceIndex = gl_VertexIndex / 6;
+    int instanceIndex = gl_InstanceIndex;
 
     vec3 pos = quad[vertexIndex];
     vec2 uv  = quadUVs[vertexIndex];

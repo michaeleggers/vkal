@@ -269,8 +269,8 @@ int main(int argc, char** argv)
     GPUSprite gpuSpriteData[1]; 
     //gpuSpriteData[1] = { transform1 };
     for (size_t i = 0; i < numSprites; i++) {
-        float xPos = rand_between(-3.0, 3.0);
-        float yPos = rand_between(-3.0, 3.0);
+        float xPos = rand_between(-1000.0, 1000.0);
+        float yPos = rand_between(-1000.0, 1000.0);
         glm::mat4 transform = glm::mat4(1.0);
         transform = glm::translate(transform, glm::vec3(xPos, yPos, 0.0f));
         gpuSpriteData[0] = { transform, glm::mat4(0.0) };
@@ -288,7 +288,7 @@ int main(int argc, char** argv)
 
 	// Setup the camera and setup storage for Uniform Buffer
     Camera camera{};
-	camera.pos = glm::vec3(0.0f, 0.0f, 10.f);
+	camera.pos = glm::vec3(0.0f, 0.0f, 100.f);
 	camera.center = glm::vec3(0.0f);
 	camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
     ViewProjection view_proj_data{};
@@ -353,7 +353,9 @@ int main(int argc, char** argv)
             //    offset_vertices, 2);
             //vkCmdDrawIndexedIndirect(vkal_info.default_command_buffers[image_id], )
             vkCmdBindPipeline(vkal_info->default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
-            vkCmdDraw(vkal_info->default_command_buffers[image_id], totalVertexCount, 1, 0, 0);
+            //vkCmdDraw(vkal_info->default_command_buffers[image_id], totalVertexCount, 1, 0, 0);
+            vkCmdDraw(vkal_info->default_command_buffers[image_id], 6, numSprites, 0, 0);
+
             vkal_end_renderpass(image_id);
             vkal_end_command_buffer(image_id);
 
