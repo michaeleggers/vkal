@@ -80,7 +80,7 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count)
     #elif defined (VKAL_WIN32)
             vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
     #elif defined (VKAL_SDL)
-            vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
+            //vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
 #endif
 
 #ifdef __cplusplus
@@ -1782,7 +1782,7 @@ void create_default_descriptor_pool(void)
 	{
 	    {
 		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,     // type of the resource
-		1024							           // number of descriptors of that type to be stored in the pool. This is per set maybe?
+		200000							           // number of descriptors of that type to be stored in the pool. This is per set maybe?
 	    },
 	    {
 		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
@@ -2106,7 +2106,7 @@ void vkal_allocate_descriptor_sets(VkDescriptorPool pool,
     allocate_info.pSetLayouts = layout;
     allocate_info.descriptorSetCount = layout_count;
     VkResult result = vkAllocateDescriptorSets(vkal_info.device, &allocate_info, *out_descriptor_set);
-    VKAL_ASSERT(result && "failed to allocate descriptor set(s)!");
+    VKAL_ASSERT(result && "failed to allocate descriptor set(s)!");    
 }
 
 SingleShaderStageSetup vkal_create_shader(const uint8_t* shader_byte_code, uint32_t shader_byte_code_size, VkShaderStageFlagBits shader_stage_flag_bits)
@@ -2646,7 +2646,7 @@ void vkal_scissor(VkCommandBuffer command_buffer, float offset_x, float offset_y
 void vkal_draw_indexed(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,
-    VkDeviceSize vertex_buffer_offset)
+    VkDeviceSize vertex_buffer_offset, uint32_t instance_count)
 {
     vkCmdBindPipeline(vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
     vkCmdBindIndexBuffer(
@@ -2657,7 +2657,7 @@ void vkal_draw_indexed(
     VkBuffer vertex_buffers[1];
 	vertex_buffers[0] = vkal_info.default_vertex_buffer.buffer;
     vkCmdBindVertexBuffers(vkal_info.default_command_buffers[image_id], 0, 1, vertex_buffers, vertex_buffer_offsets);
-    vkCmdDrawIndexed(vkal_info.default_command_buffers[image_id], index_count, 1, 0, 0, 0);
+    vkCmdDrawIndexed(vkal_info.default_command_buffers[image_id], index_count, instance_count, 0, 0, 0);
 }
 
 void vkal_draw_indexed_from_buffers(

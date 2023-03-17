@@ -26,6 +26,8 @@
     #include <SDL_vulkan.h>
 #endif
 
+//#include <vulkan/vk_enum_string_helper.h>
+
 #define VKAL_NULL                       0
 
 #define VKAL_MB							(1024 * 1024)
@@ -48,9 +50,10 @@
 #define VKAL_MAX_VKSAMPLER				128
 #define VKAL_MAX_TEXTURES				10
 #define VKAL_MAX_VKFRAMEBUFFER			64
-#define VKAL_VSYNC_ON					1
+#define VKAL_VSYNC_ON					0
 #define VKAL_SHADOW_MAP_DIMENSION		2048
 
+// TODO: Error code to string
 #define VKAL_ASSERT(result)	                	                                            \
 	do {                                                                                    \
         VkResult error = result;                                                            \
@@ -539,7 +542,7 @@ void vkal_scissor(VkCommandBuffer command_buffer, float offset_x, float offset_y
 void vkal_draw_indexed(
     uint32_t image_id, VkPipeline pipeline,
     VkDeviceSize index_buffer_offset, uint32_t index_count,
-    VkDeviceSize vertex_buffer_offset);
+    VkDeviceSize vertex_buffer_offset, uint32_t instance_count);
 void vkal_draw_indexed_from_buffers(
     VkalBuffer index_buffer, uint64_t index_buffer_offset, uint32_t index_count, VkalBuffer vertex_buffer, uint64_t vertex_buffer_offset,
     uint32_t image_id, VkPipeline pipeline);

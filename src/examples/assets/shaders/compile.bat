@@ -40,3 +40,6 @@ echo "COMPILING SHADERS..."
 
 %VULKAN_SDK%/bin/glslc imgui.vert -o imgui_vert.spv
 %VULKAN_SDK%/bin/glslc imgui.frag -o imgui_frag.spv
+
+%VULKAN_SDK%/bin/glslc instancing.vert -o instancing_vert.spv
+%VULKAN_SDK%/bin/glslc instancing.frag -o instancing_frag.spv
