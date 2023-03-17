@@ -13,6 +13,6 @@ layout(location = 0) out vec4 outColor;
 
 void main() 
 {
-	vec4 color = texture(textures[in_TextureID], in_UV);
+	vec4 color = texture(textures[nonuniformEXT(in_TextureID)], in_UV);
 	outColor = vec4(color.rgb, 1.0);
 }

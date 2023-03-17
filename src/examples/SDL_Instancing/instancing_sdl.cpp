@@ -250,7 +250,11 @@ int main(int argc, char** argv)
         2, vulkanImage.data, vulkanImage.width, vulkanImage.height, 4, 0,
         VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
         VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-
+    Image hkImage = load_image_file("../../src/examples/assets/textures/hk.jpg");
+    VkalTexture hkTexture = vkal_create_texture(
+        2, hkImage.data, hkImage.width, hkImage.height, 4, 0,
+        VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
     // Upload Model Data to GPU
 	uint64_t offset_indices = vkal_index_buffer_add(quadIndices, 6);           // 3 indices
     Vertex vertices[] = { quad.v0, quad.v1, quad.v2, quad.v3 };
@@ -271,9 +275,10 @@ int main(int argc, char** argv)
     for (size_t i = 0; i < numSprites; i++) {
         float xPos = rand_between(-1000.0, 1000.0);
         float yPos = rand_between(-1000.0, 1000.0);
+        uint32_t textureID = static_cast<uint32_t>(rand_between(0.0, 1.99));
         glm::mat4 transform = glm::mat4(1.0);
         transform = glm::translate(transform, glm::vec3(xPos, yPos, 0.0f));
-        gpuSpriteData[0] = { transform, glm::mat4(0.0) };
+        gpuSpriteData[0] = { transform, glm::mat4(textureID) };
         vkal_update_buffer_offset(&gpuSpriteBuffer, (uint8_t*)gpuSpriteData, sizeof(GPUSprite), i*sizeof(GPUSprite));
         unmap_memory(&gpuSpriteBuffer);
     }
@@ -282,9 +287,11 @@ int main(int argc, char** argv)
     for (size_t i = 0; i < numSprites; i++) {
         vkal_update_descriptor_set_bufferarray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, i, gpuSpriteBuffer);
     }
-    for (size_t i = 0; i < maxTextures; i++) {
+    for (size_t i = 0; i < maxTextures; i++) { // Update all so Vulkan does not complain
         vkal_update_descriptor_set_texturearray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, i, vulkanTexture);
     }
+    vkal_update_descriptor_set_texturearray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, vulkanTexture);
+    vkal_update_descriptor_set_texturearray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, hkTexture);
 
 	// Setup the camera and setup storage for Uniform Buffer
     Camera camera{};
