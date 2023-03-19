@@ -24,5 +24,5 @@ void main()
 	float screenHeight = perFrameData.screenHeight;
 	vec4 color = texture(textures[nonuniformEXT(in_TextureID)], in_UV);
 	vec3 tint = vec3(gl_FragCoord.x / screenWidth, gl_FragCoord.y / screenHeight, 0.2);
-	outColor = vec4(color.rgb * tint, 1.0);
+	outColor = vec4(color.rgb, color.a);
 }

@@ -36,6 +36,9 @@
 static int width  = SCREEN_WIDTH;
 static int height = SCREEN_HEIGHT;
 
+/* Max number of framedata on the GPU */
+#define MAX_GPU_FRAMES 1024
+
 static SDL_Window * window;
 
 struct Camera
@@ -69,14 +72,33 @@ struct Quad {
 //#pragma pack(push, 1)
 struct GPUSprite {
     glm::mat4  transform;
-    glm::mat4  textureID;
+    // col 0: 
+    //       x = textureID, 
+    //       y = current frame: Index into the GPUFrame buffer
+    glm::mat4  metaData;
 };
 //#pragma pack(pop)
+
+struct GPUFrame {
+    glm::vec2 uv;
+};
+
+struct Frame {
+    uint32_t x, y; // Top left in image
+    uint32_t width, height;
+};
+
+struct Sequence {
+    std::vector<Frame>  frames;
+    uint32_t            first;
+    uint32_t            last;
+};
 
 struct Sprite {
     glm::vec3 pos;
     glm::vec3 velocity;
-    uint32_t textureID;
+    uint32_t  textureID;
+    Sequence  sequence;
 };
 
 struct Image
@@ -196,7 +218,7 @@ int main(int argc, char** argv)
     };
     uint32_t vertex_attribute_count = sizeof(vertex_attributes) / sizeof(*vertex_attributes);
 
-    uint32_t numSprites = 1000000;
+    uint32_t numSprites = 5000;
     uint32_t maxTextures = 32;
     /* Descriptor Sets */
     VkDescriptorSetLayoutBinding set_layout[] = 
@@ -216,6 +238,13 @@ int main(int argc, char** argv)
             0
         },
         {
+            3,
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            MAX_GPU_FRAMES,
+            VK_SHADER_STAGE_VERTEX_BIT,
+            0
+        },
+        {
             2,
             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             maxTextures,
@@ -223,7 +252,7 @@ int main(int argc, char** argv)
             0
         }
     };
-    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 3);
+    VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 4);
 
     VkDescriptorSetLayout layouts[] = {
         descriptor_set_layout
@@ -265,12 +294,19 @@ int main(int argc, char** argv)
         2, hkImage.data, hkImage.width, hkImage.height, 4, 0,
         VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
         VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+
+    Image asteroidsImage = load_image_file("../../src/examples/assets/textures/asteroidsheet.png");
+    VkalTexture asteroidsTexture = vkal_create_texture(
+        2, asteroidsImage.data, asteroidsImage.width, asteroidsImage.height, 4, 0,
+        VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+
     // Upload Model Data to GPU
 	uint64_t offset_indices = vkal_index_buffer_add(quadIndices, 6);           // 3 indices
     Vertex vertices[] = { quad.v0, quad.v1, quad.v2, quad.v3 };
     uint64_t offset_vertices = vkal_vertex_buffer_add(vertices, sizeof(Vertex), 4); // 4 vertices
 
-    /* Storage Buffer Spritedata (transform and texture ID) per quad (= per InstanceID) */
+    /* Storage Buffer Spritedata (texture ID and frameIndex) per quad (= per InstanceID) */
     /* Firstly, get the memory on GPU */
     DeviceMemory gpuSpriteDeviceMem = vkal_allocate_devicememory(
         numSprites * sizeof(GPUSprite), 
@@ -279,6 +315,32 @@ int main(int argc, char** argv)
         VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT);
     VkalBuffer gpuSpriteBuffer = vkal_create_buffer(numSprites * sizeof(GPUSprite), &gpuSpriteDeviceMem, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
+    /* Storage buffer for Frame Data: Stores a sequence of frames */
+    DeviceMemory gpuFrameDeviceMem = vkal_allocate_devicememory(
+        MAX_GPU_FRAMES * sizeof(GPUFrame),
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+        VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT);
+    VkalBuffer gpuFrameBuffer = vkal_create_buffer(MAX_GPU_FRAMES * sizeof(GPUFrame), &gpuFrameDeviceMem, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+
+    /* Create a sequence, that holds all the frames the sprites need to cycle through */
+    Sequence asteroidSequence{};
+    Frame asteroidFrame = {0, 0, 128, 128};
+    uint32_t asteroidCols = asteroidsImage.width / asteroidFrame.width;
+    uint32_t asteroidRows = asteroidsImage.height / asteroidFrame.height;
+    size_t asteroidFrameCount = int(asteroidCols*asteroidRows) - 11;
+    asteroidSequence.first = 0;
+    asteroidSequence.last = asteroidFrameCount;
+    for (size_t row = 0; row < asteroidRows; row++) {
+        uint32_t y = row * asteroidFrame.height;
+        asteroidFrame.y = y;
+        for (size_t col = 0; col < asteroidCols; col++) {
+            uint32_t x = col * asteroidFrame.width % asteroidsImage.width;
+            asteroidFrame.x = x;
+            asteroidSequence.frames.push_back(asteroidFrame);
+        }        
+    }
+
     /* Create some sprites that live on the CPU and are manipulated on CPU */
     Sprite* sprites = new Sprite[numSprites];
     for (size_t i = 0; i < numSprites; i++) {
@@ -286,23 +348,22 @@ int main(int argc, char** argv)
         float yPos = rand_between(0.0f, (float)height);
         float zPos = -1.0f * i;
         glm::vec3 velocity = glm::vec3(rand_between(-1.0, 1.0), rand_between(-1.0, 1.0), 0.0f);
-        uint32_t textureID = static_cast<uint32_t>(rand_between(0.0, 1.99));
+        uint32_t textureID = 0; // Asteroids
         sprites[i] = {
             glm::vec3(xPos, yPos, zPos), 
             glm::normalize(velocity),
-            textureID
+            textureID,
+            asteroidSequence
         };
     }
 
-    /* Secondly, upload data to the GPU */
+    /* Secondly, upload GPU sprite-data to the GPU */
     GPUSprite gpuSpriteData[1]; 
     //gpuSpriteData[1] = { transform1 };
     float s = 10.0f;
     for (size_t i = 0; i < numSprites; i++) {    
         glm::vec3 pos = sprites[i].pos;
         uint32_t textureID = sprites[i].textureID;
-        //float xPos = (float)width;
-        //float yPos = (float)height/2.0f + 300.0f;
         glm::mat4 transform = glm::mat4(1.0);
         transform = glm::translate(transform, pos);
         gpuSpriteData[0] = { transform, glm::mat4(textureID) };
@@ -311,15 +372,21 @@ int main(int argc, char** argv)
     }
     map_memory(&gpuSpriteBuffer, numSprites * sizeof(GPUSprite), 0);
 
+    /* Also upload per-frame data onto the GPU */
+
     /* Update Descriptor Set */
     for (size_t i = 0; i < numSprites; i++) {
         vkal_update_descriptor_set_bufferarray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, i, gpuSpriteBuffer);
+    }
+    for (size_t i = 0; i < MAX_GPU_FRAMES; i++) {
+        vkal_update_descriptor_set_bufferarray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, i, gpuFrameBuffer);
     }
     for (size_t i = 0; i < maxTextures; i++) { // Update all so Vulkan does not complain
         vkal_update_descriptor_set_texturearray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, i, vulkanTexture);
     }
     vkal_update_descriptor_set_texturearray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, vulkanTexture);
-    vkal_update_descriptor_set_texturearray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, hkTexture);
+    vkal_update_descriptor_set_texturearray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, hkTexture);
+    vkal_update_descriptor_set_texturearray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, asteroidsTexture);
 
 	// Setup the camera and setup storage for Uniform Buffer
     Camera camera{};
