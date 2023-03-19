@@ -8,6 +8,7 @@ struct GPUSprite {
 
 struct GPUFrame {
     vec2 uv;
+    vec2 widthHeight;
 };
 
 vec3 quad[6] = vec3[6](
@@ -49,9 +50,9 @@ layout (std430, set = 0, binding = 3) buffer readonly GPUFrames {
 layout (location = 0) out uint out_textureID;
 layout (location = 1) out vec2 out_UV;
 
-vec2 getUV(GPUSprite spriteData) {
+GPUFrame getFrameInfo(GPUSprite spriteData) {
     uint frameIndex = uint(spriteData.metaData[0].y);
-    return in_GPUFrames[frameIndex].uv;
+    return in_GPUFrames[frameIndex];
 }
 
 void main()
@@ -61,9 +62,11 @@ void main()
     int instanceIndex = gl_InstanceIndex;
 
     GPUSprite spriteData = in_GPUSprites[instanceIndex];
+    GPUFrame frame = getFrameInfo(spriteData);
 
     vec3 pos = quad[vertexIndex];
-    vec2 uv  = quadUVs[vertexIndex];
+    vec2 uvOffset = quadUVs[vertexIndex];
+    vec2 uv = frame.uv + uvOffset*frame.widthHeight;
     // vec2 uv = getUV(spriteData);
 
     mat4 transform = spriteData.transform;
@@ -73,6 +76,6 @@ void main()
     vec4 worldPos = transform * vec4(scale*pos, 1.0);
     
     out_textureID = uint(spriteData.metaData[0].x);
-    out_UV = uv;
+    out_UV = uvOffset;
 	gl_Position = perFrameData.proj * worldPos;
 }

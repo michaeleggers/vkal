@@ -1739,7 +1739,7 @@ void create_logical_device(char** extensions, uint32_t extension_count)
     create_info.pEnabledFeatures = VKAL_NULL; // &device_features;
     create_info.enabledExtensionCount = extension_count;
     create_info.ppEnabledExtensionNames = (const char * const *)extensions;
-    
+        
     VkResult result = vkCreateDevice(vkal_info.physical_device, &create_info, 0, &vkal_info.device);
     VKAL_ASSERT(result && "failed to create logical device");
     

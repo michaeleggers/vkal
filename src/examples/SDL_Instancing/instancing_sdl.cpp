@@ -51,9 +51,9 @@ struct Camera
 
 struct PerFrameData
 {
-    glm::mat4 view;
-    glm::mat4 proj;
-    float screenWidth, screenHeight;
+    glm::mat4   view;
+    glm::mat4   proj;
+    float       screenWidth, screenHeight;
 };
 
 struct Vertex {
@@ -74,13 +74,14 @@ struct GPUSprite {
     glm::mat4  transform;
     // col 0: 
     //       x = textureID, 
-    //       y = current frame: Index into the GPUFrame buffer
+    //       y = current frame: Index into the GPUFrame buffer. Init this with 0 for now. If multiple spritesheets exist we need to offset to the correct location in the gpuFrameBuffer!
     glm::mat4  metaData;
 };
 //#pragma pack(pop)
 
 struct GPUFrame {
     glm::vec2 uv;
+    glm::vec2 widthHeight;
 };
 
 struct Frame {
@@ -92,6 +93,7 @@ struct Sequence {
     std::vector<Frame>  frames;
     uint32_t            first;
     uint32_t            last;
+    uint32_t            current;
 };
 
 struct Sprite {
@@ -330,7 +332,8 @@ int main(int argc, char** argv)
     uint32_t asteroidRows = asteroidsImage.height / asteroidFrame.height;
     size_t asteroidFrameCount = int(asteroidCols*asteroidRows) - 11;
     asteroidSequence.first = 0;
-    asteroidSequence.last = asteroidFrameCount;
+    asteroidSequence.last = asteroidFrameCount - 1;
+    asteroidSequence.current = 0;
     for (size_t row = 0; row < asteroidRows; row++) {
         uint32_t y = row * asteroidFrame.height;
         asteroidFrame.y = y;
@@ -364,15 +367,28 @@ int main(int argc, char** argv)
     for (size_t i = 0; i < numSprites; i++) {    
         glm::vec3 pos = sprites[i].pos;
         uint32_t textureID = sprites[i].textureID;
+        uint32_t currentFrame = sprites[i].sequence.current;
         glm::mat4 transform = glm::mat4(1.0);
         transform = glm::translate(transform, pos);
-        gpuSpriteData[0] = { transform, glm::mat4(textureID) };
+        glm::mat4 metaData = glm::mat4(0.0);
+        metaData[0].x = (float)textureID;
+        metaData[0].y = (float)currentFrame;
+        gpuSpriteData[0] = { transform, metaData };
         vkal_update_buffer_offset(&gpuSpriteBuffer, (uint8_t*)gpuSpriteData, sizeof(GPUSprite), i*sizeof(GPUSprite));
         unmap_memory(&gpuSpriteBuffer);
     }
     map_memory(&gpuSpriteBuffer, numSprites * sizeof(GPUSprite), 0);
 
     /* Also upload per-frame data onto the GPU */
+    /* We will use the asteroid spritesheet in this example */
+    for (size_t i = 0; i < asteroidSequence.frames.size(); i++) {
+        Frame* frame = &asteroidSequence.frames[i];
+        float s = (float)frame->x / (float)asteroidsImage.width;
+        float t = (float)frame->y / (float)asteroidsImage.height;
+        GPUFrame gpuFrame = { glm::vec2(s, t), glm::vec2((float)frame->width, (float)frame->height) };
+        vkal_update_buffer_offset(&gpuFrameBuffer, (uint8_t*)&gpuFrame, sizeof(GPUFrame), i * sizeof(GPUFrame));
+        unmap_memory(&gpuFrameBuffer);
+    }
 
     /* Update Descriptor Set */
     for (size_t i = 0; i < numSprites; i++) {
