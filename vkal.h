@@ -57,7 +57,7 @@
 #define VKAL_ASSERT(result)	                	                                            \
 	do {                                                                                    \
         VkResult error = result;                                                            \
-        if (error) {                                                                        \
+        if (error != VK_SUCCESS) {                                                          \
             printf("VKAL assertion failed at line: %d in file: %s\n", __LINE__, __FILE__);  \
             printf("VkResult is: %d\n", error);                                             \
             abort();                                                                        \

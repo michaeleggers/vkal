@@ -72,10 +72,10 @@ void main()
     mat4 transform = spriteData.transform;
     transform[3].y = perFrameData.screenHeight-transform[3].y;
 
-    float scale = 20.0;
+    float scale = 10.0;
     vec4 worldPos = transform * vec4(scale*pos, 1.0);
     
     out_textureID = uint(spriteData.metaData[0].x);
-    out_UV = uvOffset;
+    out_UV = uv;
 	gl_Position = perFrameData.proj * worldPos;
 }

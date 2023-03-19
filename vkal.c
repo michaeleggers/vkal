@@ -1341,6 +1341,7 @@ VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, V
 }
 
 // TODO: Fix offset into device memory (must be multiple of nonCoherentAtomSize)
+//       Buffer updating must be fixed!!!!
 void vkal_update_buffer_offset(VkalBuffer* buffer, uint8_t* data, uint32_t byte_count, uint32_t offset)
 {
     assert(byte_count <= buffer->size && "Byte-count is larger than available buffer-size");
@@ -1356,12 +1357,12 @@ void vkal_update_buffer_offset(VkalBuffer* buffer, uint8_t* data, uint32_t byte_
 
     VkResult result = vkMapMemory(
         vkal_info.device, buffer->device_memory,
-        buffer->offset + test, aligned_size,
+        buffer->offset, aligned_size,
         0,
         &buffer->mapped);
     VKAL_ASSERT(result && "Failed to map memory!");
 
-    memcpy((uint8_t*)buffer->mapped + aligned_offset - offset, data, byte_count);
+    memcpy((uint8_t*)buffer->mapped + offset, data, byte_count);
     VkMappedMemoryRange memory_range = { 0 };
     memory_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     memory_range.memory = buffer->device_memory;
@@ -1718,7 +1719,7 @@ void create_logical_device(char** extensions, uint32_t extension_count)
     acceleration_structure_features.pNext = &ray_tracing_features;
     VkPhysicalDeviceFeatures2 features2 = { 0 };
     features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    features2.pNext = &acceleration_structure_features;
+    features2.pNext = &acceleration_structure_features;    
 
     //vkGetPhysicalDeviceFeatures2(vkal_info.physical_device, &features2);
 
@@ -1740,8 +1741,7 @@ void create_logical_device(char** extensions, uint32_t extension_count)
     create_info.enabledExtensionCount = extension_count;
     create_info.ppEnabledExtensionNames = (const char * const *)extensions;
         
-    VkResult result = vkCreateDevice(vkal_info.physical_device, &create_info, 0, &vkal_info.device);
-    VKAL_ASSERT(result && "failed to create logical device");
+    VKAL_ASSERT(vkCreateDevice(vkal_info.physical_device, &create_info, 0, &vkal_info.device));
     
     vkGetDeviceQueue(vkal_info.device, indicies.graphics_family, 0, &vkal_info.graphics_queue);
     vkGetDeviceQueue(vkal_info.device, indicies.present_family, 0, &vkal_info.present_queue);
@@ -2271,15 +2271,18 @@ VkPipeline vkal_create_graphics_pipeline(
     VkPipelineColorBlendAttachmentState color_blend_attachment = {0};
     color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     color_blend_attachment.blendEnable = VK_TRUE;
-    color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    
     color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
-    color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    
+    color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+
     VkPipelineColorBlendStateCreateInfo color_blending_info = { 0 };
     color_blending_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    color_blending_info.logicOpEnable = VK_FALSE; // enabling this will set color_blend_attachment.blendEnable to VK_FALSE!
+    color_blending_info.logicOpEnable = VK_FALSE; // enabling this will set color_blend_attachment.blendEnable to VK_FALSE!    
     color_blending_info.pAttachments = &color_blend_attachment;
     color_blending_info.attachmentCount = 1; // must match the attachment count of render subpass!
     // it affects ALL framebuffers
