@@ -69,6 +69,7 @@ void main()
     vec2 uv = frame.uv + uvOffset*frame.widthHeight;
     // vec2 uv = getUV(spriteData);
 
+
     mat4 transform = spriteData.transform;
     transform[3].y = perFrameData.screenHeight-transform[3].y;
 

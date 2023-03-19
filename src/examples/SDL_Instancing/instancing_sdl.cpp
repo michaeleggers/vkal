@@ -222,7 +222,7 @@ int main(int argc, char** argv)
     };
     uint32_t vertex_attribute_count = sizeof(vertex_attributes) / sizeof(*vertex_attributes);
 
-    uint32_t numSprites = 100000;
+    uint32_t numSprites = 500000;
     uint32_t maxTextures = 32;
     /* Descriptor Sets */
     VkDescriptorSetLayoutBinding set_layout[] = 
@@ -334,8 +334,7 @@ int main(int argc, char** argv)
     uint32_t asteroidRows = asteroidsImage.height / asteroidFrame.height;
     size_t asteroidFrameCount = int(asteroidCols*asteroidRows) - 11;
     asteroidSequence.first = 0;
-    asteroidSequence.last = asteroidFrameCount - 1;
-    asteroidSequence.timePerFrameMS = 15.0;
+    asteroidSequence.last = asteroidFrameCount - 1;    
     asteroidSequence.currentTimeMS = 0.0;
     for (size_t row = 0; row < asteroidRows; row++) {
         uint32_t y = row * asteroidFrame.height;
@@ -353,12 +352,13 @@ int main(int argc, char** argv)
         float xPos = rand_between(0.0f, (float)width);
         float yPos = rand_between(0.0f, (float)height);
         float zPos = -1.0f * i;
-        glm::vec3 velocity = glm::vec3(rand_between(-1.0, 1.0), rand_between(-1.0, 1.0), 0.0f);
+        glm::vec3 velocity = 1.0f * glm::normalize(glm::vec3(rand_between(-1.0, 1.0), rand_between(-1.0, 1.0), 0.0f));
         uint32_t textureID = 2; // Asteroids
         asteroidSequence.current = (int)rand_between(0.0f, 100.0f); // Start each at a different frame in the spritesheet
+        asteroidSequence.timePerFrameMS = rand_between(10.0, 60.0);
         sprites[i] = {
             glm::vec3(xPos, yPos, zPos), 
-            glm::normalize(velocity),
+            velocity,
             textureID,
             asteroidSequence
         };
@@ -476,13 +476,17 @@ int main(int argc, char** argv)
             gpuSprite->transform = glm::translate(glm::mat4(1), sprite->pos);
 
             sprite->sequence.currentTimeMS += dt;
-            gpuSprite->metaData[0].y = sprite->sequence.current;
+            //gpuSprite->metaData[0].y = sprite->sequence.current;         
             if (sprite->sequence.currentTimeMS >= sprite->sequence.timePerFrameMS) {
                 sprite->sequence.currentTimeMS = 0.0;
                 sprite->sequence.current++;
                 if (sprite->sequence.current > sprite->sequence.last) {
                     sprite->sequence.current = sprite->sequence.first;
                 }
+                glm::mat4 metaData = glm::mat4(0);
+                metaData[0].x = (float)sprite->textureID;
+                metaData[0].y = (float)sprite->sequence.current;
+                gpuSprite->metaData = metaData;
             }
         }        
         uint64_t endUpdateFrameTime = SDL_GetTicks64();
@@ -493,7 +497,7 @@ int main(int argc, char** argv)
                
             VkCommandBuffer currentCmdBuffer = vkal_info->default_command_buffers[image_id];
 
-            vkal_set_clear_color({0.2f, 0.2f, 0.4f, 1.0f});
+            vkal_set_clear_color({0.4f, 0.4f, 0.7f, 1.0f});
 
             vkal_begin_command_buffer(image_id);
             vkal_begin_render_pass(image_id, vkal_info->render_pass);
