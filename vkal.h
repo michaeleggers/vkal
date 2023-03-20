@@ -464,8 +464,8 @@ void upload_texture(VkImage const image, uint32_t w, uint32_t h, uint32_t n, uin
 void create_staging_buffer(uint32_t size);
 VkalBuffer create_buffer(uint32_t size, VkBufferUsageFlags usage);
 VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags);
-VkResult map_memory(VkalBuffer * buffer, VkDeviceSize size, VkDeviceSize offset);
-void unmap_memory(VkalBuffer * buffer);
+void vkal_map_buffer(VkalBuffer* buffer);
+void vkal_unmap_buffer(VkalBuffer * buffer);
 void vkal_update_buffer_offset(VkalBuffer * buffer, uint8_t* data, uint32_t byte_count, uint32_t offset);
 void vkal_update_buffer(VkalBuffer* buffer, uint8_t* data, uint32_t byte_count);
 void create_image(

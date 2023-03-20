@@ -75,6 +75,7 @@ struct GPUSprite {
     // col 0: 
     //       x = textureID, 
     //       y = current frame: Index into the GPUFrame buffer. Init this with 0 for now. If multiple spritesheets exist we need to offset to the correct location in the gpuFrameBuffer!
+    //       z = scale
     glm::mat4  metaData;
 };
 //#pragma pack(pop)
@@ -103,6 +104,7 @@ struct Sprite {
     glm::vec3 velocity;
     uint32_t  textureID;
     Sequence  sequence;
+    float     size;
 };
 
 struct Image
@@ -222,7 +224,7 @@ int main(int argc, char** argv)
     };
     uint32_t vertex_attribute_count = sizeof(vertex_attributes) / sizeof(*vertex_attributes);
 
-    uint32_t numSprites = 500000;
+    uint32_t numSprites = 1000000;
     uint32_t maxTextures = 32;
     /* Descriptor Sets */
     VkDescriptorSetLayoutBinding set_layout[] = 
@@ -270,7 +272,7 @@ int main(int argc, char** argv)
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
         vertex_input_bindings, 0,
         vertex_attributes, 0,
-        shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL,
+        shader_setup, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL,
         VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
         VK_FRONT_FACE_COUNTER_CLOCKWISE,
         vkal_info->render_pass, pipeline_layout);
@@ -352,22 +354,25 @@ int main(int argc, char** argv)
         float xPos = rand_between(0.0f, (float)width);
         float yPos = rand_between(0.0f, (float)height);
         float zPos = -1.0f * i;
+        float size = rand_between(1.0f, 20.0f);
         glm::vec3 velocity = 1.0f * glm::normalize(glm::vec3(rand_between(-1.0, 1.0), rand_between(-1.0, 1.0), 0.0f));
         uint32_t textureID = 2; // Asteroids
         asteroidSequence.current = (int)rand_between(0.0f, 100.0f); // Start each at a different frame in the spritesheet
-        asteroidSequence.timePerFrameMS = rand_between(10.0, 60.0);
+        asteroidSequence.timePerFrameMS = rand_between(1.0, 50.0);
         sprites[i] = {
             glm::vec3(xPos, yPos, zPos), 
             velocity,
             textureID,
-            asteroidSequence
+            asteroidSequence,
+            size
         };
     }
 
     /* Secondly, upload GPU sprite-data to the GPU */
     GPUSprite gpuSpriteData[1]; 
     //gpuSpriteData[1] = { transform1 };
-    float s = 10.0f;
+    vkal_map_buffer(&gpuSpriteBuffer);
+    GPUSprite* gpuSpritePtr = (GPUSprite*)gpuSpriteBuffer.mapped;
     for (size_t i = 0; i < numSprites; i++) {    
         glm::vec3 pos = sprites[i].pos;
         uint32_t textureID = sprites[i].textureID;
@@ -377,14 +382,17 @@ int main(int argc, char** argv)
         glm::mat4 metaData = glm::mat4(0.0);
         metaData[0].x = (float)textureID;
         metaData[0].y = (float)currentFrame;
+        metaData[0].z = sprites[i].size;
         gpuSpriteData[0] = { transform, metaData };
-        vkal_update_buffer_offset(&gpuSpriteBuffer, (uint8_t*)gpuSpriteData, sizeof(GPUSprite), i*sizeof(GPUSprite));
-        unmap_memory(&gpuSpriteBuffer);
-    }
-    map_memory(&gpuSpriteBuffer, numSprites * sizeof(GPUSprite), 0);
+        //vkal_update_buffer_offset(&gpuSpriteBuffer, (uint8_t*)gpuSpriteData, sizeof(GPUSprite), i*sizeof(GPUSprite));
+        memcpy(gpuSpritePtr + i, gpuSpriteData, sizeof(GPUSprite));
+    }        
+    //map_memory(&gpuSpriteBuffer, numSprites * sizeof(GPUSprite), 0);
 
     /* Also upload per-frame data onto the GPU */
     /* We will use the asteroid spritesheet in this example */
+    vkal_map_buffer(&gpuFrameBuffer);
+    GPUFrame* gpuFramePtr = (GPUFrame*)gpuFrameBuffer.mapped;
     for (size_t i = 0; i < asteroidSequence.frames.size(); i++) {
         Frame* frame = &asteroidSequence.frames[i];
         float s = (float)frame->x / (float)asteroidsImage.width;
@@ -392,9 +400,10 @@ int main(int argc, char** argv)
         float width = (float)frame->width / (float)asteroidsImage.width;
         float height = (float)frame->height / (float)asteroidsImage.height;
         GPUFrame gpuFrame = { glm::vec2(s, t), glm::vec2(width, height) };
-        vkal_update_buffer_offset(&gpuFrameBuffer, (uint8_t*)&gpuFrame, sizeof(GPUFrame), i * sizeof(GPUFrame));
-        unmap_memory(&gpuFrameBuffer);
+        //vkal_update_buffer_offset(&gpuFrameBuffer, (uint8_t*)&gpuFrame, sizeof(GPUFrame), i * sizeof(GPUFrame));
+        memcpy(gpuFramePtr + i, &gpuFrame, sizeof(GPUFrame));
     }
+    vkal_unmap_buffer(&gpuFrameBuffer);
     //map_memory(&gpuFrameBuffer, asteroidSequence.frames.size() * sizeof(GPUFrame), 0);
 
     /* Update Descriptor Set */
@@ -429,11 +438,13 @@ int main(int argc, char** argv)
     uint32_t totalVertexCount = numSprites * verticesPerSprite;
     uint64_t end_time = 0;
     bool running = true;
-    double dt = 0.0;
     double titleUpdateTimer = 0.0;
+    uint64_t millisPrevFrame = SDL_GetTicks();
     while (running)
     {
-        uint64_t start_time = SDL_GetTicks64();        
+        double dt = (SDL_GetTicks() - millisPrevFrame);
+        millisPrevFrame = SDL_GetTicks();
+        //printf("Delta Time: %f\n", dt);
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -483,9 +494,11 @@ int main(int argc, char** argv)
                 if (sprite->sequence.current > sprite->sequence.last) {
                     sprite->sequence.current = sprite->sequence.first;
                 }
-                glm::mat4 metaData = glm::mat4(0);
+                glm::mat4 metaData = glm::mat4(0);// gpuSprite->metaData;
                 metaData[0].x = (float)sprite->textureID;
                 metaData[0].y = (float)sprite->sequence.current;
+                metaData[0].z = sprite->size;
+
                 gpuSprite->metaData = metaData;
             }
         }        
@@ -525,18 +538,15 @@ int main(int argc, char** argv)
             vkal_present(image_id);
         }
         
-        //SDL_Delay(6);
+        //SDL_Delay(8);
 
-        end_time = SDL_GetTicks64();
-        dt = (double)end_time - (double)start_time;
         titleUpdateTimer += dt;
         if (titleUpdateTimer > 1000.0) {
             char window_title[256];
-            sprintf(window_title, "frametime: %fms (%f FPS) || UpdateAsteroidTime (ms): %d", dt, 1000.0 / (float)dt, timeUpdateFrame);
+            sprintf(window_title, "frametime: %fms (%f FPS) || UpdateAsteroidTime (ms): %lli", dt, 1000.0 / (float)dt, timeUpdateFrame);
             SDL_SetWindowTitle(window, window_title);
             titleUpdateTimer = 0.0;
         }
-        uint64_t timePassed = end_time - start_time;     
     }
 
 	free(descriptor_sets);
