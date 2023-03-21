@@ -78,7 +78,7 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count)
             vkCmdTraceRays = (PFN_vkCmdTraceRaysKHR)vkGetInstanceProcAddr(vkal_info.instance, "vkCmdTraceRaysKHR"); // TODO: Update GLFW (cannot load fn-ptr for vkCmdTraceRaysKHR!)
 
     #elif defined (VKAL_WIN32)
-            vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
+            //vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
     #elif defined (VKAL_SDL)
             //vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
 #endif

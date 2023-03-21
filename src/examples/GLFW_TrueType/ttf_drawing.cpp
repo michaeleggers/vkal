@@ -465,7 +465,7 @@ int main(int argc, char ** argv)
 					     &index_memory,
 					     VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     VKAL_DBG_BUFFER_NAME(vkal_info->device, index_buffer, "Index Buffer");
-    map_memory(&index_buffer, PRIMITIVES_INDEX_BUFFER_SIZE, 0);
+    vkal_map_buffer(&index_buffer);
 
     DeviceMemory vertex_memory = vkal_allocate_devicememory(PRIMITIVES_VERTEX_BUFFER_SIZE,
 							   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
@@ -477,7 +477,7 @@ int main(int argc, char ** argv)
 					     &vertex_memory,
 					     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	VKAL_DBG_BUFFER_NAME(vkal_info->device, vertex_buffer, "Vertex Buffer");
-    map_memory(&vertex_buffer, PRIMITIVES_VERTEX_BUFFER_SIZE, 0);
+    vkal_map_buffer(&vertex_buffer);
     
     Batch batch = { 0 };
     batch.indices = (uint16_t*)malloc(PRIMITIVES_INDEX_BUFFER_SIZE);

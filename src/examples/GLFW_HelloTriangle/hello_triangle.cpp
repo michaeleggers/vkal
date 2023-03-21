@@ -213,7 +213,7 @@ int main(int argc, char** argv)
             vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
             vkal_draw_indexed(image_id, graphics_pipeline,
                 offset_indices, index_count,
-                offset_vertices);
+                offset_vertices, 1);
             vkal_end_renderpass(image_id);
             vkal_end_command_buffer(image_id);
             VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };

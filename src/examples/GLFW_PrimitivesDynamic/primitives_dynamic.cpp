@@ -169,7 +169,7 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Bruce Lee Test", 0, 0);
+    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Dynamic Primitives", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
     glfwSetMouseButtonCallback(window, glfw_mouse_button_callback);
     width = SCREEN_WIDTH;
@@ -207,7 +207,7 @@ void create_batch(VkalInfo * vkal_info, Batch * batch)
 					    &batch->index_memory,
 					    VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     VKAL_DBG_BUFFER_NAME(vkal_info->device, batch->index_buffer, "Index Buffer");
-    map_memory(&batch->index_buffer, PRIMITIVES_INDEX_BUFFER_SIZE, 0);
+    vkal_map_buffer(&batch->index_buffer);
 
     batch->vertex_memory = vkal_allocate_devicememory(PRIMITIVES_VERTEX_BUFFER_SIZE,
 						     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
@@ -219,7 +219,7 @@ void create_batch(VkalInfo * vkal_info, Batch * batch)
 					     &batch->vertex_memory,
 					     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	VKAL_DBG_BUFFER_NAME(vkal_info->device, batch->vertex_buffer, "Vertex Buffer");
-    map_memory(&batch->vertex_buffer, PRIMITIVES_VERTEX_BUFFER_SIZE, 0);
+    vkal_map_buffer(&batch->vertex_buffer);
     
     batch->indices = (uint16_t*)malloc(PRIMITIVES_INDEX_BUFFER_SIZE);
     batch->vertices = (Vertex*)malloc(PRIMITIVES_VERTEX_BUFFER_SIZE);
