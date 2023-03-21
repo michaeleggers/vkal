@@ -137,7 +137,7 @@ int main(int argc, char ** argv)
     for (uint32_t i = 0; i < device_count; ++i) {
 	printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
-    vkal_select_physical_device(&devices[1]);
+    vkal_select_physical_device(&devices[0]);
     VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
     
     /* Shader Setup */
@@ -315,11 +315,11 @@ int main(int argc, char ** argv)
 	    vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, 0);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
-			      offset_vertices);
+			      offset_vertices, 1);
 	    vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, material_ubo.alignment);
 	    vkal_draw_indexed(image_id, graphics_pipeline,
 			      offset_indices, index_count,
-			      offset_vertices);
+			      offset_vertices, 1);
 	    vkal_end_renderpass(image_id);
 	    
 	    vkal_end_command_buffer(image_id);

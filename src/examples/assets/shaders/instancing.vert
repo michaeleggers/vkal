@@ -69,13 +69,14 @@ void main()
     vec2 uv = frame.uv + uvOffset*frame.widthHeight;
     // vec2 uv = getUV(spriteData);
 
+
     mat4 transform = spriteData.transform;
     transform[3].y = perFrameData.screenHeight-transform[3].y;
 
-    float scale = 20.0;
+    float scale = spriteData.metaData[0].z;
     vec4 worldPos = transform * vec4(scale*pos, 1.0);
     
     out_textureID = uint(spriteData.metaData[0].x);
-    out_UV = uvOffset;
+    out_UV = uv;
 	gl_Position = perFrameData.proj * worldPos;
 }

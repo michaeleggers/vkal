@@ -25,6 +25,7 @@
 
 #include "platform.h"
 #include "glslcompile.h"
+#include "common.h"
 
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 768
@@ -178,7 +179,7 @@ int main(int argc, char** argv)
     for (uint32_t i = 0; i < device_count; ++i) {
         printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
-    vkal_select_physical_device(&devices[1]);
+    vkal_select_physical_device(&devices[0]);
     VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count);
 
     init_imgui(vkal_info);
@@ -300,7 +301,7 @@ int main(int argc, char** argv)
 
 		int width, height;
         glfwGetFramebufferSize(window, &width, &height);
-		view_proj_data.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+		view_proj_data.proj =  adjust_y_for_vulkan_ndc * glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
 		vkal_update_uniform(&view_proj_ub, &view_proj_data);
 
         // Start the Dear ImGui frame
@@ -354,7 +355,7 @@ int main(int argc, char** argv)
             vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
             vkal_draw_indexed(image_id, graphics_pipeline,
                 offset_indices, index_count,
-                offset_vertices);
+                offset_vertices, 1);
 
             // Rendering ImGUI
             ImGui::Render();

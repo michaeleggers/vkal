@@ -273,13 +273,13 @@ int main(int argc, char ** argv)
 						VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), (void*)&texture_indices[0]);
 			vkal_draw_indexed(image_id, graphics_pipeline,
 						offset_indices, index_count,
-						offset_vertices);
+						offset_vertices, 1);
 
 			vkCmdPushConstants(vkal_info->default_command_buffers[image_id], pipeline_layout,
 						VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), (void*)&texture_indices[1]);
 			vkal_draw_indexed(image_id, graphics_pipeline,
 						offset_indices, index_count,
-						offset_vertices);
+						offset_vertices, 1);
 			vkal_end_renderpass(image_id);
 	    
 			vkal_end_command_buffer(image_id);

@@ -387,7 +387,7 @@ int main(int argc, char ** argv)
                 if (model_to_draw.is_indexed) {
                     vkal_draw_indexed(image_id, graphics_pipeline,
                               model_to_draw.index_buffer_offset, model_to_draw.index_count,
-                              model_to_draw.vertex_buffer_offset);
+                              model_to_draw.vertex_buffer_offset, 1);
                 }
                 else {
                     vkal_draw(image_id, graphics_pipeline,

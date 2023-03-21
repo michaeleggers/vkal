@@ -264,50 +264,50 @@ int main(int argc, char ** argv)
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
-	glfwPollEvents();
+	    glfwPollEvents();
 
-	{
-	    uint32_t image_id = vkal_get_image();
+	    {
+	        uint32_t image_id = vkal_get_image();
 
-	    vkal_begin_command_buffer(image_id);
+	        vkal_begin_command_buffer(image_id);
 
-	    vkal_begin_render_to_image_render_pass(image_id, vkal_info->default_command_buffers[image_id],
-						   vkal_info->render_to_image_render_pass, render_image);
-	    vkal_viewport(vkal_info->default_command_buffers[image_id], 0, 0, render_image.width, render_image.height);
-	    vkal_scissor(vkal_info->default_command_buffers[image_id], 0, 0, render_image.width, render_image.height);
-	    vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
-	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, index_count,
-			      offset_vertices);
-	    vkal_end_renderpass(image_id);
+	        vkal_begin_render_to_image_render_pass(image_id, vkal_info->default_command_buffers[image_id],
+						       vkal_info->render_to_image_render_pass, render_image);
+	        vkal_viewport(vkal_info->default_command_buffers[image_id], 0, 0, render_image.width, render_image.height);
+	        vkal_scissor(vkal_info->default_command_buffers[image_id], 0, 0, render_image.width, render_image.height);
+	        vkal_bind_descriptor_set(image_id, &descriptor_sets[0], pipeline_layout);
+	        vkal_draw_indexed(image_id, graphics_pipeline,
+			          offset_indices, index_count,
+			          offset_vertices, 1);
+	        vkal_end_renderpass(image_id);
 
-	    vkal_begin_render_to_image_render_pass(image_id, vkal_info->default_command_buffers[image_id],
-						   vkal_info->render_to_image_render_pass, render_image2);
-	    vkal_viewport(vkal_info->default_command_buffers[image_id], 0, 0, render_image2.width, render_image2.height);
-	    vkal_scissor(vkal_info->default_command_buffers[image_id], 0, 0, render_image2.width, render_image2.height);
-	    vkal_bind_descriptor_set(image_id, &descriptor_sets[1], pipeline_layout);
-	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, index_count,
-			      offset_vertices);
-	    vkal_end_renderpass(image_id);
+	        vkal_begin_render_to_image_render_pass(image_id, vkal_info->default_command_buffers[image_id],
+						       vkal_info->render_to_image_render_pass, render_image2);
+	        vkal_viewport(vkal_info->default_command_buffers[image_id], 0, 0, render_image2.width, render_image2.height);
+	        vkal_scissor(vkal_info->default_command_buffers[image_id], 0, 0, render_image2.width, render_image2.height);
+	        vkal_bind_descriptor_set(image_id, &descriptor_sets[1], pipeline_layout);
+	        vkal_draw_indexed(image_id, graphics_pipeline,
+			          offset_indices, index_count,
+			          offset_vertices, 1);
+	        vkal_end_renderpass(image_id);
 
-	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->default_command_buffers[image_id], 0, 0,
-			  2*image2.width, 2*image2.height);
-	    vkal_scissor(vkal_info->default_command_buffers[image_id], 0, 0,
-			 vkal_info->swapchain_extent.width, vkal_info->swapchain_extent.height);
-	    vkal_bind_descriptor_set(image_id, &descriptor_sets[2], pipeline_layout_composite);
-	    vkal_draw_indexed(image_id, graphics_pipeline_composite,
-			      offset_indices, index_count,
-			      offset_vertices);
-	    vkal_end_renderpass(image_id);
+	        vkal_begin_render_pass(image_id, vkal_info->render_pass);
+	        vkal_viewport(vkal_info->default_command_buffers[image_id], 0, 0,
+			      2*image2.width, 2*image2.height);
+	        vkal_scissor(vkal_info->default_command_buffers[image_id], 0, 0,
+			     vkal_info->swapchain_extent.width, vkal_info->swapchain_extent.height);
+	        vkal_bind_descriptor_set(image_id, &descriptor_sets[2], pipeline_layout_composite);
+	        vkal_draw_indexed(image_id, graphics_pipeline_composite,
+			          offset_indices, index_count,
+			          offset_vertices, 1);
+	        vkal_end_renderpass(image_id);
 	    
-	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
-	    vkal_queue_submit(command_buffers1, 1);
+	        vkal_end_command_buffer(image_id);
+	        VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
+	        vkal_queue_submit(command_buffers1, 1);
 
-	    vkal_present(image_id);
-	}
+	        vkal_present(image_id);
+	    }
     }
     
     vkal_cleanup();

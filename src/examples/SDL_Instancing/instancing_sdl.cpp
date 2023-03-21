@@ -75,6 +75,7 @@ struct GPUSprite {
     // col 0: 
     //       x = textureID, 
     //       y = current frame: Index into the GPUFrame buffer. Init this with 0 for now. If multiple spritesheets exist we need to offset to the correct location in the gpuFrameBuffer!
+    //       z = scale
     glm::mat4  metaData;
 };
 //#pragma pack(pop)
@@ -94,6 +95,8 @@ struct Sequence {
     uint32_t            first;
     uint32_t            last;
     uint32_t            current;
+    double              timePerFrameMS;
+    double              currentTimeMS;
 };
 
 struct Sprite {
@@ -101,6 +104,7 @@ struct Sprite {
     glm::vec3 velocity;
     uint32_t  textureID;
     Sequence  sequence;
+    float     size;
 };
 
 struct Image
@@ -220,7 +224,7 @@ int main(int argc, char** argv)
     };
     uint32_t vertex_attribute_count = sizeof(vertex_attributes) / sizeof(*vertex_attributes);
 
-    uint32_t numSprites = 5000;
+    uint32_t numSprites = 1000000;
     uint32_t maxTextures = 32;
     /* Descriptor Sets */
     VkDescriptorSetLayoutBinding set_layout[] = 
@@ -268,7 +272,7 @@ int main(int argc, char** argv)
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
         vertex_input_bindings, 0,
         vertex_attributes, 0,
-        shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL,
+        shader_setup, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL,
         VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
         VK_FRONT_FACE_COUNTER_CLOCKWISE,
         vkal_info->render_pass, pipeline_layout);
@@ -314,7 +318,7 @@ int main(int argc, char** argv)
         numSprites * sizeof(GPUSprite), 
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-        VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT);
+        0);
     VkalBuffer gpuSpriteBuffer = vkal_create_buffer(numSprites * sizeof(GPUSprite), &gpuSpriteDeviceMem, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
     /* Storage buffer for Frame Data: Stores a sequence of frames */
@@ -322,7 +326,7 @@ int main(int argc, char** argv)
         MAX_GPU_FRAMES * sizeof(GPUFrame),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-        VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT);
+        0);
     VkalBuffer gpuFrameBuffer = vkal_create_buffer(MAX_GPU_FRAMES * sizeof(GPUFrame), &gpuFrameDeviceMem, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
     /* Create a sequence, that holds all the frames the sprites need to cycle through */
@@ -332,13 +336,13 @@ int main(int argc, char** argv)
     uint32_t asteroidRows = asteroidsImage.height / asteroidFrame.height;
     size_t asteroidFrameCount = int(asteroidCols*asteroidRows) - 11;
     asteroidSequence.first = 0;
-    asteroidSequence.last = asteroidFrameCount - 1;
-    asteroidSequence.current = 0;
+    asteroidSequence.last = asteroidFrameCount - 1;    
+    asteroidSequence.currentTimeMS = 0.0;
     for (size_t row = 0; row < asteroidRows; row++) {
         uint32_t y = row * asteroidFrame.height;
         asteroidFrame.y = y;
         for (size_t col = 0; col < asteroidCols; col++) {
-            uint32_t x = col * asteroidFrame.width % asteroidsImage.width;
+            uint32_t x = (col * asteroidFrame.width) % asteroidsImage.width;
             asteroidFrame.x = x;
             asteroidSequence.frames.push_back(asteroidFrame);
         }        
@@ -350,20 +354,25 @@ int main(int argc, char** argv)
         float xPos = rand_between(0.0f, (float)width);
         float yPos = rand_between(0.0f, (float)height);
         float zPos = -1.0f * i;
-        glm::vec3 velocity = glm::vec3(rand_between(-1.0, 1.0), rand_between(-1.0, 1.0), 0.0f);
-        uint32_t textureID = 0; // Asteroids
+        float size = rand_between(1.0f, 20.0f);
+        glm::vec3 velocity = 1.0f * glm::normalize(glm::vec3(rand_between(-1.0, 1.0), rand_between(-1.0, 1.0), 0.0f));
+        uint32_t textureID = 2; // Asteroids
+        asteroidSequence.current = (int)rand_between(0.0f, 100.0f); // Start each at a different frame in the spritesheet
+        asteroidSequence.timePerFrameMS = rand_between(1.0, 50.0);
         sprites[i] = {
             glm::vec3(xPos, yPos, zPos), 
-            glm::normalize(velocity),
+            velocity,
             textureID,
-            asteroidSequence
+            asteroidSequence,
+            size
         };
     }
 
     /* Secondly, upload GPU sprite-data to the GPU */
     GPUSprite gpuSpriteData[1]; 
     //gpuSpriteData[1] = { transform1 };
-    float s = 10.0f;
+    vkal_map_buffer(&gpuSpriteBuffer);
+    GPUSprite* gpuSpritePtr = (GPUSprite*)gpuSpriteBuffer.mapped;
     for (size_t i = 0; i < numSprites; i++) {    
         glm::vec3 pos = sprites[i].pos;
         uint32_t textureID = sprites[i].textureID;
@@ -373,29 +382,36 @@ int main(int argc, char** argv)
         glm::mat4 metaData = glm::mat4(0.0);
         metaData[0].x = (float)textureID;
         metaData[0].y = (float)currentFrame;
+        metaData[0].z = sprites[i].size;
         gpuSpriteData[0] = { transform, metaData };
-        vkal_update_buffer_offset(&gpuSpriteBuffer, (uint8_t*)gpuSpriteData, sizeof(GPUSprite), i*sizeof(GPUSprite));
-        unmap_memory(&gpuSpriteBuffer);
-    }
-    map_memory(&gpuSpriteBuffer, numSprites * sizeof(GPUSprite), 0);
+        //vkal_update_buffer_offset(&gpuSpriteBuffer, (uint8_t*)gpuSpriteData, sizeof(GPUSprite), i*sizeof(GPUSprite));
+        memcpy(gpuSpritePtr + i, gpuSpriteData, sizeof(GPUSprite));
+    }        
+    //map_memory(&gpuSpriteBuffer, numSprites * sizeof(GPUSprite), 0);
 
     /* Also upload per-frame data onto the GPU */
     /* We will use the asteroid spritesheet in this example */
+    vkal_map_buffer(&gpuFrameBuffer);
+    GPUFrame* gpuFramePtr = (GPUFrame*)gpuFrameBuffer.mapped;
     for (size_t i = 0; i < asteroidSequence.frames.size(); i++) {
         Frame* frame = &asteroidSequence.frames[i];
         float s = (float)frame->x / (float)asteroidsImage.width;
         float t = (float)frame->y / (float)asteroidsImage.height;
-        GPUFrame gpuFrame = { glm::vec2(s, t), glm::vec2((float)frame->width, (float)frame->height) };
-        vkal_update_buffer_offset(&gpuFrameBuffer, (uint8_t*)&gpuFrame, sizeof(GPUFrame), i * sizeof(GPUFrame));
-        unmap_memory(&gpuFrameBuffer);
+        float width = (float)frame->width / (float)asteroidsImage.width;
+        float height = (float)frame->height / (float)asteroidsImage.height;
+        GPUFrame gpuFrame = { glm::vec2(s, t), glm::vec2(width, height) };
+        //vkal_update_buffer_offset(&gpuFrameBuffer, (uint8_t*)&gpuFrame, sizeof(GPUFrame), i * sizeof(GPUFrame));
+        memcpy(gpuFramePtr + i, &gpuFrame, sizeof(GPUFrame));
     }
+    vkal_unmap_buffer(&gpuFrameBuffer);
+    //map_memory(&gpuFrameBuffer, asteroidSequence.frames.size() * sizeof(GPUFrame), 0);
 
     /* Update Descriptor Set */
     for (size_t i = 0; i < numSprites; i++) {
         vkal_update_descriptor_set_bufferarray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, i, gpuSpriteBuffer);
     }
     for (size_t i = 0; i < MAX_GPU_FRAMES; i++) {
-        vkal_update_descriptor_set_bufferarray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, i, gpuFrameBuffer);
+        vkal_update_descriptor_set_bufferarray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, i, gpuFrameBuffer);        
     }
     for (size_t i = 0; i < maxTextures; i++) { // Update all so Vulkan does not complain
         vkal_update_descriptor_set_texturearray(descriptor_sets[0], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, i, vulkanTexture);
@@ -420,12 +436,15 @@ int main(int argc, char** argv)
     // Main Loop
     uint32_t verticesPerSprite = 6;
     uint32_t totalVertexCount = numSprites * verticesPerSprite;
+    uint64_t end_time = 0;
     bool running = true;
-    double dt = 0.0;
     double titleUpdateTimer = 0.0;
+    uint64_t millisPrevFrame = SDL_GetTicks();
     while (running)
     {
-        uint64_t start_time = SDL_GetTicks64();
+        double dt = (SDL_GetTicks() - millisPrevFrame);
+        millisPrevFrame = SDL_GetTicks();
+        //printf("Delta Time: %f\n", dt);
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -455,23 +474,43 @@ int main(int argc, char** argv)
 		vkal_update_uniform(&perFrameUniformBuffer, &perFrameData);
 
         /* Update Sprites (game logic) and update on GPU */
+        uint64_t timeUpdateFrame = 0;
+        uint64_t startUpdateFrameTime = SDL_GetTicks64();
         for (size_t i = 0; i < numSprites; i++) {
             Sprite* sprite = &sprites[i];
+            GPUSprite* gpuSprite = (GPUSprite*)gpuSpriteBuffer.mapped + i;
+            
             if (sprite->pos.x >= width || sprite->pos.x < 0.0) sprite->velocity.x *= -1.0;
             if (sprite->pos.y >= height || sprite->pos.y < 0.0) sprite->velocity.y *= -1.0;
             sprite->pos.x += sprite->velocity.x;
             sprite->pos.y += sprite->velocity.y;
-            GPUSprite* gpuSprite = (GPUSprite*)gpuSpriteBuffer.mapped + i;
             gpuSprite->transform = glm::translate(glm::mat4(1), sprite->pos);
-        }
 
-        {
-            //vkDeviceWaitIdle(vkal_info->device);
+            sprite->sequence.currentTimeMS += dt;
+            //gpuSprite->metaData[0].y = sprite->sequence.current;         
+            if (sprite->sequence.currentTimeMS >= sprite->sequence.timePerFrameMS) {
+                sprite->sequence.currentTimeMS = 0.0;
+                sprite->sequence.current++;
+                if (sprite->sequence.current > sprite->sequence.last) {
+                    sprite->sequence.current = sprite->sequence.first;
+                }
+                glm::mat4 metaData = glm::mat4(0);// gpuSprite->metaData;
+                metaData[0].x = (float)sprite->textureID;
+                metaData[0].y = (float)sprite->sequence.current;
+                metaData[0].z = sprite->size;
+
+                gpuSprite->metaData = metaData;
+            }
+        }        
+        uint64_t endUpdateFrameTime = SDL_GetTicks64();
+        timeUpdateFrame = endUpdateFrameTime - startUpdateFrameTime;
+
+        {      
             uint32_t image_id = vkal_get_image();
                
             VkCommandBuffer currentCmdBuffer = vkal_info->default_command_buffers[image_id];
 
-            vkal_set_clear_color({0.2f, 0.2f, 0.2f, 1.0f});
+            vkal_set_clear_color({0.4f, 0.4f, 0.7f, 1.0f});
 
             vkal_begin_command_buffer(image_id);
             vkal_begin_render_pass(image_id, vkal_info->render_pass);
@@ -498,14 +537,13 @@ int main(int argc, char** argv)
 
             vkal_present(image_id);
         }
+        
+        //SDL_Delay(8);
 
-        uint64_t end_time = SDL_GetTicks64();
-        uint64_t timePassed = end_time - start_time;     
-        dt = (double)end_time - (double)start_time;
-        titleUpdateTimer += (double)dt;
+        titleUpdateTimer += dt;
         if (titleUpdateTimer > 1000.0) {
             char window_title[256];
-            sprintf(window_title, "frametime: %fms (%f FPS)", dt, 1000.0/dt);            
+            sprintf(window_title, "frametime: %fms (%f FPS) || UpdateAsteroidTime (ms): %lli", dt, 1000.0 / (float)dt, timeUpdateFrame);
             SDL_SetWindowTitle(window, window_title);
             titleUpdateTimer = 0.0;
         }
