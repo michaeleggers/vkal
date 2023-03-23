@@ -199,7 +199,19 @@ int main(int argc, char** argv)
         printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
     vkal_select_physical_device(&devices[0]);
-    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count);
+    
+    VkalWantedFeatures vulkan_features{};
+    vulkan_features.features11.shaderDrawParameters = VK_TRUE;
+    vulkan_features.features11.uniformAndStorageBuffer16BitAccess = VK_TRUE;
+    vulkan_features.features11.storageBuffer16BitAccess = VK_TRUE;
+    vulkan_features.features12.bufferDeviceAddress = VK_TRUE;
+    vulkan_features.features12.uniformAndStorageBuffer8BitAccess = VK_TRUE;
+    vulkan_features.features12.runtimeDescriptorArray = VK_TRUE;
+    vulkan_features.features12.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
+    vulkan_features.features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    vulkan_features.features12.descriptorIndexing = VK_TRUE;
+
+    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count, vulkan_features);
 
     /* Shader Setup */
     uint8_t* vertex_byte_code = 0;

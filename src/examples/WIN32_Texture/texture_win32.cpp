@@ -163,7 +163,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
     vkal_select_physical_device(&devices[0]);
-    VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
+
+	VkalWantedFeatures vulkan_features{};
+    VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count, vulkan_features);
     
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;

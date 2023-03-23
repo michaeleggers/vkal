@@ -138,7 +138,19 @@ int main(int argc, char ** argv)
 	printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
     vkal_select_physical_device(&devices[0]);
-    VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
+
+    VkalWantedFeatures vulkan_features{};
+    //vulkan_features.features11.shaderDrawParameters = VK_TRUE;
+    //vulkan_features.features11.uniformAndStorageBuffer16BitAccess = VK_TRUE;
+    //vulkan_features.features11.storageBuffer16BitAccess = VK_TRUE;
+    //vulkan_features.features12.bufferDeviceAddress = VK_TRUE;
+    //vulkan_features.features12.uniformAndStorageBuffer8BitAccess = VK_TRUE;
+    vulkan_features.features12.runtimeDescriptorArray = VK_TRUE;
+    //vulkan_features.features12.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
+    //vulkan_features.features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    //vulkan_features.features12.descriptorIndexing = VK_TRUE;
+
+    VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count, vulkan_features);
     
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
@@ -294,46 +306,43 @@ int main(int argc, char ** argv)
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
-	glfwPollEvents();
+	    glfwPollEvents();
 	
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
-	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
+	    int width, height;
+	    glfwGetFramebufferSize(window, &width, &height);
+	    view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
+	    vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
-	{
-	    uint32_t image_id = vkal_get_image();
+	    {
+	        uint32_t image_id = vkal_get_image();
 
-	    vkal_begin_command_buffer(image_id);
-	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->default_command_buffers[image_id],
-			  0, 0,
-			  width, height);
-	    vkal_scissor(vkal_info->default_command_buffers[image_id],
-			 0, 0,
-			 width, height);
-	    vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, 0);
-	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, index_count,
-			      offset_vertices, 1);
-	    vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, material_ubo.alignment);
-	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, index_count,
-			      offset_vertices, 1);
-	    vkal_end_renderpass(image_id);
+	        vkal_begin_command_buffer(image_id);
+	        vkal_begin_render_pass(image_id, vkal_info->render_pass);
+	        vkal_viewport(vkal_info->default_command_buffers[image_id],
+			      0, 0,
+			      width, height);
+	        vkal_scissor(vkal_info->default_command_buffers[image_id],
+			     0, 0,
+			     width, height);
+	        vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, 0);
+	        vkal_draw_indexed(image_id, graphics_pipeline,
+			          offset_indices, index_count,
+			          offset_vertices, 1);
+	        vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, material_ubo.alignment);
+	        vkal_draw_indexed(image_id, graphics_pipeline,
+			          offset_indices, index_count,
+			          offset_vertices, 1);
+	        vkal_end_renderpass(image_id);
 	    
-	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
-	    vkal_queue_submit(command_buffers1, 1);
+	        vkal_end_command_buffer(image_id);
+	        VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
+	        vkal_queue_submit(command_buffers1, 1);
 
-	    vkal_present(image_id);
-	}
+	        vkal_present(image_id);
+	    }
     }       
     
-    vkal_cleanup();
-
-    glfwDestroyWindow(window);
- 
-    
+    vkal_cleanup();    
+     
     return 0;
 }
