@@ -319,7 +319,5 @@ int main(int argc, char ** argv)
     
     vkal_cleanup();
 
-    glfwDestroyWindow(window);
-       
     return 0;
 }

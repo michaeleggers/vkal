@@ -103,7 +103,7 @@ int main(int argc, char ** argv)
     assert(device_count > 0);
     printf("Suitable Devices:\n");
     for (uint32_t i = 0; i < device_count; ++i) {
-	printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
+	    printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
     vkal_select_physical_device(&devices[0]);
     VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
@@ -312,7 +312,5 @@ int main(int argc, char ** argv)
     
     vkal_cleanup();
 
-    glfwDestroyWindow(window);
- 
     return 0;
 }

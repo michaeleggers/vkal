@@ -101,23 +101,23 @@ int main(int argc, char ** argv)
     init_window();
     
     char * device_extensions[] = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	VK_KHR_MAINTENANCE3_EXTENSION_NAME
-//	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME /* is core already in Vulkan 1.2, not necessary */
+	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	    VK_KHR_MAINTENANCE3_EXTENSION_NAME
+    //	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME /* is core already in Vulkan 1.2, not necessary */
     };
     uint32_t device_extension_count = sizeof(device_extensions) / sizeof(*device_extensions);
 
     char * instance_extensions[] = {
-	VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
-#ifdef _DEBUG
-	,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-#endif
+	    VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+    #ifdef _DEBUG
+	    ,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+    #endif
     };
     uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
 
     char * instance_layers[] = {
-	"VK_LAYER_KHRONOS_validation", //"VK_LAYER_LUNARG_standard_validation", <- deprecated!
-	"VK_LAYER_LUNARG_monitor"
+	    "VK_LAYER_KHRONOS_validation", //"VK_LAYER_LUNARG_standard_validation", <- deprecated!
+	    "VK_LAYER_LUNARG_monitor"
     };
     uint32_t instance_layer_count = 0;
 #ifdef _DEBUG
@@ -135,7 +135,7 @@ int main(int argc, char ** argv)
     assert(device_count > 0);
     printf("Suitable Devices:\n");
     for (uint32_t i = 0; i < device_count; ++i) {
-	printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
+	    printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
     vkal_select_physical_device(&devices[0]);
     VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count);
@@ -294,45 +294,43 @@ int main(int argc, char ** argv)
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
-	glfwPollEvents();
+	    glfwPollEvents();
 	
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-	view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
-	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
+	    int width, height;
+	    glfwGetFramebufferSize(window, &width, &height);
+	    view_proj_data.proj = perspective( tr_radians(45.f), (float)width/(float)height, 0.1f, 100.f );
+	    vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
-	{
-	    uint32_t image_id = vkal_get_image();
+	    {
+	        uint32_t image_id = vkal_get_image();
 
-	    vkal_begin_command_buffer(image_id);
-	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->default_command_buffers[image_id],
-			  0, 0,
-			  width, height);
-	    vkal_scissor(vkal_info->default_command_buffers[image_id],
-			 0, 0,
-			 width, height);
-	    vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, 0);
-	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, index_count,
-			      offset_vertices, 1);
-	    vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, material_ubo.alignment);
-	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, index_count,
-			      offset_vertices, 1);
-	    vkal_end_renderpass(image_id);
+	        vkal_begin_command_buffer(image_id);
+	        vkal_begin_render_pass(image_id, vkal_info->render_pass);
+	        vkal_viewport(vkal_info->default_command_buffers[image_id],
+			      0, 0,
+			      width, height);
+	        vkal_scissor(vkal_info->default_command_buffers[image_id],
+			     0, 0,
+			     width, height);
+	        vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, 0);
+	        vkal_draw_indexed(image_id, graphics_pipeline,
+			          offset_indices, index_count,
+			          offset_vertices, 1);
+	        vkal_bind_descriptor_set_dynamic(image_id, &descriptor_sets[0], pipeline_layout, material_ubo.alignment);
+	        vkal_draw_indexed(image_id, graphics_pipeline,
+			          offset_indices, index_count,
+			          offset_vertices, 1);
+	        vkal_end_renderpass(image_id);
 	    
-	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
-	    vkal_queue_submit(command_buffers1, 1);
+	        vkal_end_command_buffer(image_id);
+	        VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
+	        vkal_queue_submit(command_buffers1, 1);
 
-	    vkal_present(image_id);
-	}
+	        vkal_present(image_id);
+	    }
     }       
     
-    vkal_cleanup();
-
-    glfwDestroyWindow(window);
+    vkal_cleanup();   
  
     
     return 0;

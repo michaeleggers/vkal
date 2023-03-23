@@ -3206,6 +3206,8 @@ VkDeviceAddress vkal_get_buffer_device_address(VkBuffer buffer)
 
 void vkal_cleanup(void) {
 
+
+
     vkQueueWaitIdle(vkal_info.graphics_queue);
     
     VKAL_FREE(vkal_info.available_instance_extensions);
@@ -3213,35 +3215,17 @@ void vkal_cleanup(void) {
     VKAL_FREE(vkal_info.physical_devices);
     VKAL_FREE(vkal_info.suitable_devices);
     
+    cleanup_swapchain();
 
-    for (uint32_t i = 0; i < vkal_info.swapchain_image_count; ++i) {
-		vkDestroyImageView(vkal_info.device, vkal_info.swapchain_image_views[i], 0);
-    }
-    for (uint32_t i = 0; i < vkal_info.framebuffer_count; ++i) {
-		vkDestroyFramebuffer(vkal_info.device, vkal_info.framebuffers[i], 0);
-    }
     vkDestroyRenderPass(vkal_info.device, vkal_info.render_pass, 0);
     vkDestroyRenderPass(vkal_info.device, vkal_info.render_to_image_render_pass, 0);
 
-    vkDestroySwapchainKHR(vkal_info.device, vkal_info.swapchain, 0);
-
-#if defined (VKAL_GLFW)
-    glfwDestroyWindow(vkal_info.window);
-#elif defined (VKAL_WIN32)
-	DestroyWindow(vkal_info.window);
-#elif defined (VKAL_SDL)
-
-#endif
-
-    vkDestroySurfaceKHR(vkal_info.instance, vkal_info.surface, 0);
-	
     for (uint32_t i = 0; i < vkal_info.default_commandpool_count; ++i) {
 		vkFreeCommandBuffers(vkal_info.device, vkal_info.default_command_pools[0], 1, &vkal_info.default_command_buffers[i]);
     }
     for (uint32_t i = 0; i < vkal_info.default_commandpool_count; ++i) {
 		vkDestroyCommandPool(vkal_info.device, vkal_info.default_command_pools[i], 0);
     }
-
 	
     for (uint32_t i = 0; i < VKAL_MAX_VKDEVICEMEMORY; ++i) {
         vkal_destroy_device_memory(i);
@@ -3295,6 +3279,15 @@ void vkal_cleanup(void) {
 
     vkDestroyDescriptorPool(vkal_info.device, vkal_info.default_descriptor_pool, 0);
     
+    vkDestroySurfaceKHR(vkal_info.instance, vkal_info.surface, 0);
+
+#if defined (VKAL_GLFW)
+    glfwDestroyWindow(vkal_info.window);
+#elif defined (VKAL_WIN32)
+    DestroyWindow(vkal_info.window);
+#elif defined (VKAL_SDL)
+
+#endif
     vkDestroyDevice(vkal_info.device, 0);
     vkDestroyInstance(vkal_info.instance, 0);
 

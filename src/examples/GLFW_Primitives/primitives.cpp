@@ -340,39 +340,37 @@ int main(int argc, char ** argv)
     // Main Loop
     while (!glfwWindowShouldClose(window))
     {
-	glfwPollEvents();
+	    glfwPollEvents();
 
-	glfwGetFramebufferSize(window, &width, &height);
-	view_proj_data.proj = ortho(0, width, height, 0, 0.1f, 2.f);
-	vkal_update_uniform(&view_proj_ubo, &view_proj_data);
+	    glfwGetFramebufferSize(window, &width, &height);
+	    view_proj_data.proj = ortho(0, width, height, 0, 0.1f, 2.f);
+	    vkal_update_uniform(&view_proj_ubo, &view_proj_data);
 
-	{
-	    uint32_t image_id = vkal_get_image();
+	    {
+	        uint32_t image_id = vkal_get_image();
 
-	    vkal_begin_command_buffer(image_id);
-	    vkal_begin_render_pass(image_id, vkal_info->render_pass);
-	    vkal_viewport(vkal_info->default_command_buffers[image_id],
-			  0, 0,
-			  width, height);
-	    vkal_scissor(vkal_info->default_command_buffers[image_id],
-			 0, 0,
-			 width, height);
-	    vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
-	    vkal_draw_indexed(image_id, graphics_pipeline,
-			      offset_indices, batch.index_count,
-			      offset_vertices, 1);
-	    vkal_end_renderpass(image_id);
-	    vkal_end_command_buffer(image_id);
-	    VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
-	    vkal_queue_submit(command_buffers1, 1);
+	        vkal_begin_command_buffer(image_id);
+	        vkal_begin_render_pass(image_id, vkal_info->render_pass);
+	        vkal_viewport(vkal_info->default_command_buffers[image_id],
+			      0, 0,
+			      width, height);
+	        vkal_scissor(vkal_info->default_command_buffers[image_id],
+			     0, 0,
+			     width, height);
+	        vkal_bind_descriptor_set(image_id, &descriptor_set[0], pipeline_layout);
+	        vkal_draw_indexed(image_id, graphics_pipeline,
+			          offset_indices, batch.index_count,
+			          offset_vertices, 1);
+	        vkal_end_renderpass(image_id);
+	        vkal_end_command_buffer(image_id);
+	        VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
+	        vkal_queue_submit(command_buffers1, 1);
 
-	    vkal_present(image_id);
-	}
+	        vkal_present(image_id);
+	    }
     }
     
     vkal_cleanup();
 
-    glfwDestroyWindow(window);
- 
     return 0;
 }
