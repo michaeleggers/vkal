@@ -199,7 +199,11 @@ int main(int argc, char** argv)
         printf("    Phyiscal Device %d: %s\n", i, devices[i].property.deviceName);
     }
     vkal_select_physical_device(&devices[0]);
-    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count);
+    
+    VkalWantedFeatures vulkan_features{};
+    vulkan_features.features12.runtimeDescriptorArray = VK_TRUE;
+    vulkan_features.features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count, vulkan_features);
 
     /* Shader Setup */
     uint8_t* vertex_byte_code = 0;
@@ -224,7 +228,7 @@ int main(int argc, char** argv)
     };
     uint32_t vertex_attribute_count = sizeof(vertex_attributes) / sizeof(*vertex_attributes);
 
-    uint32_t numSprites = 1000000;
+    uint32_t numSprites = 100000;
     uint32_t maxTextures = 32;
     /* Descriptor Sets */
     VkDescriptorSetLayoutBinding set_layout[] = 

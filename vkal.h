@@ -50,7 +50,7 @@
 #define VKAL_MAX_VKSAMPLER				128
 #define VKAL_MAX_TEXTURES				10
 #define VKAL_MAX_VKFRAMEBUFFER			64
-#define VKAL_VSYNC_ON					0
+#define VKAL_VSYNC_ON					1
 #define VKAL_SHADOW_MAP_DIMENSION		2048
 
 // TODO: Error code to string
@@ -64,6 +64,11 @@
         }                                                                                   \
     } while (0);
  
+#define VKAL_CHECK_FEATURE(requested, available)                                \
+    if (requested & !available) {                                               \
+        printf("[VKAL]: Feature not supported: " #requested "\n");              \
+        abort();                                                                \
+    }                                                                           \
 
 #define VKAL_MALLOC(pointer, count) pointer = malloc(count * sizeof(*pointer))
 
@@ -227,6 +232,13 @@ typedef struct VkalAccelerationStructure
     VkalBuffer buffer;
 } VkalAccelerationStructure;
 
+typedef struct VkalWantedFeatures {
+    VkPhysicalDeviceVulkan11Features                    features11;
+    VkPhysicalDeviceVulkan12Features                    features12;
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR       rayTracingPipelineFeatures;
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR    accelerationStructureFeatures;
+} VkalWantedFeatures;
+
 typedef struct VkalInfo
 {
     
@@ -358,7 +370,7 @@ typedef struct SwapChainSupportDetails {
 extern "C"{
 #endif 
 
-VkalInfo * vkal_init(char ** extensions, uint32_t extension_count);
+VkalInfo* vkal_init(char** extensions, uint32_t extension_count, VkalWantedFeatures vulkan_features);
 
 #if defined (VKAL_GLFW)
 	void vkal_create_instance_glfw(
@@ -387,7 +399,7 @@ int check_instance_layer_support(
 int check_instance_extension_support(
 	char const * requested_extension,
 	VkExtensionProperties * available_extensions, uint32_t available_extension_count);
-void create_logical_device(char ** extensions, uint32_t extension_count);
+void create_logical_device(char** extensions, uint32_t extension_count, VkalWantedFeatures vulkan_features);
 QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
 void create_swapchain(void);
 void create_image_views(void);

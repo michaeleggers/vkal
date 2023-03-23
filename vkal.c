@@ -38,7 +38,7 @@ PFN_vkCmdTraceRaysKHR                                 vkCmdTraceRays;
 
 static VkalInfo vkal_info;
 
-VkalInfo * vkal_init(char ** extensions, uint32_t extension_count)
+VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFeatures vulkan_features)
 {
 
 #ifdef _DEBUG
@@ -88,7 +88,7 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count)
 #endif
 
 //    pick_physical_device(extensions, extension_count);
-    create_logical_device(extensions, extension_count);
+    create_logical_device(extensions, extension_count, vulkan_features);
     create_swapchain();
     create_image_views();
     create_default_render_pass();
@@ -1684,7 +1684,7 @@ void vkal_select_physical_device(VkalPhysicalDevice * physical_device)
     printf("[VKAL] physcial device limits: nonCoherentAtomSize: %llu\n", vkal_info.physical_device_properties.limits.nonCoherentAtomSize);
 }
 
-void create_logical_device(char** extensions, uint32_t extension_count)
+void create_logical_device(char** extensions, uint32_t extension_count, VkalWantedFeatures vulkan_features)
 {
     QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_device, vkal_info.surface);
     uint32_t unique_queue_families[2];
@@ -1707,55 +1707,83 @@ void create_logical_device(char** extensions, uint32_t extension_count)
         queue_create_infos[i].pQueuePriorities = &queue_prio;
     }
 
-    VkPhysicalDeviceFeatures device_features = { 0 };
+    /* Complete the wanted features struct and chain them */
+    vulkan_features.features11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    vulkan_features.features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    vulkan_features.rayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+    vulkan_features.accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    vulkan_features.features11.pNext = &vulkan_features.features12;
+    vulkan_features.features12.pNext = &vulkan_features.rayTracingPipelineFeatures;
+    vulkan_features.rayTracingPipelineFeatures.pNext = &vulkan_features.accelerationStructureFeatures;
+
+    /* Query what features are supported for the selected device */
     VkPhysicalDeviceVulkan11Features device_features11 = { 0 };
     device_features11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-    device_features11.shaderDrawParameters = VK_TRUE;
-    device_features11.uniformAndStorageBuffer16BitAccess = VK_TRUE;
-    device_features11.storageBuffer16BitAccess = VK_TRUE;
     VkPhysicalDeviceVulkan12Features device_features12 = { 0 };
     device_features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     device_features12.pNext = &device_features11;
-    device_features12.bufferDeviceAddress = VK_TRUE;
-    device_features12.uniformAndStorageBuffer8BitAccess = VK_TRUE;
-    device_features12.runtimeDescriptorArray = VK_TRUE;
-    device_features12.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
-    device_features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-    device_features12.descriptorIndexing = VK_TRUE;
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_features = { 0 };
     ray_tracing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
-    ray_tracing_features.rayTracingPipeline = VK_TRUE;
     ray_tracing_features.pNext = &device_features12;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features = { 0 };
     acceleration_structure_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
-    acceleration_structure_features.accelerationStructure = VK_TRUE;
     acceleration_structure_features.pNext = &ray_tracing_features;
+    VkPhysicalDeviceFeatures2 available_features2 = { 0 };
+    available_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    available_features2.pNext = &acceleration_structure_features;
+    vkGetPhysicalDeviceFeatures2(vkal_info.physical_device, &available_features2);
+
+    /* Check Features 1_1 */
+    VKAL_CHECK_FEATURE(vulkan_features.features11.multiview, device_features11.multiview);
+    VKAL_CHECK_FEATURE(vulkan_features.features11.multiviewGeometryShader, device_features11.multiviewGeometryShader);
+    VKAL_CHECK_FEATURE(vulkan_features.features11.multiviewTessellationShader, device_features11.multiviewTessellationShader);
+    VKAL_CHECK_FEATURE(vulkan_features.features11.protectedMemory, device_features11.protectedMemory);
+    VKAL_CHECK_FEATURE(vulkan_features.features11.samplerYcbcrConversion, device_features11.samplerYcbcrConversion);
+    VKAL_CHECK_FEATURE(vulkan_features.features11.shaderDrawParameters, device_features11.shaderDrawParameters);
+    VKAL_CHECK_FEATURE(vulkan_features.features11.storageBuffer16BitAccess, device_features11.storageBuffer16BitAccess);
+    VKAL_CHECK_FEATURE(vulkan_features.features11.storageInputOutput16, device_features11.storageInputOutput16);
+    VKAL_CHECK_FEATURE(vulkan_features.features11.storagePushConstant16, device_features11.storagePushConstant16);
+    VKAL_CHECK_FEATURE(vulkan_features.features11.uniformAndStorageBuffer16BitAccess, device_features11.uniformAndStorageBuffer16BitAccess);
+    VKAL_CHECK_FEATURE(vulkan_features.features11.variablePointers, device_features11.variablePointers);
+    VKAL_CHECK_FEATURE(vulkan_features.features11.variablePointersStorageBuffer, device_features11.variablePointersStorageBuffer);
+
+    /* Check Features 1_2. For now, just check for the ones that are actually being used often by examples. (There are many!) */
+    VKAL_CHECK_FEATURE(vulkan_features.features12.bufferDeviceAddress, device_features12.bufferDeviceAddress);
+    VKAL_CHECK_FEATURE(vulkan_features.features12.uniformAndStorageBuffer8BitAccess, device_features12.uniformAndStorageBuffer8BitAccess);
+    VKAL_CHECK_FEATURE(vulkan_features.features12.runtimeDescriptorArray, device_features12.runtimeDescriptorArray);
+    VKAL_CHECK_FEATURE(vulkan_features.features12.shaderStorageImageArrayNonUniformIndexing, device_features12.shaderStorageImageArrayNonUniformIndexing);
+    VKAL_CHECK_FEATURE(vulkan_features.features12.shaderSampledImageArrayNonUniformIndexing, device_features12.shaderSampledImageArrayNonUniformIndexing);
+    VKAL_CHECK_FEATURE(vulkan_features.features12.descriptorIndexing, device_features12.descriptorIndexing);
+
+    /* Check Raytracing features */
+    VKAL_CHECK_FEATURE(vulkan_features.rayTracingPipelineFeatures.rayTracingPipeline, ray_tracing_features.rayTracingPipeline);
+    VKAL_CHECK_FEATURE(vulkan_features.rayTracingPipelineFeatures.rayTracingPipelineShaderGroupHandleCaptureReplay, ray_tracing_features.rayTracingPipelineShaderGroupHandleCaptureReplay);
+    VKAL_CHECK_FEATURE(vulkan_features.rayTracingPipelineFeatures.rayTracingPipelineShaderGroupHandleCaptureReplayMixed, ray_tracing_features.rayTracingPipelineShaderGroupHandleCaptureReplayMixed);
+    VKAL_CHECK_FEATURE(vulkan_features.rayTracingPipelineFeatures.rayTracingPipelineTraceRaysIndirect, ray_tracing_features.rayTracingPipelineTraceRaysIndirect);
+    VKAL_CHECK_FEATURE(vulkan_features.rayTracingPipelineFeatures.rayTraversalPrimitiveCulling, ray_tracing_features.rayTraversalPrimitiveCulling);
+
+    /* Check Acceleration Structure Features */
+    VKAL_CHECK_FEATURE(vulkan_features.accelerationStructureFeatures.accelerationStructure, acceleration_structure_features.accelerationStructure);
+    VKAL_CHECK_FEATURE(vulkan_features.accelerationStructureFeatures.accelerationStructureCaptureReplay, acceleration_structure_features.accelerationStructureCaptureReplay);
+    VKAL_CHECK_FEATURE(vulkan_features.accelerationStructureFeatures.accelerationStructureHostCommands, acceleration_structure_features.accelerationStructureHostCommands);
+    VKAL_CHECK_FEATURE(vulkan_features.accelerationStructureFeatures.accelerationStructureIndirectBuild, acceleration_structure_features.accelerationStructureIndirectBuild);
+    VKAL_CHECK_FEATURE(vulkan_features.accelerationStructureFeatures.descriptorBindingAccelerationStructureUpdateAfterBind, acceleration_structure_features.descriptorBindingAccelerationStructureUpdateAfterBind);
+
     VkPhysicalDeviceFeatures2 features2 = { 0 };
     features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    features2.pNext = &acceleration_structure_features;    
-
-    //vkGetPhysicalDeviceFeatures2(vkal_info.physical_device, &features2);
-
-    // TODO: WE NEED A BETTER WAY OF ENABLING/DISABLING FEATURES!
-    //       The following feature is not supported when the features above are being in use!
-    VkPhysicalDeviceDescriptorIndexingFeatures indexing_features = { 0 };
-    indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-    indexing_features.runtimeDescriptorArray = VK_TRUE;
-    indexing_features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
-    indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-    indexing_features.pNext = &features2;
+    features2.pNext = &vulkan_features.features11;
 
     VkDeviceCreateInfo create_info = { 0 };
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     create_info.pNext = &features2;
     create_info.pQueueCreateInfos = queue_create_infos;
     create_info.queueCreateInfoCount = info_count;
-    create_info.pEnabledFeatures = VKAL_NULL; // &device_features;
+    create_info.pEnabledFeatures = VKAL_NULL;
     create_info.enabledExtensionCount = extension_count;
-    create_info.ppEnabledExtensionNames = (const char * const *)extensions;
-        
+    create_info.ppEnabledExtensionNames = (const char* const*)extensions;
+
     VKAL_ASSERT(vkCreateDevice(vkal_info.physical_device, &create_info, 0, &vkal_info.device));
-    
+
     vkGetDeviceQueue(vkal_info.device, indicies.graphics_family, 0, &vkal_info.graphics_queue);
     vkGetDeviceQueue(vkal_info.device, indicies.present_family, 0, &vkal_info.present_queue);
 }
