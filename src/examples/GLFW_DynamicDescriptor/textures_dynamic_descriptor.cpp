@@ -215,15 +215,15 @@ int main(int argc, char ** argv)
 
     /* Pipeline */
     VkPipelineLayout pipeline_layout = vkal_create_pipeline_layout(
-	layouts, descriptor_set_layout_count, 
-	NULL, 0);
+	    layouts, descriptor_set_layout_count, 
+	    NULL, 0);
     VkPipeline graphics_pipeline = vkal_create_graphics_pipeline(
-	vertex_input_bindings, 1,
-	vertex_attributes, vertex_attribute_count,
-	shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
-	VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-	VK_FRONT_FACE_CLOCKWISE,
-	vkal_info->render_pass, pipeline_layout);
+	    vertex_input_bindings, 1,
+	    vertex_attributes, vertex_attribute_count,
+	    shader_setup, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL, VK_CULL_MODE_BACK_BIT, VK_POLYGON_MODE_FILL, 
+	    VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+	    VK_FRONT_FACE_CLOCKWISE,
+	    vkal_info->render_pass, pipeline_layout);
 
     /* Model Data */
     float cube_vertices[] = {

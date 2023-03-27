@@ -167,8 +167,8 @@ int main(int argc, char ** argv)
     int fragment_code_size;
     read_file("/../../src/examples/assets/shaders/model_loading_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
-	vertex_byte_code, vertex_code_size, 
-	fragment_byte_code, fragment_code_size);
+	    vertex_byte_code, vertex_code_size, 
+	    fragment_byte_code, fragment_code_size);
 
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
@@ -186,31 +186,31 @@ int main(int argc, char ** argv)
 
     /* Descriptor Sets */
     VkDescriptorSetLayoutBinding set_layout[] = {
-	{
-	    0,
-	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	    1,
-	    VK_SHADER_STAGE_VERTEX_BIT,
-	    0
-	},
-	{
-	    1,
-	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	    1,
-	    VK_SHADER_STAGE_FRAGMENT_BIT,
-	    0
-	}
+	    {
+	        0,
+	        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	        1,
+	        VK_SHADER_STAGE_VERTEX_BIT,
+	        0
+	    },
+	    {
+	        1,
+	        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	        1,
+	        VK_SHADER_STAGE_FRAGMENT_BIT,
+	        0
+	    }
     };
     VkDescriptorSetLayout descriptor_set_layout = vkal_create_descriptor_set_layout(set_layout, 2);
 
     VkDescriptorSetLayoutBinding set_layout_dynamic[] = {
-	{
-	    0,
-	    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-	    1,
-	    VK_SHADER_STAGE_VERTEX_BIT,
-	    0
-	}
+	    {
+	        0,
+	        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+	        1,
+	        VK_SHADER_STAGE_VERTEX_BIT,
+	        0
+	    }
     };
     VkDescriptorSetLayout descriptor_set_layout_dynamic = vkal_create_descriptor_set_layout(set_layout_dynamic, 1);
     
