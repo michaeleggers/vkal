@@ -156,7 +156,7 @@ int main(int argc, char ** argv)
     }
     vkal_select_physical_device(&devices[0]);
 
-    VkalWantedFeatures vulkan_features{};    
+    VkalWantedFeatures vulkan_features{};
     VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count, vulkan_features);
     
     /* Shader Setup */

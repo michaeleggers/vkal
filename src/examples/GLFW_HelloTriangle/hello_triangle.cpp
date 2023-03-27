@@ -217,6 +217,7 @@ int main(int argc, char** argv)
                 offset_indices, index_count,
                 offset_vertices, 1);
             vkal_end_renderpass(image_id);
+
             vkal_end_command_buffer(image_id);
             VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
             vkal_queue_submit(command_buffers1, 1);
