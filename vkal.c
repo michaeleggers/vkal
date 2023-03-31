@@ -62,30 +62,7 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
 #endif 
 
 
-#ifdef __cplusplus
-        extern "C" {
-#endif
 
-            // TODO: Check if function pointers are loaded correctly!
-    #if defined (VKAL_GLFW)
-            vkGetAccelerationStructureBuildSizes    = (PFN_vkGetAccelerationStructureBuildSizesKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureBuildSizesKHR");
-            vkCreateAccelerationStructure           = (PFN_vkCreateAccelerationStructureKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateAccelerationStructureKHR");
-            vkCmdBuildAccelerationStructures        = (PFN_vkCmdBuildAccelerationStructuresKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCmdBuildAccelerationStructuresKHR");
-            vkGetAccelerationStructureDeviceAddress = (PFN_vkGetAccelerationStructureDeviceAddressKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureDeviceAddressKHR");
-            vkCreateRayTracingPipelines             = (PFN_vkCreateRayTracingPipelinesKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateRayTracingPipelinesKHR");
-            vkGetRayTracingShaderGroupHandles       = (PFN_vkGetRayTracingShaderGroupHandlesKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetRayTracingShaderGroupHandlesKHR");
-            //vkCmdTraceRays                          = (PFN_vkCmdTraceRaysKHR)glfwGetInstanceProcAddress(vkal_info.instance, "PFN_vkCmdTraceRaysKHR");
-            vkCmdTraceRays = (PFN_vkCmdTraceRaysKHR)vkGetInstanceProcAddr(vkal_info.instance, "vkCmdTraceRaysKHR"); // TODO: Update GLFW (cannot load fn-ptr for vkCmdTraceRaysKHR!)
-
-    #elif defined (VKAL_WIN32)
-            //vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
-    #elif defined (VKAL_SDL)
-            //vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
-#endif
-
-#ifdef __cplusplus
-}
-#endif
 
 //    pick_physical_device(extensions, extension_count);
     create_logical_device(extensions, extension_count, vulkan_features);
@@ -110,6 +87,33 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
 
 
     return &vkal_info;
+}
+
+void vkal_init_raytracing() {
+    #ifdef __cplusplus
+        extern "C" {
+    #endif
+
+            // TODO: Check if function pointers are loaded correctly!
+    #if defined (VKAL_GLFW)
+            vkGetAccelerationStructureBuildSizes = (PFN_vkGetAccelerationStructureBuildSizesKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureBuildSizesKHR");
+            vkCreateAccelerationStructure = (PFN_vkCreateAccelerationStructureKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateAccelerationStructureKHR");
+            vkCmdBuildAccelerationStructures = (PFN_vkCmdBuildAccelerationStructuresKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCmdBuildAccelerationStructuresKHR");
+            vkGetAccelerationStructureDeviceAddress = (PFN_vkGetAccelerationStructureDeviceAddressKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetAccelerationStructureDeviceAddressKHR");
+            vkCreateRayTracingPipelines = (PFN_vkCreateRayTracingPipelinesKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkCreateRayTracingPipelinesKHR");
+            vkGetRayTracingShaderGroupHandles = (PFN_vkGetRayTracingShaderGroupHandlesKHR)glfwGetInstanceProcAddress(vkal_info.instance, "vkGetRayTracingShaderGroupHandlesKHR");
+            //vkCmdTraceRays                          = (PFN_vkCmdTraceRaysKHR)glfwGetInstanceProcAddress(vkal_info.instance, "PFN_vkCmdTraceRaysKHR");
+            vkCmdTraceRays = (PFN_vkCmdTraceRaysKHR)vkGetInstanceProcAddr(vkal_info.instance, "vkCmdTraceRaysKHR"); // TODO: Update GLFW (cannot load fn-ptr for vkCmdTraceRaysKHR!)
+
+    #elif defined (VKAL_WIN32)
+            //vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
+    #elif defined (VKAL_SDL)
+            //vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkal_info.instance, "vkSetDebugUtilsObjectNameEXT");
+    #endif
+
+    #ifdef __cplusplus
+        }
+    #endif
 }
 
 #if defined(VKAL_GLFW)

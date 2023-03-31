@@ -371,7 +371,8 @@ typedef struct SwapChainSupportDetails {
 extern "C"{
 #endif 
 
-VkalInfo* vkal_init(char** extensions, uint32_t extension_count, VkalWantedFeatures vulkan_features);
+VkalInfo*   vkal_init(char** extensions, uint32_t extension_count, VkalWantedFeatures vulkan_features);
+void        vkal_init_raytracing(void);
 
 #if defined (VKAL_GLFW)
 	void vkal_create_instance_glfw(
