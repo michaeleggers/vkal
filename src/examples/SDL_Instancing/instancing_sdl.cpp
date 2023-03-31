@@ -228,7 +228,7 @@ int main(int argc, char** argv)
     };
     uint32_t vertex_attribute_count = sizeof(vertex_attributes) / sizeof(*vertex_attributes);
 
-    uint32_t numSprites = 100000;
+    uint32_t numSprites = 200000;
     uint32_t maxTextures = 32;
     /* Descriptor Sets */
     VkDescriptorSetLayoutBinding set_layout[] = 
