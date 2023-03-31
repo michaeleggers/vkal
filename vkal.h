@@ -237,6 +237,7 @@ typedef struct VkalWantedFeatures {
     VkPhysicalDeviceVulkan12Features                    features12;
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR       rayTracingPipelineFeatures;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR    accelerationStructureFeatures;
+    VkPhysicalDeviceFeatures2                           features2;
 } VkalWantedFeatures;
 
 typedef struct VkalInfo

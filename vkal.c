@@ -1733,6 +1733,11 @@ void create_logical_device(char** extensions, uint32_t extension_count, VkalWant
     available_features2.pNext = &acceleration_structure_features;
     vkGetPhysicalDeviceFeatures2(vkal_info.physical_device, &available_features2);
 
+    /* TODO: Complete feature-checking */
+
+    /* Check Features2 (which now contains VkalPhysicalDeviceFeatures). For now, just check, what we need */
+    VKAL_CHECK_FEATURE(vulkan_features.features2.features.fillModeNonSolid, available_features2.features.fillModeNonSolid);
+
     /* Check Features 1_1 */
     VKAL_CHECK_FEATURE(vulkan_features.features11.multiview, device_features11.multiview);
     VKAL_CHECK_FEATURE(vulkan_features.features11.multiviewGeometryShader, device_features11.multiviewGeometryShader);
@@ -1769,13 +1774,12 @@ void create_logical_device(char** extensions, uint32_t extension_count, VkalWant
     VKAL_CHECK_FEATURE(vulkan_features.accelerationStructureFeatures.accelerationStructureIndirectBuild, acceleration_structure_features.accelerationStructureIndirectBuild);
     VKAL_CHECK_FEATURE(vulkan_features.accelerationStructureFeatures.descriptorBindingAccelerationStructureUpdateAfterBind, acceleration_structure_features.descriptorBindingAccelerationStructureUpdateAfterBind);
 
-    VkPhysicalDeviceFeatures2 features2 = { 0 };
-    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    features2.pNext = &vulkan_features.features11;
+    vulkan_features.features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    vulkan_features.features2.pNext = &vulkan_features.features11;
 
     VkDeviceCreateInfo create_info = { 0 };
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    create_info.pNext = &features2;
+    create_info.pNext = &vulkan_features.features2;
     create_info.pQueueCreateInfos = queue_create_infos;
     create_info.queueCreateInfoCount = info_count;
     create_info.pEnabledFeatures = VKAL_NULL;
