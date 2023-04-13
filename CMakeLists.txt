@@ -64,6 +64,11 @@ add_library(vkal STATIC
     vkal.h
 )
 
+add_library(vkal_shared SHARED
+    vkal.c
+    vkal.h
+)
+
 if (WIN32)
     target_link_libraries(vkal
         PUBLIC Vulkan::Vulkan
@@ -72,6 +77,14 @@ if (WIN32)
     target_include_directories(vkal
         PUBLIC ${Vulkan_INCLUDE_DIRS}
     )    
+
+    target_link_libraries(vkal_shared
+        PUBLIC Vulkan::Vulkan
+        PUBLIC Vulkan::shaderc_combined
+    )
+    target_include_directories(vkal_shared
+        PUBLIC ${Vulkan_INCLUDE_DIRS}
+    )   
 endif (WIN32)
 
 if (UNIX)
@@ -79,6 +92,10 @@ if (UNIX)
         Vulkan::Vulkan
         PUBLIC Vulkan::shaderc_combined
     )
+    target_link_libraries(vkal_shared PUBLIC
+       Vulkan::Vulkan
+        PUBLIC Vulkan::shaderc_combined
+)
 endif (UNIX)
 
 if (APPLE)
@@ -90,15 +107,30 @@ if (APPLE)
         PUBLIC Vulkan::Vulkan
         PUBLIC ${Vulkan_LIBRARIES} # XCode: include vulkan.framework from Vulkan SDK.
     )
+    
+    target_link_libraries(vkal_shared
+    # PUBLIC libMoltenVK.dylib
+       PUBLIC Vulkan::Vulkan
+        PUBLIC ${Vulkan_LIBRARIES} # XCode: include vulkan.framework from Vulkan SDK.
+    )
 endif (APPLE)
         
 if (${WINDOWING} STREQUAL "VKAL_GLFW")
 	target_link_libraries(vkal PUBLIC
 		glfw
 	)
+    
+    target_link_libraries(vkal_shared PUBLIC
+        glfw
+    )
 elseif (${WINDOWING} STREQUAL "VKAL_SDL")
     target_link_libraries(vkal PUBLIC
         PUBLIC SDL2
+        PUBLIC SDL2main
+    )
+    
+    target_link_libraries(vkal_shared PUBLIC
+       PUBLIC SDL2
         PUBLIC SDL2main
     )
     # target_include_directories(vkal
@@ -114,6 +146,7 @@ if (BUILD_EXAMPLES)
 endif (BUILD_EXAMPLES)
 
 target_compile_definitions(vkal PUBLIC ${WINDOWING})
+target_compile_definitions(vkal_shared PUBLIC ${WINDOWING})
 
 # add_dependencies(GLFW_Texture       vkal)
 # add_dependencies(GLFW_ModelLoading  vkal)
