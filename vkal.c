@@ -1306,10 +1306,12 @@ VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, V
     uint64_t alignment = buffer_memory_requirements.alignment;
     uint64_t aligned_size = (size + alignment - 1) & ~(alignment - 1);
 
+    assert(size <= device_memory->size && "vkal_create_buffer: Requested Buffer size exceeds Device Memory size!");
+
     VkBuffer vk_buffer = VK_NULL_HANDLE;
     VkBufferCreateInfo buffer_info = { 0 };
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_info.size = aligned_size;
+    buffer_info.size = size;
     QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_device, vkal_info.surface);
     buffer_info.pQueueFamilyIndices = &indicies.graphics_family;
     buffer_info.queueFamilyIndexCount = 1;
@@ -1323,7 +1325,7 @@ VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, V
        offset into VkDeviceMemory.
     */	
     VkalBuffer buffer = { 0 };
-    buffer.size = aligned_size;
+    buffer.size = size;
     buffer.offset = device_memory->free;
     buffer.device_memory = device_memory->vk_device_memory;
     buffer.vkal_device_memory = device_memory;
@@ -1835,7 +1837,7 @@ void create_default_descriptor_pool(void)
 	{
 	    {
 		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,     // type of the resource
-		1000000							           // number of descriptors of that type to be stored in the pool. This is per set maybe?
+		1024							           // number of descriptors of that type to be stored in the pool. This is per set maybe?
 	    },
 	    {
 		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
