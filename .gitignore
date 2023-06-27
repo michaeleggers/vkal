@@ -5,3 +5,5 @@ bin
 debug
 release
 .vscode/
+*/assimp/**
+

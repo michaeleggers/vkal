@@ -36,6 +36,11 @@ Clone this repo with:
 git clone --recurse-submodules git@github.com:michaeleggers/vkal.git
 ```
 
+If you already cloned, but forgot the recursive part, no worries. Just init the submodules afterwards with:
+```
+git submodule update --init --recursive
+```
+
 ## CMake
 
 In the repo's main folder make a subdirectory called ```build``` and ```cd``` into it.
