@@ -1133,7 +1133,7 @@ int main(int argc, char** argv)
 
     /* Textures */
     Image sandImage = load_image("../../src/examples/assets/textures/sand_diffuse.jpg");
-    Image knightImage = load_image("../../src/examples/assets/textures/sand_diffuse.jpg");
+    Image knightImage = load_image("../../src/examples/assets/textures/knight.png");
 
     VkalTexture sandTexture = vkal_create_texture(7, sandImage.data, sandImage.width, sandImage.height, 4, 0,
         VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
