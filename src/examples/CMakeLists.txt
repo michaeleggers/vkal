@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.23)
 project(Examples VERSION 1.0)
 
+option(ASSIMP_BUILD_ZLIB "Build the static library" ON)
+add_subdirectory(external/assimp)
+
 if (${WINDOWING} STREQUAL "VKAL_GLFW")
     add_subdirectory(GLFW_HelloTriangle)
     add_subdirectory(GLFW_Primitives)

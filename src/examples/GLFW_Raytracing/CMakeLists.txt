@@ -37,10 +37,12 @@ target_include_directories(GLFW_Raytracing
     PUBLIC ../external
     PUBLIC ../utils
     PUBLIC ../external/imgui
+    PUBLIC ../external/assimp/include/
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../
 )
 target_link_libraries(GLFW_Raytracing
 	PUBLIC glfw
+    PUBLIC assimp
 	PUBLIC vkal)
 
 set_property(TARGET GLFW_Raytracing   PROPERTY CMAKE_XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")

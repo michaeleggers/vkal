@@ -111,7 +111,7 @@ Image load_image(const char* file)
     int width, height, channels;
     unsigned char* data = stbi_load(abs_path, &width, &height, &channels, 4);
     if (stbi_failure_reason() != NULL) {
-        printf("[STB-Image] %s\n", stbi_failure_reason());
+        printf("[STB-Image] %s file: %s\n", stbi_failure_reason(), file);
     }
     image.width = uint32_t(width);
     image.height = uint32_t(height);
@@ -365,7 +365,7 @@ PipelineInfo create_ray_tracing_pipeline(VkalInfo * vkal_info, uint32_t model_co
     int shader_size;
 
     /* Ray Generation Group */
-    read_file("../../A5_Raytracing/shaders/raygen.spv", &shader_code, &shader_size);
+    read_file("../../src/examples/assets/shaders/raygen.spv", &shader_code, &shader_size);
     shader_stages.push_back(vkal_create_shader(shader_code, shader_size, VK_SHADER_STAGE_RAYGEN_BIT_KHR));
     VkRayTracingShaderGroupCreateInfoKHR raygen_group_ci{};
     raygen_group_ci.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
@@ -377,7 +377,7 @@ PipelineInfo create_ray_tracing_pipeline(VkalInfo * vkal_info, uint32_t model_co
     shader_groups.push_back(raygen_group_ci);
 
     /* Ray Miss Group */
-    read_file("../../A5_Raytracing/shaders/raymiss.spv", &shader_code, &shader_size);
+    read_file("../../src/examples/assets/shaders/raymiss.spv", &shader_code, &shader_size);
     shader_stages.push_back(vkal_create_shader(shader_code, shader_size, VK_SHADER_STAGE_MISS_BIT_KHR));
     VkRayTracingShaderGroupCreateInfoKHR miss_group_ci{};
     miss_group_ci.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
@@ -389,7 +389,7 @@ PipelineInfo create_ray_tracing_pipeline(VkalInfo * vkal_info, uint32_t model_co
     shader_groups.push_back(miss_group_ci);
 
     /* Shadow Ray misses the light */
-    read_file("../../A5_Raytracing/shaders/lightmiss.spv", &shader_code, &shader_size);
+    read_file("../../src/examples/assets/shaders/lightmiss.spv", &shader_code, &shader_size);
     shader_stages.push_back(vkal_create_shader(shader_code, shader_size, VK_SHADER_STAGE_MISS_BIT_KHR));
     VkRayTracingShaderGroupCreateInfoKHR shadowmiss_group_ci{};
     shadowmiss_group_ci.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
@@ -402,7 +402,7 @@ PipelineInfo create_ray_tracing_pipeline(VkalInfo * vkal_info, uint32_t model_co
 
     /* Closest Hit Group */
     /* Primary Ray hits something */
-    read_file("../../A5_Raytracing/shaders/closesthit.spv", &shader_code, &shader_size);
+    read_file("../../src/examples/assets/shaders/closesthit.spv", &shader_code, &shader_size);
     shader_stages.push_back(vkal_create_shader(shader_code, shader_size, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR));
     VkRayTracingShaderGroupCreateInfoKHR closes_hit_group_ci{};
     closes_hit_group_ci.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
@@ -1132,8 +1132,8 @@ int main(int argc, char** argv)
     vkal_init_raytracing();
 
     /* Textures */
-    Image sandImage = load_image("../../assets/textures/sand_diffuse.jpg");
-    Image knightImage = load_image("../../assets/textures/knight.png");
+    Image sandImage = load_image("../../src/examples/assets/textures/sand_diffuse.jpg");
+    Image knightImage = load_image("../../src/examples/assets/textures/sand_diffuse.jpg");
 
     VkalTexture sandTexture = vkal_create_texture(7, sandImage.data, sandImage.width, sandImage.height, 4, 0,
         VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
@@ -1170,7 +1170,7 @@ int main(int argc, char** argv)
     std::vector<VkalBuffer> material_buffers = upload_materials(materials);
 
     /* Geometry */
-    Model palmtree = create_model_from_file_indexed("../../assets/obj/palmtree.obj");
+    Model palmtree = create_model_from_file_indexed("../../src/examples/assets/models/palmtree.obj");
     palmtree.pos = glm::vec3(0, 2.7, 0);
     palmtree.model_matrix = glm::translate(glm::mat4(1), palmtree.pos);
     ModelBuffers palmtree_buffer = upload_model(palmtree);
@@ -1180,12 +1180,12 @@ int main(int argc, char** argv)
         glm::vec3(1, -1, 0)
     };*/
 
-    Model plane = create_model_from_file_indexed("../../assets/obj/plane.obj");        
+    Model plane = create_model_from_file_indexed("../../src/examples/assets/models/plane.obj");        
     plane.pos = glm::vec3(0, 0, 0);
     plane.model_matrix = glm::translate(glm::mat4(1), plane.pos);
     ModelBuffers plane_buffer = upload_model(plane);
 
-    Model knight = create_model_from_file_indexed("../../assets/obj/pknight_small.obj");
+    Model knight = create_model_from_file_indexed("../../src/examples/assets/models/pknight_small.obj");
     knight.pos = glm::vec3(0);
     knight.model_matrix = glm::translate(glm::mat4(1), knight.pos);
     ModelBuffers knight_buffer = upload_model(knight);
