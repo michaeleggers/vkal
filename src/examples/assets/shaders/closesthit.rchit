@@ -136,34 +136,43 @@ void main()
 	AreaLight areaLight2;
 	areaLight2.pos = vec3(0, 10, 0);
 
-  float shadowStrength0 = 0.6;
+  
   vec3 origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
   vec3 direction =   normalize(areaLight.pos - origin);
   float lightDistance = length(areaLight.pos - origin);
 	float tmin = 0.001;
 	float tmax = lightDistance;
-  isLit = false;
+  
+  float shadowStrength0 = 0.6;
+  isLit = true;
   traceRayEXT(topLevelAS, gl_RayFlagsSkipClosestHitShaderEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT, 0xff, 0, 0, 1, origin.xyz, tmin, direction.xyz, tmax, 1);
-  if (isLit) {
+  if (isLit == true) {
     shadowStrength0 = 0.0;
+    //hitValue.diffuseColor = vec3(1.0f, 1.0f, 0.0f);
   }
 
-  float shadowStrength1 = 0.6;
-  origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
-  direction =   normalize(areaLight2.pos - origin);
-  lightDistance = length(areaLight2.pos - origin);
-	tmax = lightDistance;
-  isLit = false;
-  traceRayEXT(topLevelAS, gl_RayFlagsSkipClosestHitShaderEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT, 0xff, 0, 0, 1, origin.xyz, tmin, direction.xyz, tmax, 1);
-  if (isLit) {
-    shadowStrength1 = 0.0;
-  }
+  // float shadowStrength1 = 0.6;
+  // origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
+  // direction =   normalize(areaLight2.pos - origin);
+  // lightDistance = length(areaLight2.pos - origin);
+	// tmax = lightDistance;
+  // isLit = false;
+  // traceRayEXT(topLevelAS, gl_RayFlagsSkipClosestHitShaderEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT, 0xff, 0, 0, 1, origin.xyz, tmin, direction.xyz, tmax, 1);
+  // if (isLit) {
+  //   shadowStrength1 = 0.0;
+  // }
 
-  float shadowStrength = clamp(shadowStrength0 + shadowStrength1, 0.0, 1.0);
-  shadowStrength = shadowStrength0;
+  // float shadowStrength = clamp(shadowStrength0 + shadowStrength1, 0.0, 1.0);
+  float shadowStrength = shadowStrength0;
   
   vec3 normal = normalize(v0.normal + v1.normal + v2.normal);
 
-  hitValue.diffuseColor = (1.0 - shadowStrength) * textureColor.bgr;
+  //hitValue.diffuseColor = (shadowStrength) * textureColor.rgb;
+  hitValue.diffuseColor = (1.0 - shadowStrength) * textureColor.rgb;
+  
+  // hitValue.diffuseColor = vec3(shadowStrength);
+  // if (isLit) {
+	//   hitValue.diffuseColor = shadowStrength*normal;
+  // }
   //hitValue.diffuseColor = (1.0 - shadowStrength) * m.diffuse.rgb;
 }

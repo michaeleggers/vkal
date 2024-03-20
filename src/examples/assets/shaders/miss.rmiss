@@ -28,5 +28,5 @@ layout(location = 0) rayPayloadInEXT HitValue hitValue;
 
 void main()
 {
-    hitValue.diffuseColor = vec3(0.3, 0.1, 0.7);
+    hitValue.diffuseColor = vec3(0.1, 0.1, 0.1);
 }

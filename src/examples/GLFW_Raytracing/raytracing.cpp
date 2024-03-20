@@ -786,7 +786,7 @@ VkalAccelerationStructure create_tlas(VkalInfo* vkal_info, std::vector<VkalAccel
         blases.size() * sizeof(VkAccelerationStructureInstanceKHR),
         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT);
-
+    
     instance_buffer = vkal_create_buffer(
         blases.size() * sizeof(VkAccelerationStructureInstanceKHR),
         &instance_device_memory,
@@ -851,8 +851,6 @@ void create_shader_binding_tables(VkalInfo* vkal_info, VkPhysicalDeviceRayTracin
     const VkBufferUsageFlags sbt_buffer_usage_flags = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     //const VmaMemoryUsage     sbt_memory_usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-    
-    
     // Create binding table buffers for each shader type
 
     // TODO: Only use one device memory for all shader binding tables
@@ -879,7 +877,7 @@ void create_shader_binding_tables(VkalInfo* vkal_info, VkPhysicalDeviceRayTracin
 
     vkal_map_buffer(&miss_shader_binding_table);
     data = static_cast<uint8_t*>(miss_shader_binding_table.mapped);
-    memcpy(data, shader_handle_storage.data() + handle_size_aligned, 2*handle_size);
+    memcpy(data, shader_handle_storage.data() + handle_size_aligned, 2 * handle_size);
     vkal_unmap_buffer(&miss_shader_binding_table);
 
     vkal_map_buffer(&hit_shader_binding_table);
@@ -1075,7 +1073,7 @@ int main(int argc, char** argv)
 
     char* device_extensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_KHR_MAINTENANCE3_EXTENSION_NAME,
+        //VK_KHR_MAINTENANCE3_EXTENSION_NAME,
 
         // Ray Tracing support in Vulkan API
         VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
@@ -1083,18 +1081,18 @@ int main(int argc, char** argv)
         VK_KHR_RAY_QUERY_EXTENSION_NAME,
         VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-        VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-        VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
-        VK_KHR_16BIT_STORAGE_EXTENSION_NAME
+        //VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+        //VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+        //VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+        //VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+        //VK_KHR_16BIT_STORAGE_EXTENSION_NAME
     };
     uint32_t device_extension_count = sizeof(device_extensions) / sizeof(*device_extensions);
 
     char* instance_extensions[] = {
-    VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+    //VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
 #ifdef _DEBUG
-    ,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+    VK_EXT_DEBUG_UTILS_EXTENSION_NAME
 #endif
     };
     uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);

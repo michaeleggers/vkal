@@ -64,15 +64,29 @@ add_library(vkal STATIC
     vkal.h
 )
 
+add_library(vma_usage STATIC
+    vma_usage.h
+    vma_usage.cpp
+)
+
 add_library(vkal_shared SHARED
     vkal.c
     vkal.h
 )
 
+# target_link_libraries(vma_usage 
+#     PUBLIC Vulkan::Vulkan
+# )
+
+target_include_directories(vma_usage
+    PUBLIC ${Vulkan_INCLUDE_DIRS}
+)   
+
 if (WIN32)
     target_link_libraries(vkal
         PUBLIC Vulkan::Vulkan
         PUBLIC Vulkan::shaderc_combined
+        PUBLIC vma_usage
     )
     target_include_directories(vkal
         PUBLIC ${Vulkan_INCLUDE_DIRS}
@@ -91,6 +105,7 @@ if (UNIX)
     target_link_libraries(vkal PUBLIC
         Vulkan::Vulkan
         PUBLIC Vulkan::shaderc_combined
+        PUBLIC vma_usage
     )
     target_link_libraries(vkal_shared PUBLIC
        Vulkan::Vulkan
@@ -106,12 +121,13 @@ if (APPLE)
         # PUBLIC libMoltenVK.dylib
         PUBLIC Vulkan::Vulkan
         PUBLIC ${Vulkan_LIBRARIES} # XCode: include vulkan.framework from Vulkan SDK.
+        PUBLIC vma_usage
     )
     
     target_link_libraries(vkal_shared
     # PUBLIC libMoltenVK.dylib
-       PUBLIC Vulkan::Vulkan
-        PUBLIC ${Vulkan_LIBRARIES} # XCode: include vulkan.framework from Vulkan SDK.
+        PUBLIC Vulkan::Vulkan
+        PUBLIC ${Vulkan_LIBRARIES} # XCode: include vulkan.framework from Vulkan SDK.        
     )
 endif (APPLE)
         

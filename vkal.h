@@ -11,9 +11,6 @@
 	#define VK_USE_PLATFORM_WIN32_KHR
 #endif
 
-
-
-
 #if defined (VKAL_GLFW)
     #include <vulkan/vulkan.h>
     #include <GLFW/glfw3.h>
@@ -25,6 +22,9 @@
     #include <SDL.h>
     #include <SDL_vulkan.h>
 #endif
+
+#include "vma_usage.h"
+
 
 //#include <vulkan/vk_enum_string_helper.h>
 
@@ -123,6 +123,7 @@ typedef struct VkalBuffer
     uint64_t			offset;
     /* TODO: Remove device_memory as vkal_device_memory has handle to the VkDeviceMemory */
     VkDeviceMemory		device_memory;
+    VmaAllocation       vma_allocation;
     DeviceMemory        * vkal_device_memory;
     VkBufferUsageFlags	usage;
     void				* mapped;
@@ -266,6 +267,8 @@ typedef struct VkalInfo
     VkalPhysicalDevice				* suitable_devices;
     uint32_t						suitable_device_count;
     
+    VmaAllocator                    vma_Allocator;
+
     /* Active Physical Device */
     VkPhysicalDevice				physical_device;
     VkPhysicalDeviceProperties		physical_device_properties;

@@ -20,8 +20,12 @@
     #include <SDL_vulkan.h>
 #endif
 
-
 #include "vkal.h"
+
+#include "vma_usage.h"
+
+//#define VMA_IMPLEMENTATION
+//#include <vma/vk_mem_alloc.h>
 
 #ifdef _DEBUG
     PFN_vkSetDebugUtilsObjectNameEXT                       vkSetDebugUtilsObjectName;
@@ -61,10 +65,8 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
 
 #endif 
 
+    // Pick_physical_device(extensions, extension_count);
 
-
-
-//    pick_physical_device(extensions, extension_count);
     create_logical_device(extensions, extension_count, vulkan_features);
     create_swapchain();
     create_image_views();
@@ -83,8 +85,19 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
     allocate_default_device_memory_index();
     create_staging_buffer(STAGING_BUFFER_SIZE);
     create_default_semaphores();
-    vkal_info.frames_rendered = 0;
 
+    // Init Vulkan Memory Allocator
+
+    VmaAllocatorCreateInfo vma_AllocatorInfo = { 0 };
+    vma_AllocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+    vma_AllocatorInfo.instance = vkal_info.instance;
+    vma_AllocatorInfo.device = vkal_info.device;
+    vma_AllocatorInfo.physicalDevice = vkal_info.physical_device;
+    vma_AllocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT; // TODO: More flags needed?    
+
+    VkResult vma_Result = vmaCreateAllocator(&vma_AllocatorInfo, &vkal_info.vma_Allocator);
+
+    vkal_info.frames_rendered = 0;    
 
     return &vkal_info;
 }
@@ -698,10 +711,12 @@ RenderImage create_render_image(uint32_t width, uint32_t height)
 
 void vkal_unmap_buffer(VkalBuffer * buffer)
 {
-    if (buffer->mapped) {
-		vkUnmapMemory(vkal_info.device, buffer->device_memory);
-		buffer->mapped = NULL;
-    }
+  //  if (buffer->mapped) {
+		//vkUnmapMemory(vkal_info.device, buffer->device_memory);
+		//buffer->mapped = NULL;
+  //  }
+
+    vmaUnmapMemory(vkal_info.vma_Allocator, buffer->vma_allocation);
 }
 
 
@@ -1299,58 +1314,74 @@ DeviceMemory vkal_allocate_devicememory(uint32_t size,
 
 VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags)
 {
-    VkalBuffer buffer0 = create_buffer(size, buffer_usage_flags);
-    VkMemoryRequirements buffer_memory_requirements = { 0 };
-    vkGetBufferMemoryRequirements(vkal_info.device, buffer0.buffer, &buffer_memory_requirements);
+    //VkalBuffer buffer0 = create_buffer(size, buffer_usage_flags);
+    //VkMemoryRequirements buffer_memory_requirements = { 0 };
+    //vkGetBufferMemoryRequirements(vkal_info.device, buffer0.buffer, &buffer_memory_requirements);
 
-    uint64_t alignment = buffer_memory_requirements.alignment;
-    uint64_t aligned_size = (size + alignment - 1) & ~(alignment - 1);
+    //uint64_t alignment = buffer_memory_requirements.alignment;
+    //uint64_t aligned_size = (size + alignment - 1) & ~(alignment - 1);
 
-    assert(size <= device_memory->size && "vkal_create_buffer: Requested Buffer size exceeds Device Memory size!");
+    //assert(size <= device_memory->size && "vkal_create_buffer: Requested Buffer size exceeds Device Memory size!");
 
-    VkBuffer vk_buffer = VK_NULL_HANDLE;
-    VkBufferCreateInfo buffer_info = { 0 };
-    buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_info.size = size;
-    QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_device, vkal_info.surface);
-    buffer_info.pQueueFamilyIndices = &indicies.graphics_family;
-    buffer_info.queueFamilyIndexCount = 1;
-    buffer_info.usage = buffer_usage_flags;
-    buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    VkResult result = vkCreateBuffer(vkal_info.device, &buffer_info, 0, &vk_buffer);
-    VKAL_ASSERT( result && "Failed to create VkBuffer" );
-    result = vkBindBufferMemory(vkal_info.device, vk_buffer, device_memory->vk_device_memory, device_memory->free);
-    VKAL_ASSERT( result && "Failed to bind VkBuffer to VkDeviceMemory" );
-    /* NOTE: the offset in vkBindBufferMemory must be a multiple of alignment returend by vkGetBufferMemoryRequirements and denotes the
-       offset into VkDeviceMemory.
-    */	
-    VkalBuffer buffer = { 0 };
-    buffer.size = size;
-    buffer.offset = device_memory->free;
-    buffer.device_memory = device_memory->vk_device_memory;
-    buffer.vkal_device_memory = device_memory;
-    buffer.usage = buffer_usage_flags;
-    buffer.buffer = vk_buffer;
-    buffer.mapped = NULL;
+    //VkBuffer vk_buffer = VK_NULL_HANDLE;
+    //VkBufferCreateInfo buffer_info = { 0 };
+    //buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    //buffer_info.size = size;
+    //QueueFamilyIndicies indicies = find_queue_families(vkal_info.physical_device, vkal_info.surface);
+    //buffer_info.pQueueFamilyIndices = &indicies.graphics_family;
+    //buffer_info.queueFamilyIndexCount = 1;
+    //buffer_info.usage = buffer_usage_flags;
+    //buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    //VkResult result = vkCreateBuffer(vkal_info.device, &buffer_info, 0, &vk_buffer);
+    //VKAL_ASSERT( result && "Failed to create VkBuffer" );
+    //result = vkBindBufferMemory(vkal_info.device, vk_buffer, device_memory->vk_device_memory, device_memory->free);
+    //VKAL_ASSERT( result && "Failed to bind VkBuffer to VkDeviceMemory" );
+    ///* NOTE: the offset in vkBindBufferMemory must be a multiple of alignment returend by vkGetBufferMemoryRequirements and denotes the
+    //   offset into VkDeviceMemory.
+    //*/	
 
-    VkDeviceSize device_memory_alignment = device_memory->alignment;
-    VkDeviceSize next_offset = device_memory->free + (aligned_size / device_memory_alignment) * device_memory_alignment;
-    next_offset += aligned_size % device_memory_alignment ? device_memory_alignment : 0;
-    device_memory->free = next_offset;
+    VkBufferCreateInfo bufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+    bufferInfo.size = size;
+    bufferInfo.usage = buffer_usage_flags;
 
-    return buffer;
+    VmaAllocationCreateInfo allocInfo = { 0 };
+    allocInfo.usage = VMA_MEMORY_USAGE_AUTO; 
+    allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+
+    VkBuffer buffer;
+    VmaAllocation allocation;
+    vmaCreateBuffer(vkal_info.vma_Allocator, &bufferInfo, &allocInfo, &buffer, &allocation, NULL);
+
+    VkalBuffer vkalBuffer = { 0 };
+    vkalBuffer.size = size;
+    vkalBuffer.offset = device_memory->free;
+    vkalBuffer.device_memory = device_memory->vk_device_memory;
+    vkalBuffer.vma_allocation = allocation;
+    vkalBuffer.vkal_device_memory = device_memory;
+    vkalBuffer.usage = buffer_usage_flags;
+    vkalBuffer.buffer = buffer;
+    vkalBuffer.mapped = NULL;
+
+    //VkDeviceSize device_memory_alignment = device_memory->alignment;
+    //VkDeviceSize next_offset = device_memory->free + (aligned_size / device_memory_alignment) * device_memory_alignment;
+    //next_offset += aligned_size % device_memory_alignment ? device_memory_alignment : 0;
+    //device_memory->free = next_offset;
+
+    return vkalBuffer;
 }
 
 void vkal_map_buffer(VkalBuffer* buffer) 
 {
-    uint64_t alignment = vkal_info.physical_device_properties.limits.minMemoryMapAlignment;
+    // uint64_t alignment = vkal_info.physical_device_properties.limits.minMemoryMapAlignment;
 
-    VkResult result = vkMapMemory(
-        vkal_info.device, buffer->device_memory,
-        buffer->offset, buffer->size,
-        0,
-        &buffer->mapped);
-    VKAL_ASSERT(result && "Failed to map memory!");
+    //VkResult result = vkMapMemory(
+    //    vkal_info.device, buffer->device_memory,
+    //    buffer->offset, buffer->size,
+    //    0,
+    //    &buffer->mapped);
+    //VKAL_ASSERT(result && "Failed to map memory!");
+
+    vmaMapMemory(vkal_info.vma_Allocator, buffer->vma_allocation, &buffer->mapped);
 }
 
 // TODO: Fix offset into device memory (must be multiple of nonCoherentAtomSize)
@@ -3328,6 +3359,8 @@ void vkal_cleanup(void) {
 #endif
     vkDestroyDevice(vkal_info.device, 0);
     vkDestroyInstance(vkal_info.instance, 0);
+
+    vmaDestroyAllocator(vkal_info.vma_Allocator);
 
 #ifdef VKAL_GLFW
     glfwTerminate();
