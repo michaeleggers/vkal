@@ -657,7 +657,8 @@ ASInfo get_acceleration_structure_info(VkalInfo* vkal_info, std::vector<VkalAcce
         VkTransformMatrixKHR transform_matrix = { // NOTE: Row Major
             1.0f, 0.0f, 0.0f, model_matrix[3].x,
             0.0f, 1.0f, 0.0f, model_matrix[3].y,
-            0.0f, 0.0f, 1.0f, model_matrix[3].z };
+            0.0f, 0.0f, 1.0f, model_matrix[3].z 
+        };
 
         VkAccelerationStructureInstanceKHR acceleration_structure_instance{};
         acceleration_structure_instance.transform = transform_matrix;
@@ -704,7 +705,10 @@ ASInfo get_acceleration_structure_info(VkalInfo* vkal_info, std::vector<VkalAcce
     acceleration_structure_build_geometry_info.geometryCount = 1;
     acceleration_structure_build_geometry_info.pGeometries = &acceleration_structure_geometry;
 
-    const uint32_t primitive_count = 1;
+    uint32_t primitive_count = 0;
+    for (auto& model : models) {
+        primitive_count += model.vertex_count / 3;
+    }
 
     VkAccelerationStructureBuildSizesInfoKHR acceleration_structure_build_sizes_info{};
     acceleration_structure_build_sizes_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
@@ -722,7 +726,7 @@ void create_tlas_handle(VkalInfo* vkal_info, ASInfo as_info)
     VkAccelerationStructureCreateInfoKHR acceleration_structure_create_info{};
     acceleration_structure_create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
     acceleration_structure_create_info.buffer = g_top_level_acceleration_structure.buffer.buffer;
-    acceleration_structure_create_info.size = as_info.as_build_sizes_info.accelerationStructureSize;
+    acceleration_structure_create_info.size = as_info.as_build_sizes_info.accelerationStructureSize; // THIS IS THE PROBLEM!!!!!!!!
     acceleration_structure_create_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
     vkCreateAccelerationStructureKHR(vkal_info->device, &acceleration_structure_create_info, nullptr, &g_top_level_acceleration_structure.handle);
 }
