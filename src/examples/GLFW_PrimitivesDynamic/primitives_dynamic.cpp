@@ -203,9 +203,9 @@ void create_batch(VkalInfo * vkal_info, Batch * batch)
 						    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
 						    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
 						    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 0);
-    batch->index_buffer = vkal_create_buffer(PRIMITIVES_INDEX_BUFFER_SIZE,
-					    &batch->index_memory,
-					    VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    batch->index_buffer = vkal_create_buffer(PRIMITIVES_INDEX_BUFFER_SIZE,					    
+					        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                            VMA_MEMORY_USAGE_CPU_TO_GPU);
     VKAL_DBG_BUFFER_NAME(vkal_info->device, batch->index_buffer, "Index Buffer");
     vkal_map_buffer(&batch->index_buffer);
 
@@ -216,8 +216,8 @@ void create_batch(VkalInfo * vkal_info, Batch * batch)
 						     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |			 
 						     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 0);
     batch->vertex_buffer = vkal_create_buffer(PRIMITIVES_VERTEX_BUFFER_SIZE,
-					     &batch->vertex_memory,
-					     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+					        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VMA_MEMORY_USAGE_CPU_TO_GPU);
 	VKAL_DBG_BUFFER_NAME(vkal_info->device, batch->vertex_buffer, "Vertex Buffer");
     vkal_map_buffer(&batch->vertex_buffer);
     
@@ -632,8 +632,8 @@ int main(int argc, char ** argv)
     init_window();
     
     char * device_extensions[] = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	VK_KHR_MAINTENANCE3_EXTENSION_NAME
+	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	    VK_KHR_MAINTENANCE3_EXTENSION_NAME
     };
     uint32_t device_extension_count = sizeof(device_extensions) / sizeof(*device_extensions);
 

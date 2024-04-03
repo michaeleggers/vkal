@@ -480,7 +480,7 @@ uint32_t check_memory_type_index(uint32_t const memory_requirement_bits, VkMemor
 void upload_texture(VkImage const image, uint32_t w, uint32_t h, uint32_t n, uint32_t array_layer_count, unsigned char * texture_data);
 void create_staging_buffer(uint32_t size);
 VkalBuffer create_buffer(uint32_t size, VkBufferUsageFlags usage);
-VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags);
+VkalBuffer vkal_create_buffer(VkDeviceSize size, VkBufferUsageFlags buffer_usage_flags, VmaMemoryUsage vmaMemoryUsage);
 void vkal_map_buffer(VkalBuffer* buffer);
 void vkal_unmap_buffer(VkalBuffer * buffer);
 void vkal_update_buffer_offset(VkalBuffer * buffer, uint8_t* data, uint32_t byte_count, uint32_t offset);

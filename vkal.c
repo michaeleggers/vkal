@@ -550,13 +550,13 @@ void set_image_layout(
 
     // Put barrier inside setup command buffer
     vkCmdPipelineBarrier(
-	command_buffer,
-	src_mask,
-	dst_mask,
-	0,
-	0, NULL,
-	0, NULL,
-	1, &barrier);
+	    command_buffer,
+	    src_mask,
+	    dst_mask,
+	    0,
+	    0, NULL,
+	    0, NULL,
+	    1, &barrier);
 }
 
 void vkal_flush_command_buffer(VkCommandBuffer command_buffer, VkQueue queue, int free)
@@ -1312,7 +1312,7 @@ DeviceMemory vkal_allocate_devicememory(uint32_t size,
     return device_memory;
 }
 
-VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, VkBufferUsageFlags buffer_usage_flags)
+VkalBuffer vkal_create_buffer(VkDeviceSize size, VkBufferUsageFlags buffer_usage_flags, VmaMemoryUsage vmaMemoryUsage)
 {
     //VkalBuffer buffer0 = create_buffer(size, buffer_usage_flags);
     //VkMemoryRequirements buffer_memory_requirements = { 0 };
@@ -1354,10 +1354,7 @@ VkalBuffer vkal_create_buffer(VkDeviceSize size, DeviceMemory * device_memory, V
 
     VkalBuffer vkalBuffer = { 0 };
     vkalBuffer.size = size;
-    vkalBuffer.offset = device_memory->free;
-    vkalBuffer.device_memory = device_memory->vk_device_memory;
-    vkalBuffer.vma_allocation = allocation;
-    vkalBuffer.vkal_device_memory = device_memory;
+    vkalBuffer.vma_allocation = allocation;    
     vkalBuffer.usage = buffer_usage_flags;
     vkalBuffer.buffer = buffer;
     vkalBuffer.mapped = NULL;
@@ -3184,7 +3181,7 @@ uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
     vkDeviceWaitIdle(vkal_info.device);
     
-    // When mapping memory later again to copy into it (see:fluch_to_memory) we must respect
+    // When mapping memory later again to copy into it (see:flush_to_memory) we must respect
     // the devices alignment.
     // See: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkMappedMemoryRange.html
     vkal_info.default_vertex_buffer_offset += size;
@@ -3275,10 +3272,10 @@ VkDeviceAddress vkal_get_buffer_device_address(VkBuffer buffer)
 
 void vkal_cleanup(void) {
 
-
-
     vkQueueWaitIdle(vkal_info.graphics_queue);
     
+    // vmaDestroyAllocator(vkal_info.vma_Allocator);
+
     VKAL_FREE(vkal_info.available_instance_extensions);
     VKAL_FREE(vkal_info.available_instance_layers);
     VKAL_FREE(vkal_info.physical_devices);
@@ -3360,7 +3357,6 @@ void vkal_cleanup(void) {
     vkDestroyDevice(vkal_info.device, 0);
     vkDestroyInstance(vkal_info.instance, 0);
 
-    vmaDestroyAllocator(vkal_info.vma_Allocator);
 
 #ifdef VKAL_GLFW
     glfwTerminate();
