@@ -82,21 +82,21 @@ static MouseState mouse_state;
 static int width = SCREEN_WIDTH;
 static int height = SCREEN_HEIGHT;
 
-// TODO: Can we make those non-global?
-static UniformBuffer view_proj_ub;
-static VkalImage storage_image;
-static VkDescriptorSet descriptor_set;
-static VkalBuffer raygen_shader_binding_table;
-static VkalBuffer miss_shader_binding_table;
-static VkalBuffer hit_shader_binding_table;
+static UniformBuffer    g_view_proj_ub;
+static VkalImage        g_storage_image;
+static VkDescriptorSet  g_descriptor_set;
+static VkalBuffer       g_raygen_shader_binding_table;
+static VkalBuffer       g_miss_shader_binding_table;
+static VkalBuffer       g_hit_shader_binding_table;
+
 // TLAS
-static DeviceMemory instance_device_memory;
-static VkalBuffer instance_buffer;
-static DeviceMemory tlas_device_memory;
-static DeviceMemory tlas_scratch_memory;
-static VkalBuffer tlas_scratch_buffer;
-static VkCommandBuffer tlas_one_time_command_buffer;
-static VkalAccelerationStructure top_level_acceleration_structure;
+static DeviceMemory                 g_instance_device_memory;
+static VkalBuffer                   g_instance_buffer;
+static DeviceMemory                 g_tlas_device_memory;
+static DeviceMemory                 g_tlas_scratch_memory;
+static VkalBuffer                   g_tlas_scratch_buffer;
+static VkCommandBuffer              g_tlas_one_time_command_buffer;
+static VkalAccelerationStructure    g_top_level_acceleration_structure;
 
 Image load_image(const char* file)
 {
@@ -130,11 +130,11 @@ void create_storage_image(VkalInfo* vkal_info)
     vkDeviceWaitIdle(vkal_info->device);
 
     // If the view port size has changed, we need to recreate the storage image
-    vkal_destroy_image_view(storage_image.image_view);
-    vkal_destroy_image(storage_image.image);
-    vkal_destroy_device_memory(storage_image.device_memory);
+    vkal_destroy_image_view(g_storage_image.image_view);
+    vkal_destroy_image(g_storage_image.image);
+    vkal_destroy_device_memory(g_storage_image.device_memory);
 
-    storage_image = create_vkal_image(width, height,
+    g_storage_image = create_vkal_image(width, height,
         VK_FORMAT_B8G8R8A8_UNORM, // TODO: Why is it in raytracing shaders BGR not RGB?
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT,
@@ -142,9 +142,9 @@ void create_storage_image(VkalInfo* vkal_info)
 
     // The descriptor also needs to be updated to reference the new image
     VkDescriptorImageInfo image_descriptor{};
-    image_descriptor.imageView = get_image_view(storage_image.image_view);
+    image_descriptor.imageView = get_image_view(g_storage_image.image_view);
     image_descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    VkWriteDescriptorSet result_image_write = create_write_descriptor_set_image(descriptor_set, 1, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &image_descriptor);
+    VkWriteDescriptorSet result_image_write = create_write_descriptor_set_image(g_descriptor_set, 1, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &image_descriptor);
     vkUpdateDescriptorSets(vkal_info->device, 1, &result_image_write, 0, VK_NULL_HANDLE);
 
     vkDeviceWaitIdle(vkal_info->device);
@@ -575,8 +575,8 @@ void create_descriptor_sets(VkalInfo * vkal_info, VkDescriptorSetLayout descript
     allocate_info.descriptorPool = descriptor_pool;
     allocate_info.pSetLayouts = &descriptor_set_layout;
     allocate_info.descriptorSetCount = 1;
-    descriptor_set = VK_NULL_HANDLE;
-    VKAL_ASSERT(vkAllocateDescriptorSets(vkal_info->device, &allocate_info, &descriptor_set));
+    g_descriptor_set = VK_NULL_HANDLE;
+    VKAL_ASSERT(vkAllocateDescriptorSets(vkal_info->device, &allocate_info, &g_descriptor_set));
 
     // Setup the descriptor for binding our top level acceleration structure to the ray tracing shaders
     VkWriteDescriptorSetAccelerationStructureKHR descriptor_acceleration_structure_info{};
@@ -586,7 +586,7 @@ void create_descriptor_sets(VkalInfo * vkal_info, VkDescriptorSetLayout descript
 
     VkWriteDescriptorSet acceleration_structure_write{};
     acceleration_structure_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    acceleration_structure_write.dstSet = descriptor_set;
+    acceleration_structure_write.dstSet = g_descriptor_set;
     acceleration_structure_write.dstBinding = 0;
     acceleration_structure_write.descriptorCount = 1;
     acceleration_structure_write.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
@@ -594,23 +594,23 @@ void create_descriptor_sets(VkalInfo * vkal_info, VkDescriptorSetLayout descript
     acceleration_structure_write.pNext = &descriptor_acceleration_structure_info;
 
     VkDescriptorImageInfo image_descriptor{};
-    storage_image = create_vkal_image(width, height,
+    g_storage_image = create_vkal_image(width, height,
         VK_FORMAT_B8G8R8A8_UNORM,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT,
         VK_IMAGE_LAYOUT_GENERAL);
 
     //vkal_update_descriptor_set_render_image // Cannot use this because it takes combined image sampler as descriptor type by default!
-    image_descriptor.imageView = get_image_view(storage_image.image_view);
+    image_descriptor.imageView = get_image_view(g_storage_image.image_view);
     image_descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    VkWriteDescriptorSet result_image_write = create_write_descriptor_set_image(descriptor_set, 1, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &image_descriptor);
+    VkWriteDescriptorSet result_image_write = create_write_descriptor_set_image(g_descriptor_set, 1, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &image_descriptor);
     
     // TODO: Maybe we cannot use the default uniform buffer memory for Raytracing! (NOT SURE THOUGH...)
     //DeviceMemory uniform_device_memory = vkal_allocate_devicememory(1024 * 1024, 
     //    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     //VkalBuffer uniform_buffer = vkal_create_buffer(sizeof(ViewProjection), &uniform_device_memory, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-    view_proj_ub = vkal_create_uniform_buffer(sizeof(ViewProjection), 1, 2);
-    vkal_update_descriptor_set_uniform(descriptor_set, view_proj_ub, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    g_view_proj_ub = vkal_create_uniform_buffer(sizeof(ViewProjection), 1, 2);
+    vkal_update_descriptor_set_uniform(g_descriptor_set, g_view_proj_ub, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     std::vector<VkWriteDescriptorSet> write_descriptor_sets = {
         acceleration_structure_write,
         result_image_write
@@ -618,23 +618,23 @@ void create_descriptor_sets(VkalInfo * vkal_info, VkDescriptorSetLayout descript
 
     // Activate all models in the storage buffer array (vertices and indices)
     for (size_t i = 0; i < model_buffers.size(); i++) {
-        vkal_update_descriptor_set_bufferarray(descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, i, model_buffers[i].vertexBuffer);
-        vkal_update_descriptor_set_bufferarray(descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, i, model_buffers[i].indexBuffer);
+        vkal_update_descriptor_set_bufferarray(g_descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, i, model_buffers[i].vertexBuffer);
+        vkal_update_descriptor_set_bufferarray(g_descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, i, model_buffers[i].indexBuffer);
     }
 
     // Activate all materials in the storage buffer array
     for (size_t i = 0; i < material_buffers.size(); i++) {
-        vkal_update_descriptor_set_bufferarray(descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 5, i, material_buffers[i]);
+        vkal_update_descriptor_set_bufferarray(g_descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 5, i, material_buffers[i]);
     }
 
     // Activate the instance metadata buffer so that we can get the material for an instance
     for (size_t i = 0; i < instance_metadata_buffers.size(); i++) {
-        vkal_update_descriptor_set_bufferarray(descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6, i, instance_metadata_buffers[i]);
+        vkal_update_descriptor_set_bufferarray(g_descriptor_set, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6, i, instance_metadata_buffers[i]);
     }
 
     // Activate textures
     for (size_t i = 0; i < textures.size(); i++) {
-        vkal_update_descriptor_set_texturearray(descriptor_set, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, i, textures[i]);
+        vkal_update_descriptor_set_texturearray(g_descriptor_set, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, i, textures[i]);
     }
 
 
@@ -651,7 +651,7 @@ ASInfo get_acceleration_structure_info(VkalInfo* vkal_info, std::vector<VkalAcce
 {
     std::vector<VkAccelerationStructureInstanceKHR> instances;
     size_t i = 0;
-    vkal_map_buffer(&instance_buffer);
+    vkal_map_buffer(&g_instance_buffer);
     for (VkalAccelerationStructure& blas : blases) {
         glm::mat4 model_matrix = models[i].model_matrix;
         VkTransformMatrixKHR transform_matrix = { // NOTE: Row Major
@@ -672,16 +672,16 @@ ASInfo get_acceleration_structure_info(VkalInfo* vkal_info, std::vector<VkalAcce
         //    sizeof(VkAccelerationStructureInstanceKHR),
         //    i * sizeof(VkAccelerationStructureInstanceKHR));
 
-        memcpy((uint8_t*)(instance_buffer.mapped) + i * sizeof(VkAccelerationStructureInstanceKHR), (uint8_t*)&acceleration_structure_instance, sizeof(VkAccelerationStructureInstanceKHR));
+        memcpy((uint8_t*)(g_instance_buffer.mapped) + i * sizeof(VkAccelerationStructureInstanceKHR), (uint8_t*)&acceleration_structure_instance, sizeof(VkAccelerationStructureInstanceKHR));
 
 
         instances.push_back(acceleration_structure_instance);
         i++;
     }
-    vkal_unmap_buffer(&instance_buffer);
+    vkal_unmap_buffer(&g_instance_buffer);
 
     VkDeviceOrHostAddressConstKHR instance_data_device_address{};
-    instance_data_device_address.deviceAddress = vkal_get_buffer_device_address(instance_buffer.buffer);
+    instance_data_device_address.deviceAddress = vkal_get_buffer_device_address(g_instance_buffer.buffer);
 
     // The top level acceleration structure contains (bottom level) instance as the input geometry
     VkAccelerationStructureGeometryKHR acceleration_structure_geometry{};
@@ -721,10 +721,10 @@ void create_tlas_handle(VkalInfo* vkal_info, ASInfo as_info)
 {
     VkAccelerationStructureCreateInfoKHR acceleration_structure_create_info{};
     acceleration_structure_create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
-    acceleration_structure_create_info.buffer = top_level_acceleration_structure.buffer.buffer;
+    acceleration_structure_create_info.buffer = g_top_level_acceleration_structure.buffer.buffer;
     acceleration_structure_create_info.size = as_info.as_build_sizes_info.accelerationStructureSize;
     acceleration_structure_create_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-    vkCreateAccelerationStructureKHR(vkal_info->device, &acceleration_structure_create_info, nullptr, &top_level_acceleration_structure.handle);
+    vkCreateAccelerationStructureKHR(vkal_info->device, &acceleration_structure_create_info, nullptr, &g_top_level_acceleration_structure.handle);
 }
 
 void build_tlas(VkalInfo* vkal_info, ASInfo as_info, std::vector< VkalAccelerationStructure> blases, bool update)
@@ -734,11 +734,11 @@ void build_tlas(VkalInfo* vkal_info, ASInfo as_info, std::vector< VkalAccelerati
     acceleration_build_geometry_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
     acceleration_build_geometry_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
     acceleration_build_geometry_info.mode = update ? VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR : VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-    acceleration_build_geometry_info.srcAccelerationStructure = update ? top_level_acceleration_structure.handle : VK_NULL_HANDLE;
-    acceleration_build_geometry_info.dstAccelerationStructure = top_level_acceleration_structure.handle;
+    acceleration_build_geometry_info.srcAccelerationStructure = update ? g_top_level_acceleration_structure.handle : VK_NULL_HANDLE;
+    acceleration_build_geometry_info.dstAccelerationStructure = g_top_level_acceleration_structure.handle;
     acceleration_build_geometry_info.geometryCount = 1;
     acceleration_build_geometry_info.pGeometries = &as_info.as_geometry;
-    acceleration_build_geometry_info.scratchData.deviceAddress = vkal_get_buffer_device_address(tlas_scratch_buffer.buffer);
+    acceleration_build_geometry_info.scratchData.deviceAddress = vkal_get_buffer_device_address(g_tlas_scratch_buffer.buffer);
     VkAccelerationStructureBuildRangeInfoKHR acceleration_structure_build_range_info{};
     acceleration_structure_build_range_info.primitiveCount = blases.size();
     acceleration_structure_build_range_info.primitiveOffset = 0;
@@ -755,22 +755,22 @@ void build_tlas(VkalInfo* vkal_info, ASInfo as_info, std::vector< VkalAccelerati
     // Build the acceleration structure on the device via a one-time command buffer submission
     // Some implementations may support acceleration structure building on the host (VkPhysicalDeviceAccelerationStructureFeaturesKHR->accelerationStructureHostCommands), 
     // but we prefer device builds    
-    tlas_one_time_command_buffer = vkal_create_command_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true); // Used by create_tlas
+    g_tlas_one_time_command_buffer = vkal_create_command_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true); // Used by create_tlas
     vkCmdBuildAccelerationStructuresKHR(
-        tlas_one_time_command_buffer,
+        g_tlas_one_time_command_buffer,
         1,
         acceleration_build_geometry_infos.data(),
         acceleration_build_structure_range_infos.data()
     );
-    vkal_flush_command_buffer(tlas_one_time_command_buffer, vkal_info->graphics_queue, 1); // 0 = Don't free command buffer
+    vkal_flush_command_buffer(g_tlas_one_time_command_buffer, vkal_info->graphics_queue, 1); // 0 = Don't free command buffer
 
     // TODO: Delete scratch buffer
 
     // Get the top acceleration structure's handle, which will be used to setup it's descriptor
     VkAccelerationStructureDeviceAddressInfoKHR acceleration_device_address_info{};
     acceleration_device_address_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
-    acceleration_device_address_info.accelerationStructure = top_level_acceleration_structure.handle;
-    top_level_acceleration_structure.device_address = vkGetAccelerationStructureDeviceAddressKHR(vkal_info->device, &acceleration_device_address_info);
+    acceleration_device_address_info.accelerationStructure = g_top_level_acceleration_structure.handle;
+    g_top_level_acceleration_structure.device_address = vkGetAccelerationStructureDeviceAddressKHR(vkal_info->device, &acceleration_device_address_info);
 }
 
 void update_tlas(VkalInfo* vkal_info, std::vector<VkalAccelerationStructure> blases, std::vector<Model> models)
@@ -782,29 +782,29 @@ void update_tlas(VkalInfo* vkal_info, std::vector<VkalAccelerationStructure> bla
 // TODO: Fix Buffer mapping issues in VKAL!
 VkalAccelerationStructure create_tlas(VkalInfo* vkal_info, std::vector<VkalAccelerationStructure> blases, std::vector<Model> models)
 {
-    instance_device_memory = vkal_allocate_devicememory(
+    g_instance_device_memory = vkal_allocate_devicememory(
         blases.size() * sizeof(VkAccelerationStructureInstanceKHR),
         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT);
 
-    instance_buffer = vkal_create_buffer(
+    g_instance_buffer = vkal_create_buffer(
         blases.size() * sizeof(VkAccelerationStructureInstanceKHR),
-        &instance_device_memory,
+        &g_instance_device_memory,
         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
  
     ASInfo as_info = get_acceleration_structure_info(vkal_info, blases, models);
 
     // Create a buffer to hold the acceleration structure
-    tlas_device_memory = vkal_allocate_devicememory(
+    g_tlas_device_memory = vkal_allocate_devicememory(
         as_info.as_build_sizes_info.accelerationStructureSize,
         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT
     );
 
-    top_level_acceleration_structure = {};
-    top_level_acceleration_structure.buffer = vkal_create_buffer(
+    g_top_level_acceleration_structure = {};
+    g_top_level_acceleration_structure.buffer = vkal_create_buffer(
         as_info.as_build_sizes_info.accelerationStructureSize,
-        &tlas_device_memory,
+        &g_tlas_device_memory,
         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 
     // Create the acceleration structure
@@ -813,20 +813,20 @@ VkalAccelerationStructure create_tlas(VkalInfo* vkal_info, std::vector<VkalAccel
     // The actual build process starts here
 
     // Create a scratch buffer as a temporary storage for the acceleration structure build
-    tlas_scratch_memory = vkal_allocate_devicememory(
+    g_tlas_scratch_memory = vkal_allocate_devicememory(
         as_info.as_build_sizes_info.buildScratchSize,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT
     );
-    tlas_scratch_buffer = vkal_create_buffer(
+    g_tlas_scratch_buffer = vkal_create_buffer(
         as_info.as_build_sizes_info.buildScratchSize,
-        &tlas_scratch_memory,
+        &g_tlas_scratch_memory,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
     );
 
     build_tlas(vkal_info, as_info, blases, false);
 
-    return top_level_acceleration_structure;
+    return g_top_level_acceleration_structure;
 }
 
 VkPhysicalDeviceRayTracingPipelinePropertiesKHR get_ray_tracing_pipeline_properties(VkalInfo* vkal_info)
@@ -860,9 +860,9 @@ void create_shader_binding_tables(VkalInfo* vkal_info, VkPhysicalDeviceRayTracin
     DeviceMemory shader_binding_table_device_memory_miss = vkal_allocate_devicememory(1024 * 1024, sbt_buffer_usage_flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT);
     DeviceMemory shader_binding_table_device_memory_hit = vkal_allocate_devicememory(1024 * 1024, sbt_buffer_usage_flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT);
 
-    raygen_shader_binding_table = vkal_create_buffer(handle_size, &shader_binding_table_device_memory_raygen, sbt_buffer_usage_flags);
-    miss_shader_binding_table = vkal_create_buffer(2*handle_size, &shader_binding_table_device_memory_miss, sbt_buffer_usage_flags);
-    hit_shader_binding_table = vkal_create_buffer(handle_size, &shader_binding_table_device_memory_hit, sbt_buffer_usage_flags);
+    g_raygen_shader_binding_table = vkal_create_buffer(handle_size, &shader_binding_table_device_memory_raygen, sbt_buffer_usage_flags);
+    g_miss_shader_binding_table = vkal_create_buffer(2*handle_size, &shader_binding_table_device_memory_miss, sbt_buffer_usage_flags);
+    g_hit_shader_binding_table = vkal_create_buffer(handle_size, &shader_binding_table_device_memory_hit, sbt_buffer_usage_flags);
     //raygen_shader_binding_table = std::make_unique<vkb::core::Buffer>(get_device(), handle_size, sbt_buffer_usafge_flags, sbt_memory_usage, 0);
     //miss_shader_binding_table = std::make_unique<vkb::core::Buffer>(get_device(), handle_size, sbt_buffer_usafge_flags, sbt_memory_usage, 0);
     //hit_shader_binding_table = std::make_unique<vkb::core::Buffer>(get_device(), handle_size, sbt_buffer_usafge_flags, sbt_memory_usage, 0);
@@ -872,20 +872,20 @@ void create_shader_binding_tables(VkalInfo* vkal_info, VkPhysicalDeviceRayTracin
     vkGetRayTracingShaderGroupHandlesKHR(vkal_info->device, pipeline_info.pipeline, 0, group_count, sbt_size, shader_handle_storage.data());
 
     // Copy the shader handles from the host buffer to the binding tables
-    vkal_map_buffer(&raygen_shader_binding_table);
-    uint8_t* data = static_cast<uint8_t*>(raygen_shader_binding_table.mapped);
+    vkal_map_buffer(&g_raygen_shader_binding_table);
+    uint8_t* data = static_cast<uint8_t*>(g_raygen_shader_binding_table.mapped);
     memcpy(data, shader_handle_storage.data(), handle_size);
-    vkal_unmap_buffer(&raygen_shader_binding_table);
+    vkal_unmap_buffer(&g_raygen_shader_binding_table);
 
-    vkal_map_buffer(&miss_shader_binding_table);
-    data = static_cast<uint8_t*>(miss_shader_binding_table.mapped);
+    vkal_map_buffer(&g_miss_shader_binding_table);
+    data = static_cast<uint8_t*>(g_miss_shader_binding_table.mapped);
     memcpy(data, shader_handle_storage.data() + handle_size_aligned, 2*handle_size);
-    vkal_unmap_buffer(&miss_shader_binding_table);
+    vkal_unmap_buffer(&g_miss_shader_binding_table);
 
-    vkal_map_buffer(&hit_shader_binding_table);
-    data = static_cast<uint8_t*>(hit_shader_binding_table.mapped);
+    vkal_map_buffer(&g_hit_shader_binding_table);
+    data = static_cast<uint8_t*>(g_hit_shader_binding_table.mapped);
     memcpy(data, shader_handle_storage.data() + handle_size_aligned * 3, handle_size);
-    vkal_unmap_buffer(&hit_shader_binding_table);
+    vkal_unmap_buffer(&g_hit_shader_binding_table);
 }
 
 void build_command_buffers(VkalInfo * vkal_info, PipelineInfo pipeline_info, VkPhysicalDeviceRayTracingPipelinePropertiesKHR ray_tracing_pipeline_properties)
@@ -909,17 +909,17 @@ void build_command_buffers(VkalInfo * vkal_info, PipelineInfo pipeline_info, VkP
         const uint32_t handle_size_aligned = vkal_aligned_size(ray_tracing_pipeline_properties.shaderGroupHandleSize, ray_tracing_pipeline_properties.shaderGroupHandleAlignment);
 
         VkStridedDeviceAddressRegionKHR raygen_shader_sbt_entry{};
-        raygen_shader_sbt_entry.deviceAddress = vkal_get_buffer_device_address(raygen_shader_binding_table.buffer);
+        raygen_shader_sbt_entry.deviceAddress = vkal_get_buffer_device_address(g_raygen_shader_binding_table.buffer);
         raygen_shader_sbt_entry.stride = handle_size_aligned;
         raygen_shader_sbt_entry.size = handle_size_aligned;
 
         VkStridedDeviceAddressRegionKHR miss_shader_sbt_entry{};
-        miss_shader_sbt_entry.deviceAddress = vkal_get_buffer_device_address(miss_shader_binding_table.buffer);
+        miss_shader_sbt_entry.deviceAddress = vkal_get_buffer_device_address(g_miss_shader_binding_table.buffer);
         miss_shader_sbt_entry.stride = handle_size_aligned;
         miss_shader_sbt_entry.size = 2*handle_size_aligned;
 
         VkStridedDeviceAddressRegionKHR hit_shader_sbt_entry{};
-        hit_shader_sbt_entry.deviceAddress = vkal_get_buffer_device_address(hit_shader_binding_table.buffer);
+        hit_shader_sbt_entry.deviceAddress = vkal_get_buffer_device_address(g_hit_shader_binding_table.buffer);
         hit_shader_sbt_entry.stride = handle_size_aligned;
         hit_shader_sbt_entry.size = handle_size_aligned;
 
@@ -929,7 +929,7 @@ void build_command_buffers(VkalInfo * vkal_info, PipelineInfo pipeline_info, VkP
             Dispatch the ray tracing commands
         */
         vkCmdBindPipeline(vkal_info->default_command_buffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline_info.pipeline);
-        vkCmdBindDescriptorSets(vkal_info->default_command_buffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline_info.pipeline_layout, 0, 1, &descriptor_set, 0, 0);
+        vkCmdBindDescriptorSets(vkal_info->default_command_buffers[i], VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline_info.pipeline_layout, 0, 1, &g_descriptor_set, 0, 0);
 
         vkCmdTraceRaysKHR(
             vkal_info->default_command_buffers[i],
@@ -958,7 +958,7 @@ void build_command_buffers(VkalInfo * vkal_info, PipelineInfo pipeline_info, VkP
         // Prepare ray tracing output image as transfer source
         set_image_layout(
             vkal_info->default_command_buffers[i],
-            get_image(storage_image.image),
+            get_image(g_storage_image.image),
             VK_IMAGE_LAYOUT_GENERAL,
             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             subresource_range,
@@ -971,7 +971,7 @@ void build_command_buffers(VkalInfo * vkal_info, PipelineInfo pipeline_info, VkP
         copy_region.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
         copy_region.dstOffset = { 0, 0, 0 };
         copy_region.extent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1 };
-        vkCmdCopyImage(vkal_info->default_command_buffers[i], get_image(storage_image.image), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        vkCmdCopyImage(vkal_info->default_command_buffers[i], get_image(g_storage_image.image), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             vkal_info->swapchain_images[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
 
         // Transition swap chain image back for presentation
@@ -987,7 +987,7 @@ void build_command_buffers(VkalInfo * vkal_info, PipelineInfo pipeline_info, VkP
         // Transition ray tracing output image back to general layout
         set_image_layout(
             vkal_info->default_command_buffers[i],
-            get_image(storage_image.image),
+            get_image(g_storage_image.image),
             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_IMAGE_LAYOUT_GENERAL,
             subresource_range,
@@ -1232,7 +1232,7 @@ int main(int argc, char** argv)
 	view_proj_data.view = glm::inverse(glm::lookAt(camera.m_Pos, camera.m_Center, camera.m_Up));
 
     // Uniform Buffer for View-Projection Matrix
-	vkal_update_uniform(&view_proj_ub, &view_proj_data);
+	vkal_update_uniform(&g_view_proj_ub, &view_proj_data);
 
     // Main Loop
     double dt = 0;
@@ -1259,7 +1259,7 @@ int main(int argc, char** argv)
 
         view_proj_data.proj = adjust_y_for_vulkan_ndc * glm::inverse(glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 1000.0f));
         view_proj_data.view = glm::inverse(glm::lookAt(camera.m_Pos, camera.m_Center, camera.m_Up));
-		vkal_update_uniform(&view_proj_ub, &view_proj_data);    
+		vkal_update_uniform(&g_view_proj_ub, &view_proj_data);    
 
         {
             uint32_t image_id = vkal_get_image();
@@ -1270,7 +1270,7 @@ int main(int argc, char** argv)
             vkal_present(image_id);
         }
 
-        if (width != storage_image.width || height != storage_image.height)
+        if (width != g_storage_image.width || height != g_storage_image.height)
         {
             create_storage_image(vkal_info);
             build_command_buffers(vkal_info, pipeline_info, ray_tracing_pipeline_properties);
