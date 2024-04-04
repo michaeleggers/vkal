@@ -85,6 +85,8 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
     create_default_semaphores();
     vkal_info.frames_rendered = 0;
 
+    printf("vkal_init: done.\n");
+
 
     return &vkal_info;
 }
@@ -122,6 +124,7 @@ void vkal_create_instance_glfw(
     char ** instance_extensions, uint32_t instance_extension_count,
     char ** instance_layers, uint32_t instance_layer_count)
 {
+    printf("Init GLFW instance...\n");
     vkal_info.window = window;
     VkApplicationInfo app_info = {0};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -129,7 +132,7 @@ void vkal_create_instance_glfw(
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "VKAL Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_API_VERSION_1_3;
+    app_info.apiVersion = VK_API_VERSION_1_2;
     
     VkInstanceCreateInfo create_info = {0};
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -203,6 +206,7 @@ void vkal_create_instance_glfw(
 		}
 		create_info.enabledExtensionCount = total_instance_ext_count;
 		create_info.ppEnabledExtensionNames = (const char * const *)all_instance_extensions;
+        create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     
         VkResult result = vkCreateInstance(&create_info, 0, &vkal_info.instance);
 		VKAL_ASSERT(result && "failed to create VkInstance");
@@ -228,7 +232,7 @@ void vkal_create_instance_win32(
 	app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	app_info.pEngineName = "VKAL Engine";
 	app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	app_info.apiVersion = VK_API_VERSION_1_3;
+	app_info.apiVersion = VK_API_VERSION_1_2;
 
 	VkInstanceCreateInfo create_info = { 0 };
 	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -914,8 +918,10 @@ void create_swapchain(void)
     
     VkSurfaceFormatKHR surface_format = choose_swapchain_surface_format(swap_chain_support.formats, swap_chain_support.format_count);
     VkPresentModeKHR present_mode = choose_swapchain_present_mode(swap_chain_support.present_modes, swap_chain_support.present_mode_count);
+    printf("choose_swap_extend...\n");
     VkExtent2D extent = choose_swap_extent(&swap_chain_support.capabilities);
-    
+    printf("done.\n");
+
     uint32_t image_count = VKAL_MAX_SWAPCHAIN_IMAGES;
     if (swap_chain_support.capabilities.maxImageCount > 0) {
 		image_count = VKAL_MIN(image_count, swap_chain_support.capabilities.maxImageCount);
@@ -961,6 +967,8 @@ void create_swapchain(void)
     
     vkal_info.swapchain_image_format = surface_format.format;
     vkal_info.swapchain_extent = extent;
+
+    printf("create_swapchain: done.\n");
 }
 
 void create_image_views(void)
