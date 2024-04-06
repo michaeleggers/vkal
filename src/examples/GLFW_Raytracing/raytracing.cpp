@@ -1132,8 +1132,10 @@ int main(int argc, char** argv)
     wanted_features.features12.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
     wanted_features.rayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
     wanted_features.accelerationStructureFeatures.accelerationStructure = VK_TRUE;
-    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count, wanted_features);
+    
     vkal_init_raytracing();
+
+    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count, wanted_features);    
 
     /* Textures */
     Image sandImage = load_image("../../src/examples/assets/textures/sand_diffuse.jpg");
