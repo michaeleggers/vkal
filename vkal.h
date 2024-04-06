@@ -299,7 +299,7 @@ typedef struct VkalInfo
     uint32_t		depth_stencil_image_view;
     uint32_t		device_memory_depth_stencil;
 
-    VkDeviceMemory	device_memory_staging;
+    VkDeviceMemory	    device_memory_staging;
     VkalBuffer			staging_buffer;
 
     VkRenderPass		render_pass;
@@ -332,6 +332,8 @@ typedef struct VkalInfo
     uint64_t		default_index_buffer_offset;
 
     VkDescriptorPool default_descriptor_pool;
+
+    uint32_t        raytracing_enabled;
 } VkalInfo;
 
 typedef struct QueueFamilyIndicies {

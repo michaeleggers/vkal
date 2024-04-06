@@ -62,8 +62,6 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
 #endif 
 
 
-
-
 //    pick_physical_device(extensions, extension_count);
     create_logical_device(extensions, extension_count, vulkan_features);
     create_swapchain();
@@ -85,6 +83,9 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
     create_default_semaphores();
     vkal_info.frames_rendered = 0;
 
+    // Setup some flags required for feature enable/disable
+    vkal_info.raytracing_enabled = 0;
+
 
     return &vkal_info;
 }
@@ -93,6 +94,7 @@ void vkal_init_raytracing() {
     #ifdef __cplusplus
         extern "C" {
     #endif
+            vkal_info.raytracing_enabled = 1;
 
             // TODO: Check if function pointers are loaded correctly!
     #if defined (VKAL_GLFW)
@@ -1719,8 +1721,10 @@ void create_logical_device(char** extensions, uint32_t extension_count, VkalWant
     vulkan_features.rayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
     vulkan_features.accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
     vulkan_features.features11.pNext = &vulkan_features.features12;
-    vulkan_features.features12.pNext = &vulkan_features.rayTracingPipelineFeatures;
-    vulkan_features.rayTracingPipelineFeatures.pNext = &vulkan_features.accelerationStructureFeatures;
+    if (vkal_info.raytracing_enabled) {
+        vulkan_features.features12.pNext = &vulkan_features.rayTracingPipelineFeatures;
+        vulkan_features.rayTracingPipelineFeatures.pNext = &vulkan_features.accelerationStructureFeatures;
+    }
 
     /* Query what features are supported for the selected device */
     VkPhysicalDeviceVulkan11Features device_features11 = { 0 };
@@ -1728,15 +1732,23 @@ void create_logical_device(char** extensions, uint32_t extension_count, VkalWant
     VkPhysicalDeviceVulkan12Features device_features12 = { 0 };
     device_features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     device_features12.pNext = &device_features11;
+
+    /* Raytracing */
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_features = { 0 };
     ray_tracing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
     ray_tracing_features.pNext = &device_features12;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features = { 0 };
     acceleration_structure_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
     acceleration_structure_features.pNext = &ray_tracing_features;
+    
     VkPhysicalDeviceFeatures2 available_features2 = { 0 };
     available_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    available_features2.pNext = &acceleration_structure_features;
+    if (vkal_info.raytracing_enabled) {
+        available_features2.pNext = &acceleration_structure_features;
+    }
+    else {
+        available_features2.pNext = &device_features12;
+    }
     vkGetPhysicalDeviceFeatures2(vkal_info.physical_device, &available_features2);
 
     /* TODO: Complete feature-checking */
