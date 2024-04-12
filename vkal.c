@@ -134,7 +134,7 @@ void vkal_create_instance_glfw(
     #if defined (Win32) || defined(__linux__)
         app_info.apiVersion = VK_API_VERSION_1_3;
     #elif __APPLE__
-        app_info.apiVersion = VK_API_VERSION_1_2; // MoltonVK only goes up to Vulkan version 1.2
+        app_info.apiVersion = VK_API_VERSION_1_2; // MoltenVK only goes up to Vulkan version 1.2
     #endif
     
     VkInstanceCreateInfo create_info = {0};
@@ -344,7 +344,7 @@ void vkal_create_instance_sdl(
     #if defined (Win32) || defined(__linux__)
         app_info.apiVersion = VK_API_VERSION_1_3;
     #elif __APPLE__
-        app_info.apiVersion = VK_API_VERSION_1_2; // MoltonVK only goes up to Vulkan version 1.2
+        app_info.apiVersion = VK_API_VERSION_1_2; // MoltenVK only goes up to Vulkan version 1.2
     #endif
 
     VkInstanceCreateInfo create_info = { 0 };
