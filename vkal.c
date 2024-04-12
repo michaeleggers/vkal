@@ -62,8 +62,6 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
 #endif 
 
 
-
-
 //    pick_physical_device(extensions, extension_count);
     create_logical_device(extensions, extension_count, vulkan_features);
     create_swapchain();
@@ -85,7 +83,8 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
     create_default_semaphores();
     vkal_info.frames_rendered = 0;
 
-    printf("vkal_init: done.\n");
+    // Setup some flags required for feature enable/disable
+    vkal_info.raytracing_enabled = 0;
 
 
     return &vkal_info;
@@ -95,6 +94,7 @@ void vkal_init_raytracing() {
     #ifdef __cplusplus
         extern "C" {
     #endif
+            vkal_info.raytracing_enabled = 1;
 
             // TODO: Check if function pointers are loaded correctly!
     #if defined (VKAL_GLFW)
@@ -124,7 +124,6 @@ void vkal_create_instance_glfw(
     char ** instance_extensions, uint32_t instance_extension_count,
     char ** instance_layers, uint32_t instance_layer_count)
 {
-    printf("Init GLFW instance...\n");
     vkal_info.window = window;
     VkApplicationInfo app_info = {0};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -132,10 +131,17 @@ void vkal_create_instance_glfw(
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "VKAL Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_API_VERSION_1_2;
+    #if defined (Win32) || defined(__linux__)
+        app_info.apiVersion = VK_API_VERSION_1_3;
+    #elif __APPLE__
+        app_info.apiVersion = VK_API_VERSION_1_2; // MoltonVK only goes up to Vulkan version 1.2
+    #endif
     
     VkInstanceCreateInfo create_info = {0};
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    #ifdef __APPLE__
+        create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    #endif
     create_info.pApplicationInfo = &app_info;
 
     // Query available extensions.
@@ -206,7 +212,6 @@ void vkal_create_instance_glfw(
 		}
 		create_info.enabledExtensionCount = total_instance_ext_count;
 		create_info.ppEnabledExtensionNames = (const char * const *)all_instance_extensions;
-        create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     
         VkResult result = vkCreateInstance(&create_info, 0, &vkal_info.instance);
 		VKAL_ASSERT(result && "failed to create VkInstance");
@@ -232,10 +237,13 @@ void vkal_create_instance_win32(
 	app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	app_info.pEngineName = "VKAL Engine";
 	app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	app_info.apiVersion = VK_API_VERSION_1_2;
+	app_info.apiVersion = VK_API_VERSION_1_3;
 
 	VkInstanceCreateInfo create_info = { 0 };
 	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    #ifdef __APPLE__
+        create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    #endif
 	create_info.pApplicationInfo = &app_info;
 
 	// Query available extensions.
@@ -333,10 +341,17 @@ void vkal_create_instance_sdl(
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "VKAL Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_API_VERSION_1_3;
+    #if defined (Win32) || defined(__linux__)
+        app_info.apiVersion = VK_API_VERSION_1_3;
+    #elif __APPLE__
+        app_info.apiVersion = VK_API_VERSION_1_2; // MoltonVK only goes up to Vulkan version 1.2
+    #endif
 
     VkInstanceCreateInfo create_info = { 0 };
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    #ifdef __APPLE__
+        create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    #endif
     create_info.pApplicationInfo = &app_info;
 
     // Query available extensions.
@@ -918,10 +933,8 @@ void create_swapchain(void)
     
     VkSurfaceFormatKHR surface_format = choose_swapchain_surface_format(swap_chain_support.formats, swap_chain_support.format_count);
     VkPresentModeKHR present_mode = choose_swapchain_present_mode(swap_chain_support.present_modes, swap_chain_support.present_mode_count);
-    printf("choose_swap_extend...\n");
     VkExtent2D extent = choose_swap_extent(&swap_chain_support.capabilities);
-    printf("done.\n");
-
+    
     uint32_t image_count = VKAL_MAX_SWAPCHAIN_IMAGES;
     if (swap_chain_support.capabilities.maxImageCount > 0) {
 		image_count = VKAL_MIN(image_count, swap_chain_support.capabilities.maxImageCount);
@@ -967,8 +980,6 @@ void create_swapchain(void)
     
     vkal_info.swapchain_image_format = surface_format.format;
     vkal_info.swapchain_extent = extent;
-
-    printf("create_swapchain: done.\n");
 }
 
 void create_image_views(void)
@@ -1727,8 +1738,10 @@ void create_logical_device(char** extensions, uint32_t extension_count, VkalWant
     vulkan_features.rayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
     vulkan_features.accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
     vulkan_features.features11.pNext = &vulkan_features.features12;
-    vulkan_features.features12.pNext = &vulkan_features.rayTracingPipelineFeatures;
-    vulkan_features.rayTracingPipelineFeatures.pNext = &vulkan_features.accelerationStructureFeatures;
+    if (vkal_info.raytracing_enabled) {
+        vulkan_features.features12.pNext = &vulkan_features.rayTracingPipelineFeatures;
+        vulkan_features.rayTracingPipelineFeatures.pNext = &vulkan_features.accelerationStructureFeatures;
+    }
 
     /* Query what features are supported for the selected device */
     VkPhysicalDeviceVulkan11Features device_features11 = { 0 };
@@ -1736,15 +1749,23 @@ void create_logical_device(char** extensions, uint32_t extension_count, VkalWant
     VkPhysicalDeviceVulkan12Features device_features12 = { 0 };
     device_features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     device_features12.pNext = &device_features11;
+
+    /* Raytracing */
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_features = { 0 };
     ray_tracing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
     ray_tracing_features.pNext = &device_features12;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features = { 0 };
     acceleration_structure_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
     acceleration_structure_features.pNext = &ray_tracing_features;
+    
     VkPhysicalDeviceFeatures2 available_features2 = { 0 };
     available_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    available_features2.pNext = &acceleration_structure_features;
+    if (vkal_info.raytracing_enabled) {
+        available_features2.pNext = &acceleration_structure_features;
+    }
+    else {
+        available_features2.pNext = &device_features12;
+    }
     vkGetPhysicalDeviceFeatures2(vkal_info.physical_device, &available_features2);
 
     /* TODO: Complete feature-checking */

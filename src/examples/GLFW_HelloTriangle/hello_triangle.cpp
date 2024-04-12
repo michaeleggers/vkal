@@ -73,26 +73,28 @@ int main(int argc, char** argv)
     uint32_t device_extension_count = sizeof(device_extensions) / sizeof(*device_extensions);
 
     char* instance_extensions[] = {
-    VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
-    VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
-#ifdef _DEBUG
-    ,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-#endif
+        VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+        #ifdef __APPLE__
+            ,VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+        #endif
+        #ifdef _DEBUG
+            ,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+        #endif
     };
     uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
 
     char* instance_layers[] = {
-        "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_LUNARG_monitor"
+        "VK_LAYER_KHRONOS_validation"
+#if defined(WIN32) || defined(WIN32)
+        ,"VK_LAYER_LUNARG_monitor" // Not available on MacOS!
+#endif
     };
     uint32_t instance_layer_count = 0;
 #ifdef _DEBUG
     instance_layer_count = sizeof(instance_layers) / sizeof(*instance_layers);
 #endif
 
-    printf("vkal_create_instance_glfw...\n");
     vkal_create_instance_glfw(window, instance_extensions, instance_extension_count, instance_layers, instance_layer_count);
-    printf("vkal_create_instance_glfw done.\n");
 
     VkalPhysicalDevice* devices = 0;
     uint32_t device_count;
@@ -110,11 +112,10 @@ int main(int argc, char** argv)
     /* Shader Setup */
     uint8_t* vertex_byte_code = 0;
     int vertex_code_size;
-    read_file("/../src/examples/assets/shaders/hello_triangle_vert.spv", &vertex_byte_code, &vertex_code_size);
-    printf("read_file (vert shader): done.\n");
+    read_file("../../src/examples/assets/shaders/hello_triangle_vert.spv", &vertex_byte_code, &vertex_code_size);
     uint8_t* fragment_byte_code = 0;
     int fragment_code_size;
-    read_file("/../src/examples/assets/shaders/hello_triangle_frag.spv", &fragment_byte_code, &fragment_code_size);
+    read_file("/../../src/examples/assets/shaders/hello_triangle_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(vertex_byte_code, vertex_code_size, fragment_byte_code, fragment_code_size);
     
     /* Vertex Input Assembly */
@@ -224,6 +225,7 @@ int main(int argc, char** argv)
 
             vkal_end_command_buffer(image_id);
             VkCommandBuffer command_buffers1[] = { vkal_info->default_command_buffers[image_id] };
+            
             vkal_queue_submit(command_buffers1, 1);
 
             vkal_present(image_id);

@@ -85,14 +85,36 @@
 
 /* Platform independent part. Should work on all systems. */
 
+static std::string concat_paths(std::string a, std::string b)
+{
+    char endOfA = a[a.size() - 1];
+    char startOfB = b[0];
+
+    if (endOfA != '/' && startOfB != '/') {
+        a += '/';
+    }
+    
+    a += b;
+
+    return a;
+}
+
 void read_file(char const* filename, uint8_t** out_buffer, int* out_size)
 {
 	char exe_path[256];
 	get_exe_path(exe_path, 256 * sizeof(char));
 	char abs_path[256];
 	memcpy(abs_path, exe_path, 256);
-	strcat(abs_path, filename);
-	FILE* file = fopen(abs_path, "rb");
+    std::string final_path = concat_paths(std::string(exe_path), std::string(filename));
+	//strcat(abs_path, filename);
+	FILE* file = fopen(final_path.c_str(), "rb");
+    if (!file) {
+        fprintf(stderr, "Failed to read file: %s\n", final_path.c_str());
+        *out_buffer = NULL;
+        *out_size = 0;
+        
+        return;
+    }
 	fseek(file, 0L, SEEK_END);
 	*out_size = ftell(file);
 	fseek(file, 0L, SEEK_SET);
