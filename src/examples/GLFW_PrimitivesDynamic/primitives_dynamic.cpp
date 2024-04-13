@@ -637,17 +637,22 @@ int main(int argc, char ** argv)
     };
     uint32_t device_extension_count = sizeof(device_extensions) / sizeof(*device_extensions);
 
-    char * instance_extensions[] = {
-	VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
-#ifdef _DEBUG
-	,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-#endif
+    char* instance_extensions[] = {
+        VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+        #ifdef __APPLE__
+            ,VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+        #endif
+        #ifdef _DEBUG
+            ,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+        #endif
     };
     uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
 
-    char * instance_layers[] = {
-	"VK_LAYER_KHRONOS_validation",
-	"VK_LAYER_LUNARG_monitor"
+    char* instance_layers[] = {
+        "VK_LAYER_KHRONOS_validation"
+#if defined(WIN32) || defined(WIN32)
+        ,"VK_LAYER_LUNARG_monitor" // Not available on MacOS!
+#endif
     };
     uint32_t instance_layer_count = 0;
 #ifdef _DEBUG
