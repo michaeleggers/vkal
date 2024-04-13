@@ -85,7 +85,7 @@
 
 /* Platform independent part. Should work on all systems. */
 
-static std::string concat_paths(std::string a, std::string b)
+std::string concat_paths(std::string a, std::string b)
 {
 	size_t lastOfAIdx = a.size() - 1;
     char endOfA = a[lastOfAIdx];
@@ -100,8 +100,13 @@ static std::string concat_paths(std::string a, std::string b)
 		if (startOfB == '/') {
 			a.resize(a.size() - 1);
 		}
-    }
-    
+    }	
+    else {
+		if (startOfB != '/') {
+			a += '/';
+		}
+	}
+
     a += b;
 
     return a;
@@ -137,7 +142,8 @@ std::string read_text_file(char const* filename)
 	get_exe_path(exe_path, 256 * sizeof(char));
 	char abs_path[256];
 	memcpy(abs_path, exe_path, 256);
-	strcat(abs_path, filename);
+	// strcat(abs_path, filename);
+	concat_paths(std::string(abs_path), std::string(filename));
 
 	std::ifstream iFileStream;
 	std::stringstream ss;

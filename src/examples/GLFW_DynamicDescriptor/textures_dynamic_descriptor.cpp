@@ -15,6 +15,8 @@
 #include <stdint.h>
 #include <assert.h>
 
+#include <string>
+
 #include <GLFW/glfw3.h>
 
 #include <vkal.h>
@@ -80,14 +82,14 @@ void init_window()
 Image load_image_file(char const * file)
 {
     char exe_path[256];
-    get_exe_path(exe_path, 256 * sizeof(char));
-    char abs_path[256];
-    memcpy(abs_path, exe_path, 256);
-    strcat(abs_path, file);
+    get_exe_path(exe_path, 256 * sizeof(char));    
+    // strcat(abs_path, file);
+    std::string finalPath = concat_paths(std::string(exe_path), std::string(file));
+
 
     Image image = { };
     int tw, th, tn;
-    image.data = stbi_load(abs_path, &tw, &th, &tn, 4);
+    image.data = stbi_load(finalPath.c_str(), &tw, &th, &tn, 4);
     assert(image.data != NULL);
     image.width = tw;
     image.height = th;

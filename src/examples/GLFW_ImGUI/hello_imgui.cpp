@@ -186,6 +186,7 @@ int main(int argc, char** argv)
 
     init_imgui(vkal_info);
 
+#if 0
     /* Compile Shaders at runtime */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size = 0;
@@ -196,7 +197,7 @@ int main(int argc, char** argv)
     load_glsl_and_compile("../../src/examples/assets/shaders/hello_triangle.frag", &fragment_byte_code, &fragment_code_size, SHADER_TYPE_FRAGMENT);
 
     /* Shader Setup */
-#if 0
+#else
     uint8_t* vertex_byte_code = 0;
     int vertex_code_size;
     read_file("/../../src/examples/assets/shaders/hello_triangle_vert.spv", &vertex_byte_code, &vertex_code_size);

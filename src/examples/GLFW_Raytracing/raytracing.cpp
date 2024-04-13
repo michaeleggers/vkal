@@ -11,6 +11,7 @@
 #include <stdlib.h>
 
 #include <vector>
+#include <string>
 
 #include <vkal.h>
 
@@ -104,12 +105,11 @@ Image load_image(const char* file)
 
     char exe_path[256];
     get_exe_path(exe_path, 256 * sizeof(char));
-    char abs_path[256];
-    memcpy(abs_path, exe_path, 256);
-    strcat(abs_path, file);
+    std::string finalPath = concat_paths(std::string(exe_path), std::string(file));
 
+ 
     int width, height, channels;
-    unsigned char* data = stbi_load(abs_path, &width, &height, &channels, 4);
+    unsigned char* data = stbi_load(finalPath.c_str(), &width, &height, &channels, 4);
     if (stbi_failure_reason() != NULL) {
         printf("[STB-Image] %s file: %s\n", stbi_failure_reason(), file);
     }
