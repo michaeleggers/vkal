@@ -131,7 +131,7 @@ void vkal_create_instance_glfw(
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "VKAL Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    #if defined (Win32) || defined(__linux__)
+    #if defined (WIN32) || defined(__linux__)
         app_info.apiVersion = VK_API_VERSION_1_3;
     #elif __APPLE__
         app_info.apiVersion = VK_API_VERSION_1_2; // MoltenVK only goes up to Vulkan version 1.2
@@ -341,7 +341,7 @@ void vkal_create_instance_sdl(
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "VKAL Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    #if defined (Win32) || defined(__linux__)
+    #if defined (WIN32) || defined(__linux__)
         app_info.apiVersion = VK_API_VERSION_1_3;
     #elif __APPLE__
         app_info.apiVersion = VK_API_VERSION_1_2; // MoltenVK only goes up to Vulkan version 1.2

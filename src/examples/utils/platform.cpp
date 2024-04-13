@@ -87,11 +87,19 @@
 
 static std::string concat_paths(std::string a, std::string b)
 {
-    char endOfA = a[a.size() - 1];
+	size_t lastOfAIdx = a.size() - 1;
+    char endOfA = a[lastOfAIdx];
     char startOfB = b[0];
 
-    if (endOfA != '/' && startOfB != '/') {
-        a += '/';
+	if (endOfA == '\\') { // On windows, this is a possibility (sadly)
+		if (startOfB == '\\' || startOfB == '/') {
+			a.resize(a.size() - 1);
+		}
+	}    
+	else if (endOfA == '/') { // All systems
+		if (startOfB == '/') {
+			a.resize(a.size() - 1);
+		}
     }
     
     a += b;
