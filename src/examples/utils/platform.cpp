@@ -140,16 +140,14 @@ std::string read_text_file(char const* filename)
 {
 	char exe_path[256];
 	get_exe_path(exe_path, 256 * sizeof(char));
-	char abs_path[256];
-	memcpy(abs_path, exe_path, 256);
-	// strcat(abs_path, filename);
-	concat_paths(std::string(abs_path), std::string(filename));
+
+	std::string final_path = concat_paths(std::string(exe_path), std::string(filename));
 
 	std::ifstream iFileStream;
 	std::stringstream ss;
-	iFileStream.open(abs_path, std::ifstream::in);
+	iFileStream.open(final_path, std::ifstream::in);
 	if (!iFileStream.good()) {
-		fprintf(stderr, "Not able to open file: %s\n", abs_path);
+		fprintf(stderr, "Not able to open file: %s\n", final_path.c_str());
 		system("pause"); // does this work on all systems?
 		exit(-1);
 	}
