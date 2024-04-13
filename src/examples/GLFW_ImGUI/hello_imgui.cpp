@@ -153,16 +153,21 @@ int main(int argc, char** argv)
     uint32_t device_extension_count = sizeof(device_extensions) / sizeof(*device_extensions);
 
     char* instance_extensions[] = {
-    VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
-#ifdef _DEBUG
-    ,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-#endif
+        VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+        #ifdef __APPLE__
+            ,VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+        #endif
+        #ifdef _DEBUG
+            ,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+        #endif
     };
     uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
 
     char* instance_layers[] = {
-        "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_LUNARG_monitor"
+        "VK_LAYER_KHRONOS_validation"
+#if defined(WIN32) || defined(WIN32)
+        ,"VK_LAYER_LUNARG_monitor" // Not available on MacOS!
+#endif
     };
     uint32_t instance_layer_count = 0;
 #ifdef _DEBUG
@@ -186,6 +191,7 @@ int main(int argc, char** argv)
 
     init_imgui(vkal_info);
 
+#if 0
     /* Compile Shaders at runtime */
     uint8_t * vertex_byte_code = 0;
     int vertex_code_size = 0;
@@ -196,7 +202,7 @@ int main(int argc, char** argv)
     load_glsl_and_compile("../../src/examples/assets/shaders/hello_triangle.frag", &fragment_byte_code, &fragment_code_size, SHADER_TYPE_FRAGMENT);
 
     /* Shader Setup */
-#if 0
+#else
     uint8_t* vertex_byte_code = 0;
     int vertex_code_size;
     read_file("/../../src/examples/assets/shaders/hello_triangle_vert.spv", &vertex_byte_code, &vertex_code_size);

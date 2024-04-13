@@ -1,6 +1,7 @@
 {
     "cmake.configureOnOpen": false,
     "files.associations": {
-        "platform.h": "c"
+        "platform.h": "c",
+        "__locale": "c"
     }
 }

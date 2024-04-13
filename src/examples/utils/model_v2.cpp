@@ -14,16 +14,14 @@ Model create_model_from_file_indexed(char const* file)
 {
 	char exe_path[256];
 	get_exe_path(exe_path, 256 * sizeof(char));
-	char abs_path[256];
-	memcpy(abs_path, exe_path, 256);
-	strcat(abs_path, file);
+	std::string final_path = concat_paths(std::string(exe_path), std::string(file));
 
 	Model model = {};
 	/* Find out how many vertices and indices this model has in total.
 	Assimp makes sure to use multiple vertices per face by the flag 'aiProcess_JoinIdenticalVertices'.
 	So we allocate exactly as much memory as is required for the vertex-buffer.
 	*/
-	aiScene const* scene = aiImportFile(abs_path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenBoundingBoxes);
+	aiScene const* scene = aiImportFile(final_path.c_str(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenBoundingBoxes);
 	for (int i = 0; i < scene->mNumMeshes; ++i) {
 		model.vertex_count += scene->mMeshes[i]->mNumVertices;
 		for (int f = 0; f < scene->mMeshes[i]->mNumFaces; ++f) {

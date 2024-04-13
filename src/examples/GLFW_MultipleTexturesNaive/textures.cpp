@@ -79,17 +79,18 @@ void init_window()
     //glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
 }
 
+// TODO: Move this function into utility as it is used by multiple examples.
 Image load_image_file(char const * file)
 {
     char exe_path[256];
-    get_exe_path(exe_path, 256 * sizeof(char));
-    char abs_path[256];
-    memcpy(abs_path, exe_path, 256);
-    strcat(abs_path, file);
+    get_exe_path(exe_path, 256 * sizeof(char));    
+    // strcat(abs_path, file);
+    std::string finalPath = concat_paths(std::string(exe_path), std::string(file));
 
-    Image image = {0};
+
+    Image image = { };
     int tw, th, tn;
-    image.data = stbi_load(abs_path, &tw, &th, &tn, 4);
+    image.data = stbi_load(finalPath.c_str(), &tw, &th, &tn, 4);
     assert(image.data != NULL);
     image.width = tw;
     image.height = th;
@@ -109,17 +110,22 @@ int main(int argc, char ** argv)
     };
     uint32_t device_extension_count = sizeof(device_extensions) / sizeof(*device_extensions);
 
-    char * instance_extensions[] = {
-	VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
-#ifdef _DEBUG
-	,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-#endif
+    char* instance_extensions[] = {
+        VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+        #ifdef __APPLE__
+            ,VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+        #endif
+        #ifdef _DEBUG
+            ,VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+        #endif
     };
     uint32_t instance_extension_count = sizeof(instance_extensions) / sizeof(*instance_extensions);
 
-    char * instance_layers[] = {
-	"VK_LAYER_KHRONOS_validation", //"VK_LAYER_LUNARG_standard_validation", <- deprecated!
-	"VK_LAYER_LUNARG_monitor"
+    char* instance_layers[] = {
+        "VK_LAYER_KHRONOS_validation"
+#if defined(WIN32) || defined(WIN32)
+        ,"VK_LAYER_LUNARG_monitor" // Not available on MacOS!
+#endif
     };
     uint32_t instance_layer_count = 0;
 #ifdef _DEBUG
@@ -153,8 +159,8 @@ int main(int argc, char ** argv)
     int fragment_code_size;
     read_file("../../src/examples/assets/shaders/textures_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
-	vertex_byte_code, vertex_code_size, 
-	fragment_byte_code, fragment_code_size);
+	    vertex_byte_code, vertex_code_size, 
+	    fragment_byte_code, fragment_code_size);
 
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
@@ -247,7 +253,7 @@ int main(int argc, char ** argv)
     VkalTexture texture = vkal_create_texture(0, image.data, image.width, image.height, 4, 0,
 					  VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 					  VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-    Image image2 = load_image_file("../../src/examples/assets/textures/hk.jpg");
+    Image image2 = load_image_file("/../../src/examples/assets/textures/hk.jpg");
     VkalTexture texture2 = vkal_create_texture(0, image2.data, image2.width, image2.height, 4, 0,
 					   VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0, 1, 0, 1, VK_FILTER_LINEAR, VK_FILTER_LINEAR,
 					   VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);

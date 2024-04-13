@@ -131,10 +131,17 @@ void vkal_create_instance_glfw(
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "VKAL Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_API_VERSION_1_3;
+    #if defined (WIN32) || defined(__linux__)
+        app_info.apiVersion = VK_API_VERSION_1_3;
+    #elif __APPLE__
+        app_info.apiVersion = VK_API_VERSION_1_2; // MoltenVK only goes up to Vulkan version 1.2
+    #endif
     
     VkInstanceCreateInfo create_info = {0};
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    #ifdef __APPLE__
+        create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    #endif
     create_info.pApplicationInfo = &app_info;
 
     // Query available extensions.
@@ -234,6 +241,9 @@ void vkal_create_instance_win32(
 
 	VkInstanceCreateInfo create_info = { 0 };
 	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    #ifdef __APPLE__
+        create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    #endif
 	create_info.pApplicationInfo = &app_info;
 
 	// Query available extensions.
@@ -331,10 +341,17 @@ void vkal_create_instance_sdl(
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.pEngineName = "VKAL Engine";
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_API_VERSION_1_3;
+    #if defined (WIN32) || defined(__linux__)
+        app_info.apiVersion = VK_API_VERSION_1_3;
+    #elif __APPLE__
+        app_info.apiVersion = VK_API_VERSION_1_2; // MoltenVK only goes up to Vulkan version 1.2
+    #endif
 
     VkInstanceCreateInfo create_info = { 0 };
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    #ifdef __APPLE__
+        create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    #endif
     create_info.pApplicationInfo = &app_info;
 
     // Query available extensions.
