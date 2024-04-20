@@ -575,8 +575,13 @@ void vkal_draw_indexed2(
     VkDeviceSize vertex_buffer_offset);
 void vkal_bind_descriptor_set(
 	uint32_t image_id,
-	VkDescriptorSet * descriptor_sets,
+	VkDescriptorSet * descriptor_set,
 	VkPipelineLayout pipeline_layout);
+void vkal_bind_descriptor_sets_from_to(
+    uint32_t image_id,
+    VkDescriptorSet* descriptor_sets,
+    uint32_t first_set, uint32_t set_count,
+    VkPipelineLayout pipeline_layout);
 void vkal_bind_descriptor_sets(
 	uint32_t image_id,
 	VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,

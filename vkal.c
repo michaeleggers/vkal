@@ -2667,12 +2667,21 @@ void vkal_end(VkCommandBuffer command_buffer)
 
 void vkal_bind_descriptor_set(
 	uint32_t image_id,
-	VkDescriptorSet * descriptor_sets,
+	VkDescriptorSet * descriptor_set,
 	VkPipelineLayout pipeline_layout)
 {
+    vkal_bind_descriptor_sets_from_to(image_id, descriptor_set, 0, 1, pipeline_layout);
+}
+
+void vkal_bind_descriptor_sets_from_to(
+    uint32_t image_id,
+    VkDescriptorSet* descriptor_sets,
+    uint32_t first_set, uint32_t set_count,
+    VkPipelineLayout pipeline_layout)
+{
     vkCmdBindDescriptorSets(
-		vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipeline_layout, 0, 1, descriptor_sets, 0, 0);
+        vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipeline_layout, first_set, set_count, descriptor_sets, 0, 0);
 }
 
 void vkal_bind_descriptor_sets(
@@ -3107,7 +3116,7 @@ void vkal_update_descriptor_set_uniform(
 	VkDescriptorType descriptor_type)
 {
     assert (uniform_buffer.size < vkal_info.physical_device_properties.limits.maxUniformBufferRange);
-    VkDescriptorBufferInfo buffer_infos[1];
+    VkDescriptorBufferInfo buffer_infos[1] = { 0 };
     buffer_infos[0].buffer = vkal_info.default_uniform_buffer.buffer;
     buffer_infos[0].range = uniform_buffer.size;
     buffer_infos[0].offset = uniform_buffer.offset;
