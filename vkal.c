@@ -3269,6 +3269,11 @@ uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
     return offset;
 }
 
+void vkal_index_buffer_reset(void)
+{
+    vkal_info.default_index_buffer_offset = 0;
+}
+
 VkDeviceAddress vkal_get_buffer_device_address(VkBuffer buffer)
 {
     VkBufferDeviceAddressInfo bufferDeviceAddressInfo = {
