@@ -2343,7 +2343,7 @@ VkPipeline vkal_create_graphics_pipeline(
     rasterizer_info.rasterizerDiscardEnable = VK_FALSE;
     rasterizer_info.depthClampEnable = VK_FALSE;
     rasterizer_info.depthBiasEnable = VK_FALSE;
-    rasterizer_info.lineWidth = 1.f;
+    rasterizer_info.lineWidth = 1.0f;
     
     // COME BACK LATER: Set up depth/stencil testing (we need to create a buffer for that as it is
     // not created with the Swapchain
@@ -3197,6 +3197,11 @@ uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     vkal_info.default_vertex_buffer_offset += size;
     
     return offset;
+}
+
+void vkal_vertex_buffer_reset(void)
+{
+    vkal_info.default_vertex_buffer_offset = 0;
 }
 
 // NOTE: If vertex_count is higher than the current buffer, vertex data after offset+vertex_count (in bytes) will be overwritten!!!
