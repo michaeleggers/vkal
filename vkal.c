@@ -2196,32 +2196,38 @@ void vkal_allocate_descriptor_sets(VkDescriptorPool pool,
 SingleShaderStageSetup vkal_create_shader(const uint8_t* shader_byte_code, uint32_t shader_byte_code_size, VkShaderStageFlagBits shader_stage_flag_bits)
 {
     SingleShaderStageSetup shader_setup = { 0 };
-    create_shader_module(shader_byte_code, shader_byte_code_size, &shader_setup.shader_module);
+    create_shader_module(shader_byte_code, shader_byte_code_size, &shader_setup.module);
 
-    shader_setup.shader_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shader_setup.shader_create_info.stage = shader_stage_flag_bits;
-    shader_setup.shader_create_info.module = get_shader_module(shader_setup.shader_module);
-    shader_setup.shader_create_info.pName = "main";
+    shader_setup.create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shader_setup.create_info.stage = shader_stage_flag_bits;
+    shader_setup.create_info.module = get_shader_module(shader_setup.module);
+    shader_setup.create_info.pName = "main";
 
     return shader_setup;
 }
 
-ShaderStageSetup vkal_create_shaders(const uint8_t * vertex_shader_code, uint32_t vertex_shader_code_size, const uint8_t * fragment_shader_code, uint32_t fragment_shader_code_size)
+ShaderStageSetup vkal_create_shaders(
+    const uint8_t * vertex_shader_code, uint32_t vertex_shader_code_size, 
+    const uint8_t * fragment_shader_code, uint32_t fragment_shader_code_size,
+    const uint8_t * geometry_shader_code, uint32_t geometry_shader_code_size)
 {
     ShaderStageSetup shader_setup = { 0 };
-    create_shader_module(vertex_shader_code, vertex_shader_code_size, &shader_setup.vert_shader_module);
-    create_shader_module(fragment_shader_code, fragment_shader_code_size, &shader_setup.frag_shader_module);
+
+    SingleShaderStageSetup vertex_shader_setup   = vkal_create_shader(vertex_shader_code, vertex_shader_code_size, VK_SHADER_STAGE_VERTEX_BIT);
+    shader_setup.vertex_shader_create_info = vertex_shader_setup.create_info;
+    shader_setup.vertex_shader_module = vertex_shader_setup.module;
+
+    SingleShaderStageSetup fragment_shader_setup = vkal_create_shader(fragment_shader_code, fragment_shader_code_size, VK_SHADER_STAGE_FRAGMENT_BIT);
+    shader_setup.fragment_shader_create_info = fragment_shader_setup.create_info;
+    shader_setup.fragment_shader_module = fragment_shader_setup.module;
     
-    shader_setup.vertex_shader_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shader_setup.vertex_shader_create_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    shader_setup.vertex_shader_create_info.module = get_shader_module(shader_setup.vert_shader_module);
-    shader_setup.vertex_shader_create_info.pName = "main";
-    
-    shader_setup.fragment_shader_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shader_setup.fragment_shader_create_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    shader_setup.fragment_shader_create_info.module = get_shader_module(shader_setup.frag_shader_module);
-    shader_setup.fragment_shader_create_info.pName = "main";
-    
+
+    if (geometry_shader_code) {
+        SingleShaderStageSetup geometry_shader_setup = vkal_create_shader(geometry_shader_code, geometry_shader_code_size, VK_SHADER_STAGE_GEOMETRY_BIT);
+        shader_setup.geometry_shader_create_info = geometry_shader_setup.create_info;
+        shader_setup.geometry_shader_module = geometry_shader_setup.module;
+    }
+
     return shader_setup;
 }
 
@@ -2301,10 +2307,15 @@ VkPipeline vkal_create_graphics_pipeline(
     VkFrontFace face_winding, 
 	VkRenderPass render_pass,
 	VkPipelineLayout pipeline_layout)
-{    
-    VkPipelineShaderStageCreateInfo shader_stages_infos[2] = { 0 };
+{        
+    VkPipelineShaderStageCreateInfo shader_stages_infos[3] = { 0 };
     shader_stages_infos[0] = shader_setup.vertex_shader_create_info;
     shader_stages_infos[1] = shader_setup.fragment_shader_create_info;
+    uint32_t num_shader_stages = 2;
+    if (shader_setup.geometry_shader_create_info.stage == VK_SHADER_STAGE_GEOMETRY_BIT) {
+        num_shader_stages = 3;
+        shader_stages_infos[2] = shader_setup.geometry_shader_create_info;
+    }
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
     vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -2400,7 +2411,7 @@ VkPipeline vkal_create_graphics_pipeline(
     
     VkGraphicsPipelineCreateInfo pipeline_info = { 0 };
     pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipeline_info.stageCount = 2;
+    pipeline_info.stageCount = num_shader_stages;
     pipeline_info.pStages = shader_stages_infos;
     pipeline_info.pVertexInputState = &vertex_input_info;
     pipeline_info.pInputAssemblyState = &input_assembly_info;
