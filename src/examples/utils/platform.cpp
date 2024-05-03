@@ -11,6 +11,9 @@
 
 #include "platform.h"
 
+static std::string g_assets_dir;
+static std::string g_shaders_dir;
+
 #ifdef _WIN32
 
 #include <Windows.h>
@@ -113,16 +116,15 @@ std::string concat_paths(std::string a, std::string b)
 }
 
 void read_file(char const* filename, uint8_t** out_buffer, int* out_size)
-{
+{	
 	char exe_path[256];
 	get_exe_path(exe_path, 256 * sizeof(char));
-	char abs_path[256];
-	memcpy(abs_path, exe_path, 256);
-    std::string final_path = concat_paths(std::string(exe_path), std::string(filename));
-	//strcat(abs_path, filename);
-	FILE* file = fopen(final_path.c_str(), "rb");
+
+	std::string abs_path = concat_paths(std::string(exe_path), std::string(filename));
+
+	FILE* file = fopen(abs_path.c_str(), "rb");
     if (!file) {
-        fprintf(stderr, "Failed to read file: %s\n", final_path.c_str());
+        fprintf(stderr, "Failed to read file: %s\n", abs_path.c_str());
         *out_buffer = NULL;
         *out_size = 0;
         
@@ -156,4 +158,49 @@ std::string read_text_file(char const* filename)
 	iFileStream.close();
 
 	return data;
+}
+
+void read_asset_file(char const* filename, uint8_t** out_buffer, int* out_size)
+{
+	std::string final_path = concat_paths(g_assets_dir, std::string(filename));
+	read_file(final_path.c_str(), out_buffer, out_size);
+}
+
+void read_shader_file(char const* filename, uint8_t** out_buffer, int* out_size) {
+	std::string final_path = concat_paths(g_shaders_dir, std::string(filename));
+	read_file(final_path.c_str(), out_buffer, out_size);
+}
+
+static void set_directory(std::string& dir_to_set, std::string dir_path) {
+	dir_to_set = dir_path;
+}
+
+void init_directories(char const * assets_dir, char const * shaders_dir) {
+
+	char exe_path[256];
+	get_exe_path(exe_path, 256);
+
+	// Default: Use location of executable
+
+	if (!assets_dir) { 
+		set_directory(g_assets_dir, std::string(exe_path));
+	}
+	else {
+		g_assets_dir = std::string(assets_dir);
+	}
+
+	if (!shaders_dir) {
+		set_directory(g_shaders_dir, std::string(exe_path));
+	}
+	else {
+		g_shaders_dir = std::string(shaders_dir);
+	}
+}
+
+std::string get_assets_dir() {
+	return g_assets_dir;
+}
+
+std::string get_shaders_dir() {
+	return g_shaders_dir;
 }
