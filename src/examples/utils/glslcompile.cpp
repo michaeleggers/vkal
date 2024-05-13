@@ -15,7 +15,8 @@
 
 void load_glsl_and_compile(char const* glsl_source_file, uint8_t** out_spirv, int* out_spirv_size, ShaderType shader_type)
 {
-	std::string glsl_source = read_text_file(glsl_source_file);
+	std::string abs_path = concat_paths(get_shaders_dir(), std::string(glsl_source_file));
+	std::string glsl_source = read_text_file(abs_path.c_str());
 	size_t glsl_source_size = glsl_source.size();
 
 	shaderc_compiler_t compiler = shaderc_compiler_initialize();
