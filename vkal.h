@@ -456,6 +456,8 @@ void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src
 uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count);
 void vkal_vertex_buffer_update(void* vertices, uint32_t vertex_count, uint32_t vertex_size, VkDeviceSize offset);
 uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count);
+uint64_t vkal_index_buffer_update(uint32_t *indices, uint32_t index_count, uint32_t offset);
+
 
 #if defined (VKAL_GLFW)
 	void create_glfw_surface(void);
