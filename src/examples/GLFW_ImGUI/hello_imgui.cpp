@@ -70,7 +70,7 @@ void init_window()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: hello_triangle.cpp", 0, 0);
+    window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "VKAL Example: Hello ImGUI", 0, 0);
     glfwSetKeyCallback(window, glfw_key_callback);
     width = SCREEN_WIDTH;
     height = SCREEN_HEIGHT;
@@ -187,7 +187,7 @@ int main(int argc, char** argv)
     vkal_select_physical_device(&devices[0]);
 
     VkalWantedFeatures vulkan_features{};
-    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count, vulkan_features);
+    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count, vulkan_features, VK_INDEX_TYPE_UINT16);
 
     init_imgui(vkal_info);
 

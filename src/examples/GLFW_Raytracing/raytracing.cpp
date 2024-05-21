@@ -1135,7 +1135,7 @@ int main(int argc, char** argv)
     
     vkal_init_raytracing();
 
-    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count, wanted_features);    
+    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count, wanted_features, VK_INDEX_TYPE_UINT32);    
 
     /* Textures */
     Image sandImage = load_image("../../src/examples/assets/textures/sand_diffuse.jpg");

@@ -38,7 +38,10 @@ PFN_vkCmdTraceRaysKHR                                 vkCmdTraceRays;
 
 static VkalInfo vkal_info;
 
-VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFeatures vulkan_features)
+static size_t vkal_index_size;
+static VkIndexType vkal_index_type;
+
+VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFeatures vulkan_features, VkIndexType index_type)
 {
 
 #ifdef _DEBUG
@@ -61,6 +64,13 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
 
 #endif 
 
+    vkal_index_size = sizeof(uint16_t);
+    vkal_index_type = VK_INDEX_TYPE_UINT16;
+
+    if (index_type == VK_INDEX_TYPE_UINT32) {
+        vkal_index_size = sizeof(uint32_t);
+        vkal_index_type = VK_INDEX_TYPE_UINT32;
+    }
 
 //    pick_physical_device(extensions, extension_count);
     create_logical_device(extensions, extension_count, vulkan_features);
@@ -2755,16 +2765,10 @@ void vkal_draw_indexed(
     VkDeviceSize index_buffer_offset, uint32_t index_count,
     VkDeviceSize vertex_buffer_offset, uint32_t instance_count)
 {
-    VkIndexType index_type = VK_INDEX_TYPE_UINT16;
-
-    #if defined VKAL_INDEX_TYPE_UINT32
-        index_type = VK_INDEX_TYPE_UINT32;
-    #endif
-
     vkCmdBindPipeline(vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
     vkCmdBindIndexBuffer(
 		vkal_info.default_command_buffers[image_id],
-		vkal_info.default_index_buffer.buffer, index_buffer_offset, index_type);
+		vkal_info.default_index_buffer.buffer, index_buffer_offset, vkal_index_type);
     uint64_t vertex_buffer_offsets[1];
     vertex_buffer_offsets[0] = vertex_buffer_offset;
     VkBuffer vertex_buffers[1];
@@ -2780,15 +2784,9 @@ void vkal_draw_indexed_from_buffers(
     uint32_t image_id, 
 	VkPipeline pipeline)
 {
-    VkIndexType index_type = VK_INDEX_TYPE_UINT16;
-
-    #if defined VKAL_INDEX_TYPE_UINT32
-        index_type = VK_INDEX_TYPE_UINT32;
-    #endif
-
     vkCmdBindPipeline(vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
     vkCmdBindIndexBuffer(vkal_info.default_command_buffers[image_id],
-			 index_buffer.buffer, index_buffer_offset, index_type);
+			 index_buffer.buffer, index_buffer_offset, vkal_index_type);
     uint64_t vertex_buffer_offsets[1];
     vertex_buffer_offsets[0] = vertex_buffer_offset;
     VkBuffer vertex_buffers[1];
@@ -2848,14 +2846,8 @@ void vkal_draw_indexed2(
     scissor.extent = vkal_info.swapchain_extent;
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
     
-    size_t index_size = sizeof(uint16_t);
-    
-    #if defined VKAL_INDEX_TYPE_UINT32
-        index_size = sizeof(uint32_t);
-    #endif
-
     vkCmdBindIndexBuffer(command_buffer,
-			 vkal_info.default_index_buffer.buffer, index_buffer_offset, index_size);
+			 vkal_info.default_index_buffer.buffer, index_buffer_offset, vkal_index_size);
     uint64_t vertex_buffer_offsets[1];
     vertex_buffer_offsets[0] = vertex_buffer_offset;
     VkBuffer vertex_buffers[1];
@@ -3267,14 +3259,8 @@ void vkal_vertex_buffer_update(void* vertices, uint32_t vertex_count, uint32_t v
 
 uint64_t vkal_index_buffer_add(void * indices, uint32_t index_count)
 {
-    size_t index_size = sizeof(uint16_t);
-    
-    #if defined VKAL_INDEX_TYPE_UINT32
-        index_size = sizeof(uint32_t);
-    #endif
-
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
-    uint32_t indices_in_bytes = index_count * index_size;
+    uint32_t indices_in_bytes = index_count * vkal_index_size;
     uint64_t size = (indices_in_bytes + alignment - 1) & ~(alignment - 1);
     
     // map staging memory and upload index data
@@ -3309,9 +3295,9 @@ uint64_t vkal_index_buffer_add(void * indices, uint32_t index_count)
     return offset;
 }
 
-uint64_t vkal_index_buffer_update(uint32_t *indices, uint32_t index_count, uint32_t offset) {
+uint64_t vkal_index_buffer_update(void *indices, uint32_t index_count, uint32_t offset) {
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
-    uint32_t indices_in_bytes = index_count * sizeof(uint32_t);
+    uint32_t indices_in_bytes = index_count * vkal_index_size;
     uint64_t size = (indices_in_bytes + alignment - 1) & ~(alignment - 1);
 
     // map staging memory and upload index data

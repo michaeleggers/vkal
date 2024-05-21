@@ -147,7 +147,7 @@ int main(int argc, char ** argv)
     vkal_select_physical_device(&devices[0]);
     VkalWantedFeatures wanted_features{};
     wanted_features.features12.runtimeDescriptorArray = VK_TRUE;
-    VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count, wanted_features);
+    VkalInfo * vkal_info =  vkal_init(device_extensions, device_extension_count, wanted_features, VK_INDEX_TYPE_UINT16);
     
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;

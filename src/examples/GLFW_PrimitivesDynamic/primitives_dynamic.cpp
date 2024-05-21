@@ -676,7 +676,7 @@ int main(int argc, char ** argv)
    
     VkalWantedFeatures vulkan_features{};
     vulkan_features.features12.runtimeDescriptorArray = VK_TRUE;
-    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count, vulkan_features);
+    VkalInfo* vkal_info = vkal_init(device_extensions, device_extension_count, vulkan_features, VK_INDEX_TYPE_UINT16);
 
     /* Shader Setup */
     uint8_t * vertex_byte_code = 0;
