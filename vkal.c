@@ -3260,9 +3260,16 @@ uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
     return offset;
 }
 
-uint64_t vkal_index_buffer_update(uint32_t *indices, uint32_t index_count, uint32_t offset) {
+uint64_t vkal_index_buffer_update(void *indices, uint32_t index_count, uint32_t offset) {
+
+    size_t index_size = sizeof(uint16_t);
+    
+    #if defined VKAL_INDEX_TYPE_UINT32
+        index_size = sizeof(uint32_t);
+    #endif
+
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
-    uint32_t indices_in_bytes = index_count * sizeof(uint32_t);
+    uint32_t indices_in_bytes = index_count * index_size;
     uint64_t size = (indices_in_bytes + alignment - 1) & ~(alignment - 1);
 
     // map staging memory and upload index data
