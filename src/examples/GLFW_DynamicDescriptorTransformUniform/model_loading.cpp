@@ -173,7 +173,8 @@ int main(int argc, char ** argv)
     read_file("/../../src/examples/assets/shaders/model_loading_frag.spv", &fragment_byte_code, &fragment_code_size);
     ShaderStageSetup shader_setup = vkal_create_shaders(
 	    vertex_byte_code, vertex_code_size, 
-	    fragment_byte_code, fragment_code_size);
+	    fragment_byte_code, fragment_code_size,
+        NULL, 0);
 
     /* Vertex Input Assembly */
     VkVertexInputBindingDescription vertex_input_bindings[] =
