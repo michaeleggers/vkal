@@ -3309,6 +3309,43 @@ uint64_t vkal_index_buffer_add(void * indices, uint32_t index_count)
     return offset;
 }
 
+uint64_t vkal_index_buffer_update(uint32_t *indices, uint32_t index_count, uint32_t offset) {
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
+    uint32_t indices_in_bytes = index_count * sizeof(uint32_t);
+    uint64_t size = (indices_in_bytes + alignment - 1) & ~(alignment - 1);
+
+    // map staging memory and upload index data
+    void *staging_memory;
+    VkResult result = vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, size, 0, &staging_memory);
+    VKAL_ASSERT(result && "failed to map device staging memory!");
+    flush_to_memory(vkal_info.device_memory_staging, staging_memory, indices, indices_in_bytes, 0);
+    vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
+
+    // copy vertex index data from staging memory (host visible) to device local memory through a command buffer
+    VkCommandBuffer cmd_buffer = vkal_create_command_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+    VkBufferCopy buffer_copy = {0};
+    buffer_copy.dstOffset = offset;
+    buffer_copy.srcOffset = 0;
+    buffer_copy.size = indices_in_bytes;
+    vkCmdCopyBuffer(cmd_buffer, vkal_info.staging_buffer.buffer, vkal_info.default_index_buffer.buffer, 1,
+                    &buffer_copy);
+    vkEndCommandBuffer(cmd_buffer);
+
+    VkSubmitInfo submit_info = {0};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1; // vkal_info.default_command_buffer_count;
+    submit_info.pCommandBuffers = &cmd_buffer;  //vkal_info.default_command_buffers;
+    vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+    vkDeviceWaitIdle(vkal_info.device);
+
+    // When mapping memory later again to copy into it (see:fluch_to_memory) we must respect
+    // the devices alignment.
+    // See: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkMappedMemoryRange.html
+    vkal_info.default_index_buffer_offset += size;
+
+    return offset;
+}
+
 void vkal_index_buffer_reset(void)
 {
     vkal_info.default_index_buffer_offset = 0;

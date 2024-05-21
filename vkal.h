@@ -460,6 +460,7 @@ void vkal_vertex_buffer_reset(void);
 void vkal_vertex_buffer_update(void* vertices, uint32_t vertex_count, uint32_t vertex_size, VkDeviceSize offset);
 uint64_t vkal_index_buffer_add(void * indices, uint32_t index_count);
 void vkal_index_buffer_reset(void);
+uint64_t vkal_index_buffer_update(uint32_t *indices, uint32_t index_count, uint32_t offset);
 
 #if defined (VKAL_GLFW)
 	void create_glfw_surface(void);
