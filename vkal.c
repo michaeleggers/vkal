@@ -2196,32 +2196,38 @@ void vkal_allocate_descriptor_sets(VkDescriptorPool pool,
 SingleShaderStageSetup vkal_create_shader(const uint8_t* shader_byte_code, uint32_t shader_byte_code_size, VkShaderStageFlagBits shader_stage_flag_bits)
 {
     SingleShaderStageSetup shader_setup = { 0 };
-    create_shader_module(shader_byte_code, shader_byte_code_size, &shader_setup.shader_module);
+    create_shader_module(shader_byte_code, shader_byte_code_size, &shader_setup.module);
 
-    shader_setup.shader_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shader_setup.shader_create_info.stage = shader_stage_flag_bits;
-    shader_setup.shader_create_info.module = get_shader_module(shader_setup.shader_module);
-    shader_setup.shader_create_info.pName = "main";
+    shader_setup.create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shader_setup.create_info.stage = shader_stage_flag_bits;
+    shader_setup.create_info.module = get_shader_module(shader_setup.module);
+    shader_setup.create_info.pName = "main";
 
     return shader_setup;
 }
 
-ShaderStageSetup vkal_create_shaders(const uint8_t * vertex_shader_code, uint32_t vertex_shader_code_size, const uint8_t * fragment_shader_code, uint32_t fragment_shader_code_size)
+ShaderStageSetup vkal_create_shaders(
+    const uint8_t * vertex_shader_code, uint32_t vertex_shader_code_size, 
+    const uint8_t * fragment_shader_code, uint32_t fragment_shader_code_size,
+    const uint8_t * geometry_shader_code, uint32_t geometry_shader_code_size)
 {
     ShaderStageSetup shader_setup = { 0 };
-    create_shader_module(vertex_shader_code, vertex_shader_code_size, &shader_setup.vert_shader_module);
-    create_shader_module(fragment_shader_code, fragment_shader_code_size, &shader_setup.frag_shader_module);
+
+    SingleShaderStageSetup vertex_shader_setup   = vkal_create_shader(vertex_shader_code, vertex_shader_code_size, VK_SHADER_STAGE_VERTEX_BIT);
+    shader_setup.vertex_shader_create_info = vertex_shader_setup.create_info;
+    shader_setup.vertex_shader_module = vertex_shader_setup.module;
+
+    SingleShaderStageSetup fragment_shader_setup = vkal_create_shader(fragment_shader_code, fragment_shader_code_size, VK_SHADER_STAGE_FRAGMENT_BIT);
+    shader_setup.fragment_shader_create_info = fragment_shader_setup.create_info;
+    shader_setup.fragment_shader_module = fragment_shader_setup.module;
     
-    shader_setup.vertex_shader_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shader_setup.vertex_shader_create_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    shader_setup.vertex_shader_create_info.module = get_shader_module(shader_setup.vert_shader_module);
-    shader_setup.vertex_shader_create_info.pName = "main";
-    
-    shader_setup.fragment_shader_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shader_setup.fragment_shader_create_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    shader_setup.fragment_shader_create_info.module = get_shader_module(shader_setup.frag_shader_module);
-    shader_setup.fragment_shader_create_info.pName = "main";
-    
+
+    if (geometry_shader_code) {
+        SingleShaderStageSetup geometry_shader_setup = vkal_create_shader(geometry_shader_code, geometry_shader_code_size, VK_SHADER_STAGE_GEOMETRY_BIT);
+        shader_setup.geometry_shader_create_info = geometry_shader_setup.create_info;
+        shader_setup.geometry_shader_module = geometry_shader_setup.module;
+    }
+
     return shader_setup;
 }
 
@@ -2301,10 +2307,15 @@ VkPipeline vkal_create_graphics_pipeline(
     VkFrontFace face_winding, 
 	VkRenderPass render_pass,
 	VkPipelineLayout pipeline_layout)
-{    
-    VkPipelineShaderStageCreateInfo shader_stages_infos[2] = { 0 };
+{        
+    VkPipelineShaderStageCreateInfo shader_stages_infos[3] = { 0 };
     shader_stages_infos[0] = shader_setup.vertex_shader_create_info;
     shader_stages_infos[1] = shader_setup.fragment_shader_create_info;
+    uint32_t num_shader_stages = 2;
+    if (shader_setup.geometry_shader_create_info.stage == VK_SHADER_STAGE_GEOMETRY_BIT) {
+        num_shader_stages = 3;
+        shader_stages_infos[2] = shader_setup.geometry_shader_create_info;
+    }
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
     vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -2343,7 +2354,7 @@ VkPipeline vkal_create_graphics_pipeline(
     rasterizer_info.rasterizerDiscardEnable = VK_FALSE;
     rasterizer_info.depthClampEnable = VK_FALSE;
     rasterizer_info.depthBiasEnable = VK_FALSE;
-    rasterizer_info.lineWidth = 1.f;
+    rasterizer_info.lineWidth = 1.0f;
     
     // COME BACK LATER: Set up depth/stencil testing (we need to create a buffer for that as it is
     // not created with the Swapchain
@@ -2400,7 +2411,7 @@ VkPipeline vkal_create_graphics_pipeline(
     
     VkGraphicsPipelineCreateInfo pipeline_info = { 0 };
     pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipeline_info.stageCount = 2;
+    pipeline_info.stageCount = num_shader_stages;
     pipeline_info.pStages = shader_stages_infos;
     pipeline_info.pVertexInputState = &vertex_input_info;
     pipeline_info.pInputAssemblyState = &input_assembly_info;
@@ -2667,12 +2678,21 @@ void vkal_end(VkCommandBuffer command_buffer)
 
 void vkal_bind_descriptor_set(
 	uint32_t image_id,
-	VkDescriptorSet * descriptor_sets,
+	VkDescriptorSet * descriptor_set,
 	VkPipelineLayout pipeline_layout)
 {
+    vkal_bind_descriptor_sets_from_to(image_id, descriptor_set, 0, 1, pipeline_layout);
+}
+
+void vkal_bind_descriptor_sets_from_to(
+    uint32_t image_id,
+    VkDescriptorSet* descriptor_sets,
+    uint32_t first_set, uint32_t set_count,
+    VkPipelineLayout pipeline_layout)
+{
     vkCmdBindDescriptorSets(
-		vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipeline_layout, 0, 1, descriptor_sets, 0, 0);
+        vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipeline_layout, first_set, set_count, descriptor_sets, 0, 0);
 }
 
 void vkal_bind_descriptor_sets(
@@ -2735,10 +2755,16 @@ void vkal_draw_indexed(
     VkDeviceSize index_buffer_offset, uint32_t index_count,
     VkDeviceSize vertex_buffer_offset, uint32_t instance_count)
 {
+    VkIndexType index_type = VK_INDEX_TYPE_UINT16;
+
+    #if defined VKAL_INDEX_TYPE_UINT32
+        index_type = VK_INDEX_TYPE_UINT32;
+    #endif
+
     vkCmdBindPipeline(vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
     vkCmdBindIndexBuffer(
 		vkal_info.default_command_buffers[image_id],
-		vkal_info.default_index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
+		vkal_info.default_index_buffer.buffer, index_buffer_offset, index_type);
     uint64_t vertex_buffer_offsets[1];
     vertex_buffer_offsets[0] = vertex_buffer_offset;
     VkBuffer vertex_buffers[1];
@@ -2754,9 +2780,15 @@ void vkal_draw_indexed_from_buffers(
     uint32_t image_id, 
 	VkPipeline pipeline)
 {
+    VkIndexType index_type = VK_INDEX_TYPE_UINT16;
+
+    #if defined VKAL_INDEX_TYPE_UINT32
+        index_type = VK_INDEX_TYPE_UINT32;
+    #endif
+
     vkCmdBindPipeline(vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
     vkCmdBindIndexBuffer(vkal_info.default_command_buffers[image_id],
-			 index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
+			 index_buffer.buffer, index_buffer_offset, index_type);
     uint64_t vertex_buffer_offsets[1];
     vertex_buffer_offsets[0] = vertex_buffer_offset;
     VkBuffer vertex_buffers[1];
@@ -2816,8 +2848,14 @@ void vkal_draw_indexed2(
     scissor.extent = vkal_info.swapchain_extent;
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
     
+    size_t index_size = sizeof(uint16_t);
+    
+    #if defined VKAL_INDEX_TYPE_UINT32
+        index_size = sizeof(uint32_t);
+    #endif
+
     vkCmdBindIndexBuffer(command_buffer,
-			 vkal_info.default_index_buffer.buffer, index_buffer_offset, VK_INDEX_TYPE_UINT16);
+			 vkal_info.default_index_buffer.buffer, index_buffer_offset, index_size);
     uint64_t vertex_buffer_offsets[1];
     vertex_buffer_offsets[0] = vertex_buffer_offset;
     VkBuffer vertex_buffers[1];
@@ -3107,7 +3145,7 @@ void vkal_update_descriptor_set_uniform(
 	VkDescriptorType descriptor_type)
 {
     assert (uniform_buffer.size < vkal_info.physical_device_properties.limits.maxUniformBufferRange);
-    VkDescriptorBufferInfo buffer_infos[1];
+    VkDescriptorBufferInfo buffer_infos[1] = { 0 };
     buffer_infos[0].buffer = vkal_info.default_uniform_buffer.buffer;
     buffer_infos[0].range = uniform_buffer.size;
     buffer_infos[0].offset = uniform_buffer.offset;
@@ -3190,6 +3228,11 @@ uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t 
     return offset;
 }
 
+void vkal_vertex_buffer_reset(void)
+{
+    vkal_info.default_vertex_buffer_offset = 0;
+}
+
 // NOTE: If vertex_count is higher than the current buffer, vertex data after offset+vertex_count (in bytes) will be overwritten!!!
 void vkal_vertex_buffer_update(void* vertices, uint32_t vertex_count, uint32_t vertex_size, VkDeviceSize offset)
 {
@@ -3222,10 +3265,16 @@ void vkal_vertex_buffer_update(void* vertices, uint32_t vertex_count, uint32_t v
     vkDeviceWaitIdle(vkal_info.device);
 }
 
-uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count)
+uint64_t vkal_index_buffer_add(void * indices, uint32_t index_count)
 {
+    size_t index_size = sizeof(uint16_t);
+    
+    #if defined VKAL_INDEX_TYPE_UINT32
+        index_size = sizeof(uint32_t);
+    #endif
+
     uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;
-    uint32_t indices_in_bytes = index_count * sizeof(uint16_t);
+    uint32_t indices_in_bytes = index_count * index_size;
     uint64_t size = (indices_in_bytes + alignment - 1) & ~(alignment - 1);
     
     // map staging memory and upload index data
@@ -3295,6 +3344,11 @@ uint64_t vkal_index_buffer_update(uint32_t *indices, uint32_t index_count, uint3
     vkal_info.default_index_buffer_offset += size;
 
     return offset;
+}
+
+void vkal_index_buffer_reset(void)
+{
+    vkal_info.default_index_buffer_offset = 0;
 }
 
 VkDeviceAddress vkal_get_buffer_device_address(VkBuffer buffer)

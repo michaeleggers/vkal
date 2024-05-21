@@ -416,7 +416,7 @@ PipelineInfo create_ray_tracing_pipeline(VkalInfo * vkal_info, uint32_t model_co
     /* Finally, create Ray Tracing Pipeline */
     std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
     for (auto& shader_stage : shader_stages) {
-        shader_stage_create_infos.push_back(shader_stage.shader_create_info);
+        shader_stage_create_infos.push_back(shader_stage.create_info);
     }
     VkRayTracingPipelineCreateInfoKHR raytracing_pipeline_create_info{};
     raytracing_pipeline_create_info.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;

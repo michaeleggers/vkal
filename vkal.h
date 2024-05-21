@@ -347,14 +347,16 @@ typedef struct ShaderStageSetup
 {
     VkPipelineShaderStageCreateInfo vertex_shader_create_info;
     VkPipelineShaderStageCreateInfo fragment_shader_create_info;
-    uint32_t vert_shader_module;
-    uint32_t frag_shader_module;
+    VkPipelineShaderStageCreateInfo geometry_shader_create_info;
+    uint32_t vertex_shader_module;
+    uint32_t fragment_shader_module;
+    uint32_t geometry_shader_module;
 } ShaderStageSetup;
 
 typedef struct SingleShaderStageSetup
 {
-    VkPipelineShaderStageCreateInfo shader_create_info;
-    uint32_t shader_module;
+    VkPipelineShaderStageCreateInfo create_info;
+    uint32_t module;
 } SingleShaderStageSetup;
 
 #define VKAL_MAX_SURFACE_FORMATS	176
@@ -454,10 +456,11 @@ void create_default_semaphores(void);
 void vkal_cleanup(void);
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset);
 uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count);
+void vkal_vertex_buffer_reset(void);
 void vkal_vertex_buffer_update(void* vertices, uint32_t vertex_count, uint32_t vertex_size, VkDeviceSize offset);
-uint64_t vkal_index_buffer_add(uint16_t * indices, uint32_t index_count);
+uint64_t vkal_index_buffer_add(void * indices, uint32_t index_count);
+void vkal_index_buffer_reset(void);
 uint64_t vkal_index_buffer_update(uint32_t *indices, uint32_t index_count, uint32_t offset);
-
 
 #if defined (VKAL_GLFW)
 	void create_glfw_surface(void);
@@ -549,7 +552,10 @@ void vkal_update_descriptor_set_render_image(
 	VkDescriptorSet descriptor_set, uint32_t binding,
 	VkImageView image_view, VkSampler sampler);
 SingleShaderStageSetup vkal_create_shader(const uint8_t* shader_byte_code, uint32_t shader_byte_code_size, VkShaderStageFlagBits shader_stage_flag_bits);
-ShaderStageSetup vkal_create_shaders(const uint8_t * vertex_shader_code, uint32_t vertex_shader_code_size, const uint8_t * fragment_shader_code, uint32_t fragment_shader_code_size);
+ShaderStageSetup vkal_create_shaders(
+    const uint8_t * vertex_shader_code, uint32_t vertex_shader_code_size, 
+    const uint8_t * fragment_shader_code, uint32_t fragment_shader_code_size,
+    const uint8_t * geometry_shader_code, uint32_t geometry_shader_code_size);
 VkPipelineShaderStageCreateInfo create_shader_stage_info(VkShaderModule module, VkShaderStageFlagBits shader_stage_flag_bits);
 void create_shader_module(uint8_t const * shader_byte_code, int size, uint32_t * out_shader_module);
 VkShaderModule get_shader_module(uint32_t id);
@@ -577,8 +583,13 @@ void vkal_draw_indexed2(
     VkDeviceSize vertex_buffer_offset);
 void vkal_bind_descriptor_set(
 	uint32_t image_id,
-	VkDescriptorSet * descriptor_sets,
+	VkDescriptorSet * descriptor_set,
 	VkPipelineLayout pipeline_layout);
+void vkal_bind_descriptor_sets_from_to(
+    uint32_t image_id,
+    VkDescriptorSet* descriptor_sets,
+    uint32_t first_set, uint32_t set_count,
+    VkPipelineLayout pipeline_layout);
 void vkal_bind_descriptor_sets(
 	uint32_t image_id,
 	VkDescriptorSet * descriptor_sets, uint32_t descriptor_set_count,
