@@ -1646,18 +1646,20 @@ int is_device_suitable(VkPhysicalDevice device, char ** extensions, uint32_t ext
 QueueFamilyIndicies find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
     // Just look for a queue family that can do graphics for now
-    QueueFamilyIndicies indicies;
+    QueueFamilyIndicies indicies = { 0 };
     uint32_t queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, 0);
    
     VkQueueFamilyProperties* queue_families = NULL;
     VKAL_MALLOC(queue_families, queue_family_count);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families);
-    indicies.has_graphics_family = 0;
+    
     for (uint32_t i = 0; i < queue_family_count; ++i) {
-	    if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+	    if ( (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) && (queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT) ) {
 	        indicies.graphics_family = i;
 	        indicies.has_graphics_family = 1;
+            indicies.compute_family = i;
+            indicies.has_compute_family = 1;
 	        break;
 	    }
     }
@@ -1835,6 +1837,7 @@ void create_logical_device(char** extensions, uint32_t extension_count, VkalWant
 
     vkGetDeviceQueue(vkal_info.device, indicies.graphics_family, 0, &vkal_info.graphics_queue);
     vkGetDeviceQueue(vkal_info.device, indicies.present_family, 0, &vkal_info.present_queue);
+    vkGetDeviceQueue(vkal_info.device, indicies.compute_family, 0, &vkal_info.compute_queue);
 }
 
 void create_shader_module(uint8_t const * shader_byte_code, int size, uint32_t * out_shader_module)
@@ -2219,7 +2222,8 @@ SingleShaderStageSetup vkal_create_shader(const uint8_t* shader_byte_code, uint3
 ShaderStageSetup vkal_create_shaders(
     const uint8_t * vertex_shader_code, uint32_t vertex_shader_code_size, 
     const uint8_t * fragment_shader_code, uint32_t fragment_shader_code_size,
-    const uint8_t * geometry_shader_code, uint32_t geometry_shader_code_size)
+    const uint8_t * geometry_shader_code, uint32_t geometry_shader_code_size,
+    const uint8_t * compute_shader_code, uint32_t compute_shader_code_size)
 {
     ShaderStageSetup shader_setup = { 0 };
 
@@ -2236,6 +2240,12 @@ ShaderStageSetup vkal_create_shaders(
         SingleShaderStageSetup geometry_shader_setup = vkal_create_shader(geometry_shader_code, geometry_shader_code_size, VK_SHADER_STAGE_GEOMETRY_BIT);
         shader_setup.geometry_shader_create_info = geometry_shader_setup.create_info;
         shader_setup.geometry_shader_module = geometry_shader_setup.module;
+    }
+
+    if (compute_shader_code) {
+        SingleShaderStageSetup compute_shader_setup = vkal_create_shader(compute_shader_code, compute_shader_code_size, VK_SHADER_STAGE_COMPUTE_BIT);
+        shader_setup.compute_shader_create_info = compute_shader_setup.create_info;
+        shader_setup.compute_shader_module = compute_shader_setup.module;
     }
 
     return shader_setup;
@@ -2322,9 +2332,10 @@ VkPipeline vkal_create_graphics_pipeline(
     shader_stages_infos[0] = shader_setup.vertex_shader_create_info;
     shader_stages_infos[1] = shader_setup.fragment_shader_create_info;
     uint32_t num_shader_stages = 2;
+    
     if (shader_setup.geometry_shader_create_info.stage == VK_SHADER_STAGE_GEOMETRY_BIT) {
-        num_shader_stages = 3;
-        shader_stages_infos[2] = shader_setup.geometry_shader_create_info;
+        shader_stages_infos[num_shader_stages] = shader_setup.geometry_shader_create_info;
+        num_shader_stages += 1;
     }
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
@@ -2411,8 +2422,8 @@ VkPipeline vkal_create_graphics_pipeline(
     
     // dynamic state will force us to provide viewport dimensions and linewidth at drawing-time
     VkDynamicState dynamic_states[] = {
-	VK_DYNAMIC_STATE_VIEWPORT,
-	VK_DYNAMIC_STATE_SCISSOR,
+	    VK_DYNAMIC_STATE_VIEWPORT,
+	    VK_DYNAMIC_STATE_SCISSOR,
     };
     VkPipelineDynamicStateCreateInfo dynamic_state_info = { 0 };
     dynamic_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -2444,11 +2455,12 @@ void create_graphics_pipeline(VkGraphicsPipelineCreateInfo create_info, uint32_t
 {
     uint32_t free_index;
     for (free_index = 0; free_index < VKAL_MAX_VKPIPELINE; ++free_index) {
-	if (vkal_info.user_pipelines[free_index].used) {
+	    if (vkal_info.user_pipelines[free_index].used) {
 
-	}
-	else break;
+	    }
+	    else break;
     }
+
     VkResult result = vkCreateGraphicsPipelines(vkal_info.device, VK_NULL_HANDLE, 1, &create_info, 0, &vkal_info.user_pipelines[free_index].pipeline);
     VKAL_ASSERT(result && "failed to create graphics pipeline!");
     vkal_info.user_pipelines[free_index].used = 1;
@@ -3149,6 +3161,23 @@ void vkal_update_descriptor_set_uniform(
     vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_uniform, 0, VK_NULL_HANDLE);
 }
 
+void vkal_update_descriptor_set_ssbo(
+    VkDescriptorSet descriptor_set,
+    VkalSSBO ssbo,
+    VkDescriptorType descriptor_type)
+{
+    VkDescriptorBufferInfo ssbo_buffer_info = { 0 };
+    ssbo_buffer_info.buffer = ssbo.buffer.buffer;
+    ssbo_buffer_info.offset = ssbo.buffer.offset;
+    ssbo_buffer_info.range = ssbo.buffer.size;
+
+    VkWriteDescriptorSet write_set_ssbo = create_write_descriptor_set_buffer(
+        descriptor_set,
+        ssbo.binding, 1,
+        descriptor_type,
+        &ssbo_buffer_info);
+}
+
 void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type, 
     uint32_t binding, uint32_t array_element, VkalBuffer buffer)
 {
@@ -3177,7 +3206,23 @@ UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint3
     uniform_buffer.size = elements * uniform_buffer.alignment;
     uint64_t next_offset = uniform_buffer.size;
     vkal_info.default_uniform_buffer_offset += next_offset;
+
     return uniform_buffer;
+}
+
+// TODO: At the moment we just use the whole buffer for a SSBO as this simplifies things a bit.
+//       Later on we might want to have a system similar what is happening with the default buffers
+//       (such as uniform buffers) where we can pick only a fraction of a buffer for the SSBO.
+VkalSSBO vkal_create_ssbo(VkDeviceSize size, VkalBuffer buffer, uint32_t binding)
+{
+    VkalSSBO ssbo = { 0 };
+    ssbo.offset = buffer.offset;
+    ssbo.alignment = 0;
+    ssbo.size = buffer.size;
+    ssbo.binding = binding;
+    ssbo.buffer = buffer;
+
+    return ssbo;
 }
 
 uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count)
@@ -3335,6 +3380,35 @@ uint64_t vkal_index_buffer_update(void *indices, uint32_t index_count, uint32_t 
 void vkal_index_buffer_reset(void)
 {
     vkal_info.default_index_buffer_offset = 0;
+}
+
+void vkal_copy_to_staging_buffer(void* data, VkDeviceSize size) 
+{
+    // map staging memory and upload data
+    void* staging_memory;
+    VkResult result = vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, size, 0, &staging_memory);
+    VKAL_ASSERT(result && "failed to map device staging memory!");
+    flush_to_memory(vkal_info.device_memory_staging, staging_memory, data, size, 0);
+    vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
+}
+
+void vkal_copy_buffer(VkalBuffer src, VkalBuffer dst, VkDeviceSize size)
+{
+    VkCommandBuffer cmd_buffer = vkal_create_command_buffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+    VkBufferCopy buffer_copy = { 0 };
+    buffer_copy.dstOffset = 0;
+    buffer_copy.srcOffset = 0;
+    buffer_copy.size = size;
+    vkCmdCopyBuffer(cmd_buffer,
+        vkal_info.staging_buffer.buffer, dst.buffer, 1, &buffer_copy);
+    vkEndCommandBuffer(cmd_buffer);
+
+    VkSubmitInfo submit_info = { 0 };
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &cmd_buffer;
+    vkQueueSubmit(vkal_info.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+    vkDeviceWaitIdle(vkal_info.device);
 }
 
 VkDeviceAddress vkal_get_buffer_device_address(VkBuffer buffer)
