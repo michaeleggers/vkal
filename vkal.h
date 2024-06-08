@@ -292,6 +292,7 @@ typedef struct VkalInfo
     VkalPipelineHandle				user_pipelines[VKAL_MAX_VKPIPELINE];
     VkalSamplerHandle				user_samplers[VKAL_MAX_VKSAMPLER];
     VkalFramebufferHandle			user_framebuffers[VKAL_MAX_VKFRAMEBUFFER];
+    VkPipeline                      compute_pipeline;
 
     VkDevice	 device; 
     VkQueue		 graphics_queue;
@@ -325,6 +326,8 @@ typedef struct VkalInfo
     uint32_t			default_commandpool_count;
     VkCommandBuffer		* default_command_buffers;
     uint32_t			default_command_buffer_count;
+    VkCommandBuffer     * default_compute_command_buffers;
+    uint32_t            default_compute_command_buffer_count;
     
     VkSemaphore			image_available_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
     VkSemaphore			render_finished_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
@@ -335,12 +338,12 @@ typedef struct VkalInfo
 	VkalBuffer			default_uniform_buffer;
     VkalBuffer			default_vertex_buffer;
     VkalBuffer			default_index_buffer;
-    VkDeviceMemory	default_device_memory_uniform;
-    VkDeviceMemory	default_device_memory_vertex;
-    VkDeviceMemory	default_device_memory_index;
-    uint64_t		default_uniform_buffer_offset;
-    uint64_t		default_vertex_buffer_offset;
-    uint64_t		default_index_buffer_offset;
+    VkDeviceMemory	    default_device_memory_uniform;
+    VkDeviceMemory	    default_device_memory_vertex;
+    VkDeviceMemory	    default_device_memory_index;
+    uint64_t		    default_uniform_buffer_offset;
+    uint64_t		    default_vertex_buffer_offset;
+    uint64_t		    default_index_buffer_offset;
 
     VkDescriptorPool default_descriptor_pool;
 
@@ -438,6 +441,7 @@ VkalImage create_vkal_image(
     VkImageUsageFlags usage_flags, VkImageAspectFlags aspect_bits,
 	VkImageLayout layout);
 void create_default_command_buffers(void);
+void create_default_compute_command_buffers(void);
 VkCommandBuffer vkal_create_command_buffer(VkCommandBufferLevel cmd_buffer_level, uint32_t begin);
 void create_default_render_pass(void);
 void create_render_to_image_render_pass(void);
@@ -458,6 +462,8 @@ void create_graphics_pipeline(VkGraphicsPipelineCreateInfo create_info, uint32_t
 VkPipeline get_graphics_pipeline(uint32_t id);
 void destroy_graphics_pipeline(uint32_t id);
     
+void vkal_create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderStageSetup shader_setup);
+
 void create_default_depth_buffer(void);
 void create_default_descriptor_pool(void);
 void create_default_command_pool(void);
@@ -494,7 +500,7 @@ void vkal_copy_buffer(VkalBuffer src, VkalBuffer dst, VkDeviceSize size);
 #endif
 
 UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint32_t binding);
-VkalSSBO vkal_create_ssbo(VkDeviceSize size, VkalBuffer buffer, uint32_t binding);
+VkalSSBO vkal_create_ssbo_from_buffer(VkalBuffer buffer, uint32_t binding);
 void vkal_update_descriptor_set_uniform(
 	VkDescriptorSet descriptor_set, UniformBuffer uniform_buffer,
 	VkDescriptorType descriptor_type);
@@ -502,6 +508,11 @@ void vkal_update_descriptor_set_ssbo(
     VkDescriptorSet descriptor_set,
     VkalSSBO ssbo,
     VkDescriptorType descriptor_type);
+void vkal_update_descriptor_set_from_buffer(
+    VkDescriptorSet descriptor_set,
+    VkDescriptorType descriptor_type,
+    VkalBuffer buffer,
+    uint32_t binding);
 void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type, uint32_t binding, uint32_t array_element, VkalBuffer buffer);
 void vkal_update_descriptor_set_texturearray(
 	VkDescriptorSet descriptor_set,

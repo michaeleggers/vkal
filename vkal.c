@@ -83,6 +83,7 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
     create_default_descriptor_pool();
     create_default_command_pool();
     create_default_command_buffers();
+    create_default_compute_command_buffers();
     create_default_uniform_buffer(UNIFORM_BUFFER_SIZE);
     allocate_default_device_memory_uniform();
     create_default_vertex_buffer(VERTEX_BUFFER_SIZE);
@@ -1878,21 +1879,25 @@ void create_default_descriptor_pool(void)
     VkDescriptorPoolSize pool_sizes[] =
 	{
 	    {
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,     // type of the resource
-		1024							           // number of descriptors of that type to be stored in the pool. This is per set maybe?
+		    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,     // type of the resource
+		    1024							           // number of descriptors of that type to be stored in the pool. This is per set maybe?
 	    },
 	    {
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-		1024
+		    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+		    1024
 	    },
 	    {
-		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		1024 // TODO(Michael): figure out why we must have one additional available even if we're only using two textures!
+		    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+		    1024 // TODO(Michael): figure out why we must have one additional available even if we're only using two textures!
 	    },
 	    { // for sampling the shadow map
-		VK_DESCRIPTOR_TYPE_SAMPLER,
-		1024
-	    }
+		    VK_DESCRIPTOR_TYPE_SAMPLER,
+		    1024
+	    },
+        {
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            1024
+        }
 	};
     
     VkDescriptorPoolCreateInfo descriptor_pool_info = { 0 };
@@ -2482,6 +2487,20 @@ void destroy_graphics_pipeline(uint32_t id)
     }
 }
 
+void vkal_create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderStageSetup shader_setup)
+{
+    assert( (shader_setup.compute_shader_create_info.stage == VK_SHADER_STAGE_COMPUTE_BIT)
+            && "Compute Shader pipeline needs a valid shader setup."
+    );
+
+    VkComputePipelineCreateInfo pipeline_create_info = { 0 };
+    pipeline_create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipeline_create_info.layout = pipeline_layout;
+    pipeline_create_info.stage = shader_setup.compute_shader_create_info;
+
+    VKAL_ASSERT(vkCreateComputePipelines(vkal_info.device, VK_NULL_HANDLE, 1, &pipeline_create_info, NULL, &vkal_info.compute_pipeline));
+}
+
 VkWriteDescriptorSet create_write_descriptor_set_image(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,
                                                        uint32_t count, VkDescriptorType type, VkDescriptorImageInfo * image_info)
 {
@@ -2609,6 +2628,20 @@ void create_default_command_buffers(void)
 	vkAllocateCommandBuffers(vkal_info.device, &allocate_info, vkal_info.default_command_buffers); 
 }
 
+// TODO: Not sure if we should actually create those by default.
+//       Maybe leave this entirely to the client?
+void create_default_compute_command_buffers(void)
+{
+    VKAL_MALLOC(vkal_info.default_compute_command_buffers, vkal_info.framebuffer_count);
+    vkal_info.default_compute_command_buffer_count = vkal_info.framebuffer_count;
+    VkCommandBufferAllocateInfo allocate_info = { 0 };
+    allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocate_info.commandBufferCount = vkal_info.default_compute_command_buffer_count;
+    allocate_info.commandPool = vkal_info.default_command_pools[0]; // NOTE: What if present and graphics queue are not from the same family?
+    allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    vkAllocateCommandBuffers(vkal_info.device, &allocate_info, vkal_info.default_compute_command_buffers);
+}
+
 void vkal_begin(uint32_t image_id, VkCommandBuffer command_buffer, VkRenderPass render_pass)
 {
     VkCommandBufferBeginInfo begin_info = { 0 };
@@ -2714,7 +2747,7 @@ void vkal_bind_descriptor_sets_from_to(
 {
     vkCmdBindDescriptorSets(
         vkal_info.default_command_buffers[image_id], VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipeline_layout, first_set, set_count, descriptor_sets, 0, 0);
+        pipeline_layout, first_set, set_count, descriptor_sets, 0, VKAL_NULL);
 }
 
 void vkal_bind_descriptor_sets(
@@ -2746,7 +2779,7 @@ void vkal_bind_descriptor_set2(
 {
     vkCmdBindDescriptorSets(
 		command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
-        pipeline_layout, first_set, descriptor_set_count, descriptor_sets, 0, 0);
+        pipeline_layout, first_set, descriptor_set_count, descriptor_sets, 0, VKAL_NULL);
 }
 
 void vkal_viewport(VkCommandBuffer command_buffer, float x, float y, float width, float height)
@@ -3176,6 +3209,28 @@ void vkal_update_descriptor_set_ssbo(
         ssbo.binding, 1,
         descriptor_type,
         &ssbo_buffer_info);
+
+    vkUpdateDescriptorSets(vkal_info.device, 1, &write_set_ssbo, 0, VK_NULL_HANDLE);
+}
+
+void vkal_update_descriptor_set_from_buffer(
+    VkDescriptorSet descriptor_set,
+    VkDescriptorType descriptor_type,
+    VkalBuffer buffer,
+    uint32_t binding)
+{
+    VkDescriptorBufferInfo desc_buffer_info = { 0 };
+    desc_buffer_info.buffer = buffer.buffer;
+    desc_buffer_info.offset = buffer.offset;
+    desc_buffer_info.range = buffer.size;
+
+    VkWriteDescriptorSet write_set = create_write_descriptor_set_buffer(
+        descriptor_set,
+        binding, 1,
+        descriptor_type,
+        &desc_buffer_info);
+
+    vkUpdateDescriptorSets(vkal_info.device, 1, &write_set, 0, VK_NULL_HANDLE);
 }
 
 void vkal_update_descriptor_set_bufferarray(VkDescriptorSet descriptor_set, VkDescriptorType descriptor_type, 
@@ -3213,7 +3268,7 @@ UniformBuffer vkal_create_uniform_buffer(uint32_t size, uint32_t elements, uint3
 // TODO: At the moment we just use the whole buffer for a SSBO as this simplifies things a bit.
 //       Later on we might want to have a system similar what is happening with the default buffers
 //       (such as uniform buffers) where we can pick only a fraction of a buffer for the SSBO.
-VkalSSBO vkal_create_ssbo(VkDeviceSize size, VkalBuffer buffer, uint32_t binding)
+VkalSSBO vkal_create_ssbo_from_buffer(VkalBuffer buffer, uint32_t binding)
 {
     VkalSSBO ssbo = { 0 };
     ssbo.offset = buffer.offset;
@@ -3440,6 +3495,9 @@ void vkal_cleanup(void) {
 
     for (uint32_t i = 0; i < vkal_info.default_commandpool_count; ++i) {
 		vkFreeCommandBuffers(vkal_info.device, vkal_info.default_command_pools[0], 1, &vkal_info.default_command_buffers[i]);
+    }
+    for (uint32_t i = 0; i < vkal_info.default_commandpool_count; ++i) {
+        vkFreeCommandBuffers(vkal_info.device, vkal_info.default_command_pools[0], 1, &vkal_info.default_compute_command_buffers[i]);
     }
     for (uint32_t i = 0; i < vkal_info.default_commandpool_count; ++i) {
 		vkDestroyCommandPool(vkal_info.device, vkal_info.default_command_pools[i], 0);
