@@ -332,6 +332,8 @@ typedef struct VkalInfo
     VkSemaphore			image_available_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
     VkSemaphore			render_finished_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
     VkFence				in_flight_fences[VKAL_MAX_IMAGES_IN_FLIGHT];
+    VkSemaphore         compute_finished_semaphores[VKAL_MAX_IMAGES_IN_FLIGHT];
+    VkFence             in_flight_compute_fences[VKAL_MAX_IMAGES_IN_FLIGHT];
     uint32_t			frames_rendered;
     //uint32_t current_frame;
     
@@ -475,6 +477,7 @@ void create_default_uniform_buffer(uint32_t size);
 void create_default_vertex_buffer(uint32_t size);
 void create_default_index_buffer(uint32_t size);
 void create_default_semaphores(void);
+void create_default_compute_snyc_primitves(void);
 void vkal_cleanup(void);
 void flush_to_memory(VkDeviceMemory device_memory, void * dst_memory, void * src_memory, uint32_t size, uint32_t offset);
 uint64_t vkal_vertex_buffer_add(void * vertices, uint32_t vertex_size, uint32_t vertex_count);

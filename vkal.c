@@ -92,6 +92,7 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
     allocate_default_device_memory_index();
     create_staging_buffer(STAGING_BUFFER_SIZE);
     create_default_semaphores();
+    create_default_compute_snyc_primitves();
     vkal_info.frames_rendered = 0;
 
     // Setup some flags required for feature enable/disable
@@ -2992,6 +2993,22 @@ void create_default_semaphores(void)
 
     }
     //memset(vkal_info.image_in_flight_fences, VK_NULL_HANDLE, vkal_info.swapchain_image_count * sizeof(VkFence));
+}
+
+void create_default_compute_snyc_primitves(void)
+{
+    for (int i = 0; i < VKAL_MAX_IMAGES_IN_FLIGHT; i++) {
+        VkFenceCreateInfo fenceInfo = { 0 };
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.pNext = NULL;
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        VkResult result = vkCreateFence(vkal_info.device, &fenceInfo, NULL, &vkal_info.in_flight_compute_fences[i]);
+        VKAL_ASSERT(result && "failed to create compute-fence");
+
+        VkSemaphoreCreateInfo sem_info = (VkSemaphoreCreateInfo){ 0 };
+        sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        vkCreateSemaphore(vkal_info.device, &sem_info, 0, &vkal_info.compute_finished_semaphores[i]);
+    }
 }
 
 void allocate_default_device_memory_uniform(void)
