@@ -2902,6 +2902,30 @@ void vkal_draw_indexed2(
     vkCmdDrawIndexed(command_buffer, index_count, 1, 0, 0, 0);
 }
 
+void vkal_fence_compute(uint32_t image_id)
+{
+    vkWaitForFences(vkal_info.device, 1, &vkal_info.in_flight_compute_fences[vkal_info.frames_rendered], VK_TRUE, UINT64_MAX);
+    
+    // TODO: Update Uniforms here?
+
+    vkResetFences(vkal_info.device, 1, &vkal_info.in_flight_compute_fences[vkal_info.frames_rendered]);   
+}
+
+void vkal_submit_compute(uint32_t image_id)
+{
+    // vkResetCommandBuffer(vkal_info.default_compute_command_buffers[vkal_info.frames_rendered], 0);
+    // recordComputeCommandBuffer(vkal_info.default_compute_command_buffers[image_id]);
+    
+    VkSubmitInfo submit_info = { 0 };
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &vkal_info.default_compute_command_buffers[vkal_info.frames_rendered];
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = &vkal_info.compute_finished_semaphores[vkal_info.frames_rendered];
+
+    VKAL_ASSERT(vkQueueSubmit(vkal_info.compute_queue, 1, &submit_info, vkal_info.in_flight_compute_fences[vkal_info.frames_rendered]));
+}
+
 uint32_t vkal_get_image(void)
 {
     vkWaitForFences(vkal_info.device, 1, &vkal_info.in_flight_fences[vkal_info.frames_rendered], VK_TRUE, UINT64_MAX);
@@ -2931,11 +2955,14 @@ void vkal_queue_submit(VkCommandBuffer * command_buffers, uint32_t command_buffe
 {
     VkSubmitInfo submit_info = { 0 };
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    VkSemaphore wait_semaphores[1];
+    VkSemaphore wait_semaphores[2];
     wait_semaphores[0] = vkal_info.image_available_semaphores[vkal_info.frames_rendered];
-    VkPipelineStageFlags wait_stages[1];
-    wait_stages[0] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    submit_info.waitSemaphoreCount = 1;
+    wait_semaphores[1] = vkal_info.compute_finished_semaphores[vkal_info.frames_rendered];
+
+    VkPipelineStageFlags wait_stages[2];
+    wait_stages[0] = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+    wait_stages[1] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    submit_info.waitSemaphoreCount = 2;
     submit_info.pWaitSemaphores = wait_semaphores; // wait until image is available from swapchain ringbuffer
     submit_info.pWaitDstStageMask = wait_stages;
     submit_info.commandBufferCount = command_buffer_count;

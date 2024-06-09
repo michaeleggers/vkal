@@ -603,6 +603,8 @@ VkPipelineShaderStageCreateInfo create_shader_stage_info(VkShaderModule module, 
 void create_shader_module(uint8_t const * shader_byte_code, int size, uint32_t * out_shader_module);
 VkShaderModule get_shader_module(uint32_t id);
 void destroy_shader_module(uint32_t id);
+void vkal_fence_compute(uint32_t image_id);
+void vkal_submit_compute(uint32_t image_id);
 uint32_t vkal_get_image(void);
 void vkal_viewport(VkCommandBuffer command_buffer, float x, float y, float width, float height);
 void vkal_scissor(VkCommandBuffer command_buffer, float offset_x, float offset_y, float extent_x, float extent_y);
