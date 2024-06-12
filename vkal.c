@@ -83,7 +83,7 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
     create_default_descriptor_pool();
     create_default_command_pool();
     create_default_command_buffers();
-    create_default_compute_command_buffers();
+    //create_default_compute_command_buffers();
     create_default_uniform_buffer(UNIFORM_BUFFER_SIZE);
     allocate_default_device_memory_uniform();
     create_default_vertex_buffer(VERTEX_BUFFER_SIZE);
@@ -92,7 +92,7 @@ VkalInfo * vkal_init(char ** extensions, uint32_t extension_count, VkalWantedFea
     allocate_default_device_memory_index();
     create_staging_buffer(STAGING_BUFFER_SIZE);
     create_default_semaphores();
-    create_default_compute_snyc_primitves();
+    //create_default_compute_snyc_primitves();
     vkal_info.frames_rendered = 0;
 
     // Setup some flags required for feature enable/disable
@@ -2228,8 +2228,7 @@ SingleShaderStageSetup vkal_create_shader(const uint8_t* shader_byte_code, uint3
 ShaderStageSetup vkal_create_shaders(
     const uint8_t * vertex_shader_code, uint32_t vertex_shader_code_size, 
     const uint8_t * fragment_shader_code, uint32_t fragment_shader_code_size,
-    const uint8_t * geometry_shader_code, uint32_t geometry_shader_code_size,
-    const uint8_t * compute_shader_code, uint32_t compute_shader_code_size)
+    const uint8_t * geometry_shader_code, uint32_t geometry_shader_code_size)
 {
     ShaderStageSetup shader_setup = { 0 };
 
@@ -2248,11 +2247,12 @@ ShaderStageSetup vkal_create_shaders(
         shader_setup.geometry_shader_module = geometry_shader_setup.module;
     }
 
-    if (compute_shader_code) {
-        SingleShaderStageSetup compute_shader_setup = vkal_create_shader(compute_shader_code, compute_shader_code_size, VK_SHADER_STAGE_COMPUTE_BIT);
-        shader_setup.compute_shader_create_info = compute_shader_setup.create_info;
-        shader_setup.compute_shader_module = compute_shader_setup.module;
-    }
+    // TODO(Compute): Compute shaders are not part of the standard pipeline. We should create a separate setup for them
+    //if (compute_shader_code) {
+    //    SingleShaderStageSetup compute_shader_setup = vkal_create_shader(compute_shader_code, compute_shader_code_size, VK_SHADER_STAGE_COMPUTE_BIT);
+    //    shader_setup.compute_shader_create_info = compute_shader_setup.create_info;
+    //    shader_setup.compute_shader_module = compute_shader_setup.module;
+    //}
 
     return shader_setup;
 }
@@ -2488,19 +2488,19 @@ void destroy_graphics_pipeline(uint32_t id)
     }
 }
 
-void vkal_create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderStageSetup shader_setup)
-{
-    assert( (shader_setup.compute_shader_create_info.stage == VK_SHADER_STAGE_COMPUTE_BIT)
-            && "Compute Shader pipeline needs a valid shader setup."
-    );
-
-    VkComputePipelineCreateInfo pipeline_create_info = { 0 };
-    pipeline_create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    pipeline_create_info.layout = pipeline_layout;
-    pipeline_create_info.stage = shader_setup.compute_shader_create_info;
-
-    VKAL_ASSERT(vkCreateComputePipelines(vkal_info.device, VK_NULL_HANDLE, 1, &pipeline_create_info, NULL, &vkal_info.compute_pipeline));
-}
+//void vkal_create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderStageSetup shader_setup)
+//{
+//    assert( (shader_setup.compute_shader_create_info.stage == VK_SHADER_STAGE_COMPUTE_BIT)
+//            && "Compute Shader pipeline needs a valid shader setup."
+//    );
+//
+//    VkComputePipelineCreateInfo pipeline_create_info = { 0 };
+//    pipeline_create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+//    pipeline_create_info.layout = pipeline_layout;
+//    pipeline_create_info.stage = shader_setup.compute_shader_create_info;
+//
+//    VKAL_ASSERT(vkCreateComputePipelines(vkal_info.device, VK_NULL_HANDLE, 1, &pipeline_create_info, NULL, &vkal_info.compute_pipeline));
+//}
 
 VkWriteDescriptorSet create_write_descriptor_set_image(VkDescriptorSet dst_descriptor_set, uint32_t dst_binding,
                                                        uint32_t count, VkDescriptorType type, VkDescriptorImageInfo * image_info)
@@ -2957,12 +2957,11 @@ void vkal_queue_submit(VkCommandBuffer * command_buffers, uint32_t command_buffe
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     VkSemaphore wait_semaphores[2];
     wait_semaphores[0] = vkal_info.image_available_semaphores[vkal_info.frames_rendered];
-    wait_semaphores[1] = vkal_info.compute_finished_semaphores[vkal_info.frames_rendered];
+    //wait_semaphores[1] = vkal_info.compute_finished_semaphores[vkal_info.frames_rendered];
 
-    VkPipelineStageFlags wait_stages[2];
-    wait_stages[0] = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
-    wait_stages[1] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    submit_info.waitSemaphoreCount = 2;
+    VkPipelineStageFlags wait_stages[1];    
+    wait_stages[0] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    submit_info.waitSemaphoreCount = 1;
     submit_info.pWaitSemaphores = wait_semaphores; // wait until image is available from swapchain ringbuffer
     submit_info.pWaitDstStageMask = wait_stages;
     submit_info.commandBufferCount = command_buffer_count;
@@ -3540,9 +3539,9 @@ void vkal_cleanup(void) {
     for (uint32_t i = 0; i < vkal_info.default_commandpool_count; ++i) {
 		vkFreeCommandBuffers(vkal_info.device, vkal_info.default_command_pools[0], 1, &vkal_info.default_command_buffers[i]);
     }
-    for (uint32_t i = 0; i < vkal_info.default_commandpool_count; ++i) {
-        vkFreeCommandBuffers(vkal_info.device, vkal_info.default_command_pools[0], 1, &vkal_info.default_compute_command_buffers[i]);
-    }
+    //for (uint32_t i = 0; i < vkal_info.default_commandpool_count; ++i) {
+    //    vkFreeCommandBuffers(vkal_info.device, vkal_info.default_command_pools[0], 1, &vkal_info.default_compute_command_buffers[i]);
+    //}
     for (uint32_t i = 0; i < vkal_info.default_commandpool_count; ++i) {
 		vkDestroyCommandPool(vkal_info.device, vkal_info.default_command_pools[i], 0);
     }

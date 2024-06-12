@@ -365,13 +365,11 @@ typedef struct ShaderStageSetup
 {
     VkPipelineShaderStageCreateInfo vertex_shader_create_info;
     VkPipelineShaderStageCreateInfo fragment_shader_create_info;
-    VkPipelineShaderStageCreateInfo geometry_shader_create_info;
-    VkPipelineShaderStageCreateInfo compute_shader_create_info;
+    VkPipelineShaderStageCreateInfo geometry_shader_create_info;    
 
     uint32_t vertex_shader_module;
     uint32_t fragment_shader_module;
-    uint32_t geometry_shader_module;
-    uint32_t compute_shader_module;
+    uint32_t geometry_shader_module;    
 } ShaderStageSetup;
 
 typedef struct SingleShaderStageSetup
@@ -464,7 +462,7 @@ void create_graphics_pipeline(VkGraphicsPipelineCreateInfo create_info, uint32_t
 VkPipeline get_graphics_pipeline(uint32_t id);
 void destroy_graphics_pipeline(uint32_t id);
     
-void vkal_create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderStageSetup shader_setup);
+//void vkal_create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderStageSetup shader_setup);
 
 void create_default_depth_buffer(void);
 void create_default_descriptor_pool(void);
@@ -597,8 +595,7 @@ SingleShaderStageSetup vkal_create_shader(const uint8_t* shader_byte_code, uint3
 ShaderStageSetup vkal_create_shaders(
     const uint8_t * vertex_shader_code, uint32_t vertex_shader_code_size, 
     const uint8_t * fragment_shader_code, uint32_t fragment_shader_code_size,
-    const uint8_t * geometry_shader_code, uint32_t geometry_shader_code_size,
-    const uint8_t* compute_shader_code, uint32_t compute_shader_code_size);
+    const uint8_t * geometry_shader_code, uint32_t geometry_shader_code_size);
 VkPipelineShaderStageCreateInfo create_shader_stage_info(VkShaderModule module, VkShaderStageFlagBits shader_stage_flag_bits);
 void create_shader_module(uint8_t const * shader_byte_code, int size, uint32_t * out_shader_module);
 VkShaderModule get_shader_module(uint32_t id);
