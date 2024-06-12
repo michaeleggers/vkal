@@ -3483,9 +3483,12 @@ void vkal_index_buffer_reset(void)
 
 void vkal_copy_to_staging_buffer(void* data, VkDeviceSize size)
 {
+    uint64_t alignment = vkal_info.physical_device_properties.limits.nonCoherentAtomSize;    
+    uint64_t aligned_size = (size + alignment - 1) & ~(alignment - 1);
+
     // map staging memory and upload data
     void* staging_memory;
-    VkResult result = vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, size, 0, &staging_memory);
+    VkResult result = vkMapMemory(vkal_info.device, vkal_info.device_memory_staging, 0, aligned_size, 0, &staging_memory);
     VKAL_ASSERT(result && "failed to map device staging memory!");
     flush_to_memory(vkal_info.device_memory_staging, staging_memory, data, size, 0);
     vkUnmapMemory(vkal_info.device, vkal_info.device_memory_staging);
