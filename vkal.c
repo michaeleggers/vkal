@@ -2219,6 +2219,8 @@ SingleShaderStageSetup vkal_create_shader(const uint8_t* shader_byte_code, uint3
 ShaderStageSetup vkal_create_shaders(
     const uint8_t * vertex_shader_code, uint32_t vertex_shader_code_size, 
     const uint8_t * fragment_shader_code, uint32_t fragment_shader_code_size,
+    const uint8_t * tctrl_shader_code, uint32_t tctrl_shader_code_size,
+    const uint8_t * teval_shader_code, uint32_t teval_shader_code_size,
     const uint8_t * geometry_shader_code, uint32_t geometry_shader_code_size)
 {
     ShaderStageSetup shader_setup = { 0 };
@@ -2231,6 +2233,17 @@ ShaderStageSetup vkal_create_shaders(
     shader_setup.fragment_shader_create_info = fragment_shader_setup.create_info;
     shader_setup.fragment_shader_module = fragment_shader_setup.module;
     
+    if (tctrl_shader_code) {
+        SingleShaderStageSetup tctrl_shader_setup = vkal_create_shader(tctrl_shader_code, tctrl_shader_code_size, VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+        shader_setup.tctrl_shader_create_info = tctrl_shader_setup.create_info;
+        shader_setup.tctrl_shader_module = tctrl_shader_setup.module;
+    }
+
+    if (teval_shader_code) {
+        SingleShaderStageSetup teval_shader_setup = vkal_create_shader(teval_shader_code, teval_shader_code_size, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+        shader_setup.teval_shader_create_info = teval_shader_setup.create_info;
+        shader_setup.teval_shader_module = teval_shader_setup.module;
+    }
 
     if (geometry_shader_code) {
         SingleShaderStageSetup geometry_shader_setup = vkal_create_shader(geometry_shader_code, geometry_shader_code_size, VK_SHADER_STAGE_GEOMETRY_BIT);
@@ -2308,7 +2321,8 @@ VkPipeline vkal_create_graphics_pipeline(
 	uint32_t vertex_input_binding_count,
 	VkVertexInputAttributeDescription * vertex_attributes, 
 	uint32_t vertex_attribute_count,
-	ShaderStageSetup shader_setup, 
+    uint32_t patch_control_points,
+	ShaderStageSetup shader_setup,
     VkBool32 depth_test_enable, 
 	VkCompareOp depth_compare_op, 
     VkCullModeFlags cull_mode,
@@ -2318,13 +2332,23 @@ VkPipeline vkal_create_graphics_pipeline(
 	VkRenderPass render_pass,
 	VkPipelineLayout pipeline_layout)
 {        
-    VkPipelineShaderStageCreateInfo shader_stages_infos[3] = { 0 };
+    VkPipelineShaderStageCreateInfo shader_stages_infos[5] = { 0 };
     shader_stages_infos[0] = shader_setup.vertex_shader_create_info;
     shader_stages_infos[1] = shader_setup.fragment_shader_create_info;
     uint32_t num_shader_stages = 2;
+    uint32_t tessellationShaderActive = 0;
+    if (shader_setup.tctrl_shader_create_info.stage == VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT) {
+        shader_stages_infos[num_shader_stages] = shader_setup.tctrl_shader_create_info;
+        num_shader_stages += 1;
+    }
+    if (shader_setup.teval_shader_create_info.stage == VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT) {
+        shader_stages_infos[num_shader_stages] = shader_setup.teval_shader_create_info;
+        num_shader_stages += 1;
+        tessellationShaderActive = 1;
+    }
     if (shader_setup.geometry_shader_create_info.stage == VK_SHADER_STAGE_GEOMETRY_BIT) {
-        num_shader_stages = 3;
-        shader_stages_infos[2] = shader_setup.geometry_shader_create_info;
+        shader_stages_infos[num_shader_stages] = shader_setup.geometry_shader_create_info;
+        num_shader_stages += 1;
     }
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
@@ -2339,6 +2363,10 @@ VkPipeline vkal_create_graphics_pipeline(
     input_assembly_info.topology = primitive_topology;
     input_assembly_info.primitiveRestartEnable = VK_FALSE;
     
+    VkPipelineTessellationStateCreateInfo tessellation_state_info = { 0 };
+    tessellation_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+    tessellation_state_info.patchControlPoints = patch_control_points;
+
     VkViewport viewport = {0};
     viewport.x        = 0.f;
     viewport.y        = 0.f;
@@ -2425,6 +2453,9 @@ VkPipeline vkal_create_graphics_pipeline(
     pipeline_info.pStages = shader_stages_infos;
     pipeline_info.pVertexInputState = &vertex_input_info;
     pipeline_info.pInputAssemblyState = &input_assembly_info;
+    if (tessellationShaderActive) {
+        pipeline_info.pTessellationState = &tessellation_state_info;
+    }
     pipeline_info.pViewportState = &viewport_state;
     pipeline_info.pRasterizationState = &rasterizer_info;
     pipeline_info.pMultisampleState = &ms_info;
